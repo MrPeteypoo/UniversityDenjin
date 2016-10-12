@@ -1,0 +1,63 @@
+{
+	"name": "denjin",
+	"description": "A 3D game engine.",
+	"license": "MIT",
+	
+	"authors": ["Simon Peter Campbell"],
+	"copyright": "Copyright 2016 Simon Peter Campbell",
+
+	"homepage": "https://github.com/storm20200/Denjin",
+
+	"targetType": "library",
+	"targetName": "denjin",
+	"targetPath": "builds/unsupported",	
+	
+	"copyFiles": ["content/"],
+
+	"importPaths": [
+		"source",
+		"external"
+	],
+
+	"sourcePaths": [
+		"external/glad"
+	],
+
+	"configurations": [
+		{
+			"name": "windows",
+			"platforms": ["windows"],
+			"targetPath": "builds/windows"
+
+		},
+		{
+			"name": "linux",
+			"platforms": ["linux"],
+			"libs-linux": ["libdl"],
+			"targetPath": "builds/linux"
+		}
+	],
+
+	"buildRequirements": [
+		"allowWarnings",
+		"disallowDeprecations"
+	],
+
+	"buildTypes": {		
+		"optimized": {
+			"buildOptions": ["releaseMode", "optimize", "inline", "debugInfo"]
+		},
+
+		"optimized-unittest": {
+			"buildOptions": ["debugMode", "optimize", "inline", "debugInfo", "unittests"]
+		},
+
+		"release": {
+			"buildOptions": ["releaseMode", "optimize", "inline", "noBoundsCheck"]
+		},
+
+		"release-unittest": {
+			"buildOptions": ["debugMode", "optimize", "inline", "noBoundsCheck", "unittests"]
+		}
+	}
+}

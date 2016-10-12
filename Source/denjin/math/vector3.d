@@ -16,7 +16,7 @@ nothrow:
 A numeric structure representing a 3-dimensional vector of floats containing an x, y and z component.
 See also Vector3T.
 */
-alias Vector3 = Vector3T!(float);
+alias Vector3 = Vector3T!float;
 
 /// 
 unittest
