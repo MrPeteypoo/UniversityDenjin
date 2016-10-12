@@ -1,0 +1,29 @@
+language: d
+
+os:
+    - linux
+    - osx
+
+dist: trusty
+sudo: false
+
+d:
+    - dmd
+    - gdc
+    - ldc2
+    
+install:
+    - dmd --version
+    - gdc --version
+    - ldc2 --version
+    - dub fetch doveralls
+    - dub build doveralls
+
+script:
+    - dub test --arch=x86 --build=unittest-cov
+    - dub test --arch=x86_64 --build=unittest
+    - dub test --arch=x86 --build=optimized-unittest
+    - dub test --arch=x86_64 --build=optimized-unittest
+    - dub test --arch=x86 --build=release-unittest
+    - dub test --arch=x86_64 --build=release-unittest
+    - dub run doveralls
