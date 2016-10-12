@@ -4,15 +4,13 @@
 	"license": "MIT",
 	
 	"authors": ["Simon Peter Campbell"],
-	"copyright": "Copyright 2016 Simon Peter Campbell",
+	"copyright": "Copyright © 2016, Simon Peter Campbell",
 
 	"homepage": "https://github.com/storm20200/Denjin",
 
 	"targetType": "library",
 	"targetName": "denjin",
 	"targetPath": "builds/unsupported",	
-	
-	"copyFiles": ["content/"],
 
 	"importPaths": [
 		"source",
