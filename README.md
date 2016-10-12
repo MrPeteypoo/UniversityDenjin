@@ -1,2 +1,2 @@
 # Denjin (D Engine)
-[![Build Status](https://travis-ci.org/storm20200/Denjin.svg?branch=master)](https://travis-ci.org/storm20200/Denjin)[![Coverage Status](https://coveralls.io/repos/github/storm20200/Denjin/badge.svg)](https://coveralls.io/github/storm20200/Denjin)
+[![Build Status](https://travis-ci.org/storm20200/Denjin.svg?branch=master)](https://travis-ci.org/storm20200/Denjin) [![Coverage Status](https://coveralls.io/repos/github/storm20200/Denjin/badge.svg)](https://coveralls.io/github/storm20200/Denjin)
