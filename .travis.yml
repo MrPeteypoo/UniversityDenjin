@@ -13,9 +13,6 @@ d:
     - ldc2
     
 install:
-    - dmd --version
-    - gdc --version
-    - ldc2 --version
     - dub fetch doveralls
     - dub build doveralls
 
