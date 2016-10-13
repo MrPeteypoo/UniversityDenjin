@@ -41,7 +41,7 @@ unittest
         Number = The underlying numerical type of the vector.
 */
 struct Vector3T(Number)
-    if (isNumeric!(Number))
+    if (isNumeric!Number)
 {
     // Members.
     Number  x = void;   /// The left/right component.

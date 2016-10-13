@@ -18,6 +18,8 @@ matrix:
       d: dmd
     - os: osx
       d: ldc2
+  exclude:
+    - d: dmd
 
 addons:
   apt:
