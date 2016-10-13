@@ -19,7 +19,6 @@ matrix:
 addons:
   apt:
     packages:
-      - gcc-multilib
       - g++-multilib
     
 install:
