@@ -1,25 +1,25 @@
 language: d
 
+# No Mac support until Metal is implemented.
 os:
   - linux
-  - osx
+#  - osx
 
 sudo: false
 
 d:
   - dmd
-  - gdc 
   - ldc2
 
 matrix:
-  exclude:
-    - os: osx
+  allow_failures:
+    - os: linux
       d: gdc
 
 addons:
   apt:
     packages:
-      - g++-multilib
+      - g++-multilib  # Required for unittest-cov support.
     
 install:
   - dub fetch doveralls
