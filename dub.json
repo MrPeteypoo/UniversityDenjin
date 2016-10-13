@@ -36,7 +36,7 @@
 		{
 			"name": "linux",
 			"platforms": ["linux"],
-			"libs-linux": ["libdl"],
+			"libs-linux": ["dl"],
 			"targetPath": "builds/linux"
 		}
 	],
