@@ -1,34 +1,42 @@
 language: d
 
 os:
-    - linux
-    - osx
+  - linux
+  - osx
 
 sudo: false
 
-addons:
-    apt:
-        packages:
-            - gcc-multilib
-            - g++-multilib
+matrix:
+  include:
+    - os: linux
+      d: dmd
+    - os: linux
+      d: gdc
+    - os: linux
+      d: ldc2
+    - os: osx
+      d: dmd
+    - os: osx
+      d: ldc2
 
-d:
-    - dmd
-    - gdc
-    - ldc2
+addons:
+  apt:
+    packages:
+      - gcc-multilib
+      - g++-multilib
     
 install:
-    - dub fetch doveralls
-    - dub build doveralls
+  - dub fetch doveralls
+  - dub build doveralls
 
 # 64-bit only support on Linux using GDC until a more permanent solution to not having a 32-bit phobos can be found.
 script:
-    - if [ "$TRAVIS_OS_NAME" != "linux" ] || [ "$DC" != "gdc" ]; then dub test --arch=x86 --build=unittest; fi
-    - if [ "$TRAVIS_OS_NAME" != "linux" ] || [ "$DC" != "gdc" ]; then dub test --arch=x86 --build=optimized-unittest; fi
-    - if [ "$TRAVIS_OS_NAME" != "linux" ] || [ "$DC" != "gdc" ]; then dub test --arch=x86 --build=release-unittest; fi
-    - dub test --arch=x86_64 --build=unittest-cov
-    - dub test --arch=x86_64 --build=optimized-unittest
-    - dub test --arch=x86_64 --build=release-unittest
+  - if [ "$DC" != "gdc" ]; then dub test --arch=x86 --build=unittest; fi
+  - if [ "$DC" != "gdc" ]; then dub test --arch=x86 --build=optimized-unittest; fi
+  - if [ "$DC" != "gdc" ]; then dub test --arch=x86 --build=release-unittest; fi
+  - dub test --arch=x86_64 --build=unittest-cov
+  - dub test --arch=x86_64 --build=optimized-unittest
+  - dub test --arch=x86_64 --build=release-unittest
 
 after_script:
-    - dub run doveralls
+  - dub run doveralls
