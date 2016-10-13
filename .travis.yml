@@ -6,6 +6,11 @@ os:
 
 sudo: false
 
+addons:
+    apt:
+        packages:
+            - gcc-multilib
+
 d:
     - dmd
     - gdc
@@ -22,4 +27,6 @@ script:
     - dub test --arch=x86_64 --build=optimized-unittest
     - dub test --arch=x86 --build=release-unittest
     - dub test --arch=x86_64 --build=release-unittest
+
+after_script:
     - dub run doveralls
