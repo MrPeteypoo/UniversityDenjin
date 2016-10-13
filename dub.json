@@ -12,13 +12,15 @@
 	"targetName": "denjin",
 	"targetPath": "builds/unsupported",	
 
+	"dependencies": {
+		"glad": {
+			"path": "external/glad"
+		} 
+	},
+
 	"importPaths": [
 		"source",
 		"external"
-	],
-
-	"sourcePaths": [
-		"external/glad"
 	],
 
 	"configurations": [

@@ -10,6 +10,7 @@ addons:
     apt:
         packages:
             - gcc-multilib
+            - g++-multilib
 
 d:
     - dmd
@@ -20,12 +21,13 @@ install:
     - dub fetch doveralls
     - dub build doveralls
 
+# 64-bit only support on Linux using GDC until a more permanent solution to not having a 32-bit phobos can be found.
 script:
-    - dub test --arch=x86 --build=unittest-cov
-    - dub test --arch=x86_64 --build=unittest
-    - dub test --arch=x86 --build=optimized-unittest
+    - if [ "$TRAVIS_OS_NAME" != "linux" ] || [ "$DC" != "gdc" ]; then dub test --arch=x86 --build=unittest; fi
+    - if [ "$TRAVIS_OS_NAME" != "linux" ] || [ "$DC" != "gdc" ]; then dub test --arch=x86 --build=optimized-unittest; fi
+    - if [ "$TRAVIS_OS_NAME" != "linux" ] || [ "$DC" != "gdc" ]; then dub test --arch=x86 --build=release-unittest; fi
+    - dub test --arch=x86_64 --build=unittest-cov
     - dub test --arch=x86_64 --build=optimized-unittest
-    - dub test --arch=x86 --build=release-unittest
     - dub test --arch=x86_64 --build=release-unittest
 
 after_script:

@@ -5,8 +5,6 @@ bool load()
 {
     gladLoadGL();
     auto i = GLuint();
-    glGenBuffers(1, &i);
-    glDeleteBuffers(1, &i);
     return true;
 }
 
