@@ -6,20 +6,15 @@ os:
 
 sudo: false
 
+d:
+  - dmd
+  - gdc 
+  - ldc2
+
 matrix:
-  include:
-    - os: linux
-      d: dmd
-    - os: linux
-      d: gdc
-    - os: linux
-      d: ldc2
-    - os: osx
-      d: dmd
-    - os: osx
-      d: ldc2
   exclude:
-    - d: dmd
+    - os: osx
+      d: gdc
 
 addons:
   apt:
