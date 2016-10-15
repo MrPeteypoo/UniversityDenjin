@@ -13,9 +13,8 @@
 	"targetPath": "builds/unsupported",	
 
 	"dependencies": {
-		"glad": {
-			"path": "external/glad"
-		} 
+		"erupted": "~>1.4.6",
+		"derelict-glfw3": "~>3.1.0"
 	},
 
 	"importPaths": [
@@ -64,5 +63,11 @@
 		"release-unittest": {
 			"buildOptions": ["debugMode", "optimize", "inline", "noBoundsCheck", "unittests"]
 		}
-	}
+	},
+
+	"copyFiles": ["content/all/*"],
+	"copyFiles-windows-x86": ["content/win32/*"],
+	"copyFiles-windows-x86_64": ["content/win64/*"],
+	"copyFiles-linux-x86": ["content/linux32/*"],
+	"copyFiles-linux-x86_64": ["content/linux64/*"]	
 }
