@@ -26,19 +26,17 @@
 		{
 			"name": "windows",
 			"platforms": ["windows"],
-			"targetPath": "builds/windows"
-
-		},
-		{
-			"name": "osx",
-			"platforms": ["osx"],
-			"targetPath": "builds/osx"
+			"targetPath": "builds/windows",
+			"preGenerateCommands-x86": ["$PACKAGE_DIR\\scripts\\build-glfw-windows.bat 32"],
+			"preGenerateCommands-x86_64": ["$PACKAGE_DIR\\scripts\\build-glfw-windows.bat 64"]
 		},
 		{
 			"name": "linux",
 			"platforms": ["linux"],
 			"libs-linux": ["dl"],
-			"targetPath": "builds/linux"
+			"targetPath": "builds/linux",
+			"preGenerateCommands-x86": ["$PACKAGE_DIR/scripts/build-glfw-linux.sh 32"],
+			"preGenerateCommands-x86_64": ["$PACKAGE_DIR/scripts/build-glfw-linux.sh 64"]
 		}
 	],
 
