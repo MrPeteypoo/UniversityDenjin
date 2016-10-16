@@ -23,10 +23,10 @@ addons:
       - kubuntu-backports # GLFW CMake version.
     packages:
       - cmake           # GLFW.
-      - libx11-dev      # GLFW.
-      - libxrandr-dev   # GLFW.
-      - libxinerama-dev # GLFW.
-      - libxcursor-dev  # GLFW.
+      #- libx11-dev      # GLFW.
+      #- libxrandr-dev   # GLFW.
+      #- libxinerama-dev # GLFW.
+      #- libxcursor-dev  # GLFW.
       - g++-multilib    # unittest-cov support.
     
 install:
