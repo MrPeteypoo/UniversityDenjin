@@ -86,7 +86,7 @@ before_build:
 build_script:
  - echo dummy build script - dont remove me
 
- before_test:
+before_test:
  - dub fetch doveralls
  - dub build doveralls
 
@@ -100,5 +100,5 @@ test_script:
  - dub test --arch=%Darch% --compiler=%DC% --build=optimized-unittest
  - dub test --arch=%Darch% --compiler=%DC% --build=release-unittest
 
- after_test:
+after_test:
  - dub run doveralls
