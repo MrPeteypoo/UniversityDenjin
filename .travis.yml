@@ -25,14 +25,14 @@ addons:
       - gcc-multilib          # unittest-cov support.
       - cmake                 # GLFW.
       - libx11-dev:i386       # GLFW.
-      - libxau-dev:i386       # GLFW.
-      - libxcursor-dev:i386   # GLFW.
-      - libxdmcp-dev:i386     # GLFW.
-      - libxext-dev:i386      # GLFW.
-      - libxfixes-dev:i386    # GLFW.
-      - libxinerama-dev:i386  # GLFW.
-      - libxrandr-dev:i386    # GLFW.
-      - libxrender-dev:i386   # GLFW.
+      - libxau-dev       # GLFW.
+      - libxcursor-dev   # GLFW.
+      - libxdmcp-dev     # GLFW.
+      - libxext-dev      # GLFW.
+      - libxfixes-dev    # GLFW.
+      - libxinerama-dev  # GLFW.
+      - libxrandr-dev    # GLFW.
+      - libxrender-dev   # GLFW.
     
 install:
   - dub fetch doveralls
