@@ -45,7 +45,12 @@ install:
               }
               $env:toolchain = "msvc";
               $version = $env:DVersion;
-              Invoke-WebRequest "https://github.com/ldc-developers/ldc/releases/download/v$($version)/ldc2-$($version)-win64-msvc.zip" -OutFile "c:\ldc.zip";
+              if ($env:arch -eq "x86"){
+                Invoke-WebRequest "https://github.com/ldc-developers/ldc/releases/download/v$($version)/ldc2-$($version)-win32-msvc.zip" -OutFile "c:\ldc.zip";
+              }
+              else {
+                Invoke-WebRequest "https://github.com/ldc-developers/ldc/releases/download/v$($version)/ldc2-$($version)-win64-msvc.zip" -OutFile "c:\ldc.zip";
+              }              
               echo "finished.";
               pushd c:\\;
               7z x ldc.zip > $null;
@@ -81,6 +86,10 @@ before_build:
 build_script:
  - echo dummy build script - dont remove me
 
+ before_test:
+ - dub fetch doveralls
+ - dub build doveralls
+
 test_script:
  - echo %PLATFORM%
  - echo %Darch%
@@ -90,3 +99,6 @@ test_script:
  - dub test --arch=%Darch% --compiler=%DC% --build=unittest-cov
  - dub test --arch=%Darch% --compiler=%DC% --build=optimized-unittest
  - dub test --arch=%Darch% --compiler=%DC% --build=release-unittest
+
+ after_test:
+ - dub run doveralls
