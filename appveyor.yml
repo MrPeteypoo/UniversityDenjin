@@ -83,6 +83,9 @@ before_build:
 build_script:
  - echo dummy build script - dont remove me
 
+before_test:
+ - git submodule update --init --recursive
+
 test_script:
  - echo %PLATFORM%
  - echo %Darch%
