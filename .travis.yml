@@ -6,45 +6,74 @@ os:
 
 sudo: false
 
-d:
-  - dmd
-  - ldc2
-  - gdc
-
 addons:
   apt:
     sources:
       - kubuntu-backports # GLFW CMake version.
+
     packages: &native_deps
       - gcc-multilib  # unittest-cov support.
       - cmake         # GLFW.
 
 matrix:
-  allow_failures:
-    - d: gdc
   include:
-    - env: ARCH=x86      
+
+    # 32-bit DMD
+    - env: ARCH="x86"
+      d: dmd
       addons:
         apt:
           sources:
             - *native_deps
-            - ["libx11-dev:i386", "libxrandr-dev:i386", "libxinerama-dev:i386", "libxcursor-dev:i386"]
-    - env: ARCH=x86_64
+            - &32bit_deps ["libx11-dev:i386", "libxrandr-dev:i386", "libxinerama-dev:i386", "libxcursor-dev:i386"]
+
+    # 32-bit LDC2
+    - env: ARCH="x86"
+      d: ldc2
       addons:
         apt:
           sources:
             - *native_deps
-            - [libx11-dev, libxrandr-dev, libxinerama-dev, libxcursor-dev]
+            - *32bit_deps
+
+    # 64-bit DMD
+    - env: ARCH="x86_64"
+      d: dmd
+      addons:
+        apt:
+          sources:
+            - *native_deps
+            - &64bit_deps [libx11-dev, libxrandr-dev, libxinerama-dev, libxcursor-dev]
+
+    # 64-bit LDC2
+    - env: ARCH="x86_64"
+      d: ldc2
+      addons:
+        apt:
+          sources:
+            - *native_deps
+            - *32bit_deps
+
+  allow_failures:
+    # 64-bit GDC
+    - env: ARCH="x86_64"
+      d: gdc
+      addons:
+        apt:
+          sources:
+            - *native_deps
+            - *32bit_deps
+  exclude:
+    - d: dmd
     
 install:
   - dub fetch doveralls
   - dub build doveralls
 
-# 64-bit only support on Linux using GDC until a more permanent solution to not having a 32-bit phobos can be found.
 script:
-  - if [ "$ARCH" != "x86" || "$DC" != "gdc" ]; then dub test --arch=$ARCH --build=unittest-cov; fi
-  - if [ "$ARCH" != "x86" || "$DC" != "gdc" ]; then dub test --arch=$ARCH --build=optimized-unittest; fi
-  - if [ "$ARCH" != "x86" || "$DC" != "gdc" ]; then dub test --arch=$ARCH --build=release-unittest; fi
+  - dub test --arch=$ARCH --build=unittest-cov
+  - dub test --arch=$ARCH --build=optimized-unittest
+  - dub test --arch=$ARCH --build=release-unittest
 
 after_script:
   - dub run doveralls
