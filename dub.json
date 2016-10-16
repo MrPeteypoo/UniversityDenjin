@@ -27,8 +27,8 @@
 			"name": "windows",
 			"platforms": ["windows"],
 			"targetPath": "builds/windows",
-			"preGenerateCommands-x86": ["$PACKAGE_DIR\\scripts\\build-glfw-windows.bat 32"],
-			"preGenerateCommands-x86_64": ["$PACKAGE_DIR\\scripts\\build-glfw-windows.bat 64"]
+			"preGenerateCommands-x86": ["$PACKAGE_DIR\\scripts\\build-glfw-windows.bat x86"],
+			"preGenerateCommands-x86_64": ["$PACKAGE_DIR\\scripts\\build-glfw-windows.bat x86_64"]
 		},
 		{
 			"name": "linux",
@@ -64,8 +64,8 @@
 	},
 
 	"copyFiles": ["content/all/*"],
-	"copyFiles-windows-x86": ["content/win32/*"],
-	"copyFiles-windows-x86_64": ["content/win64/*"],
-	"copyFiles-linux-x86": ["content/linux32/*"],
-	"copyFiles-linux-x86_64": ["content/linux64/*"]	
+	"copyFiles-windows-x86": ["content/win-x86/*"],
+	"copyFiles-windows-x86_64": ["content/win-x86_64/*"],
+	"copyFiles-linux-x86": ["content/linux-x86/*"],
+	"copyFiles-linux-x86_64": ["content/linux-x86_64/*"]	
 }

@@ -22,6 +22,7 @@ extraCMakeFlags=""
 
 exit_script ()
 {
+    cd $currentDir
     echo ""
     echo "================================="
     echo "Exiting $shFileName..."
@@ -56,7 +57,5 @@ echo ""
 
 echo "Copying libglfw.so for $folder..."
 cp src/libglfw.so ../$output > /dev/null
-
-cd $currentDir
 
 exit_script

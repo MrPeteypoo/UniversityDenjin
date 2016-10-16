@@ -5,7 +5,8 @@ os:
   - linux
 #  - osx
 
-sudo: false
+dist: trusty
+sudo: required
 
 d:
   - dmd
@@ -19,7 +20,10 @@ matrix:
 
 addons:
   apt:
+    sources:
+      - kubuntu-backports # GLFW CMake version.
     packages:
+      - cmake           # GLFW.
       - libx11-dev      # GLFW.
       - libxrandr-dev   # GLFW.
       - libxinerama-dev # GLFW.

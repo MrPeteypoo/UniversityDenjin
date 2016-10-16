@@ -14,19 +14,23 @@ echo:
 cd %batchDir%
 
 set arch=%1
-set folder=win%arch%
+set folder=win-%arch%
 set glfw=..\external\glfw
 set output=..\content\%folder%
 set generator=""
 
-if %arch% == 32 (
+if %arch% == x86 (
     set generator="Visual Studio 14 2015"
-) else if %arch% == 64 (
+) else if %arch% == x86_64 (
     set generator="Visual Studio 14 2015 Win64"
 ) else (
     echo:Incorrect Arch parameter given: %arch%.
-    cd %currentDir%
-    exit /B 0
+    call :exit_script
+)
+
+if not exist %glfw%\CMakeLists.txt (
+    echo:Couldn't find external\glfw\CMakeLists.txt, makes sure you run 'git submodule update --init --recursive'
+    call :exit_script
 )
 
 if not exist ..\.temp mkdir ..\.temp
@@ -45,12 +49,14 @@ echo:
 
 echo:Copying glfw3.dll for %folder%...
 xcopy /Y src\Release\glfw3.dll ..\%output% > null
+call :exit_script
 
 REM Ensure we go back to the previous directory.
+:exit_script
 cd %currentDir%
-
 echo: 
 echo:=================================
 echo:Exiting %batchFileName%...
 echo:=================================
 echo: 
+exit 0
