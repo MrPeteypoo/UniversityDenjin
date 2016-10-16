@@ -20,7 +20,11 @@ matrix:
 addons:
   apt:
     packages:
-      - g++-multilib  # Required for unittest-cov support.
+      - libx11-dev      # GLFW.
+      - libxrandr-dev   # GLFW.
+      - libxinerama-dev # GLFW.
+      - libxcursor-dev  # GLFW.
+      - g++-multilib    # unittest-cov support.
     
 install:
   - dub fetch doveralls
