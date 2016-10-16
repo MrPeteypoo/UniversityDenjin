@@ -18,17 +18,17 @@ matrix:
     - os: linux
       d: gdc
 
-addons:
-  apt:
-    sources:
-      - kubuntu-backports # GLFW CMake version.
-    packages:
-      - cmake           # GLFW.
-      - libx11-dev      # GLFW.
-      - libxrandr-dev   # GLFW.
-      - libxinerama-dev # GLFW.
-      - libxcursor-dev  # GLFW.
-      - g++-multilib    # unittest-cov support.
+#addons:
+#  apt:
+#    sources:
+#      - kubuntu-backports # GLFW CMake version.
+#    packages:
+#      - cmake           # GLFW.
+#      - libx11-dev      # GLFW.
+#      - libxrandr-dev   # GLFW.
+#      - libxinerama-dev # GLFW.
+#      - libxcursor-dev  # GLFW.
+#      - g++-multilib    # unittest-cov support.
     
 install:
   - dub fetch doveralls
