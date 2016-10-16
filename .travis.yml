@@ -1,4 +1,5 @@
 language: d
+d: dmd
 
 # No Mac support until Metal is implemented.
 os:
@@ -8,7 +9,7 @@ sudo: false
 
 addons:
   apt:
-    sources:
+    sources: &native_sources
       - kubuntu-backports # GLFW CMake version.
 
     packages: &native_deps
@@ -23,7 +24,8 @@ matrix:
       d: dmd
       addons:
         apt:
-          sources:
+          sources: *native_sources
+          packages:
             - *native_deps
             - &32bit_deps ["libx11-dev:i386", "libxrandr-dev:i386", "libxinerama-dev:i386", "libxcursor-dev:i386"]
 
@@ -32,7 +34,8 @@ matrix:
       d: ldc2
       addons:
         apt:
-          sources:
+          sources: *native_sources
+          packages:
             - *native_deps
             - *32bit_deps
 
@@ -41,7 +44,8 @@ matrix:
       d: dmd
       addons:
         apt:
-          sources:
+          sources: *native_sources
+          packages:
             - *native_deps
             - &64bit_deps [libx11-dev, libxrandr-dev, libxinerama-dev, libxcursor-dev]
 
@@ -50,19 +54,25 @@ matrix:
       d: ldc2
       addons:
         apt:
-          sources:
+          sources: *native_sources
+          packages:
             - *native_deps
             - *32bit_deps
 
-  allow_failures:
     # 64-bit GDC
     - env: ARCH="x86_64"
       d: gdc
       addons:
         apt:
-          sources:
+          sources: *native_sources
+          packages:
             - *native_deps
             - *32bit_deps
+
+  allow_failures:
+    - env: ARCH="x86_64"
+      d: gdc
+      
   exclude:
     - d: dmd
     
