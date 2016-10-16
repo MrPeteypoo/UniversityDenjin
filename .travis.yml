@@ -1,21 +1,9 @@
-language: d
-
 # No Mac support until Metal is implemented.
 os:
   - linux
 #  - osx
 
 sudo: false
-
-d:
-  - dmd
-  - ldc2
-  - gdc
-
-matrix:
-  allow_failures:
-    - os: linux
-      d: gdc
 
 addons:
   apt:
@@ -24,8 +12,34 @@ addons:
     packages:
       - gcc-multilib  # unittest-cov support.
       - cmake         # GLFW.
-      - xorg-dev      # GLFW.
-      - xorg-dev:i386 # GLFW.
+
+matrix:
+  include:
+    - env: ARCH=x86
+      d:
+        - dmd
+        - ldc2
+      addons:
+        apt:
+          sources:
+            - libx11-dev:i386
+            - libxrandr-dev:i386
+            - libxinerama-dev:i386
+            - libxcursor-dev:i386
+    - env: ARCH=x86_64
+      d:
+        - dmd
+        - ldc2
+        - gdc
+      allow_failures:
+        - d: gdc
+      addons:
+        apt:
+          sources:
+            - libx11-dev
+            - libxrandr-dev
+            - libxinerama-dev
+            - libxcursor-dev
     
 install:
   - dub fetch doveralls
@@ -33,12 +47,9 @@ install:
 
 # 64-bit only support on Linux using GDC until a more permanent solution to not having a 32-bit phobos can be found.
 script:
-  - if [ "$DC" != "gdc" ]; then dub test --arch=x86 --build=unittest; fi
-  - if [ "$DC" != "gdc" ]; then dub test --arch=x86 --build=optimized-unittest; fi
-  - if [ "$DC" != "gdc" ]; then dub test --arch=x86 --build=release-unittest; fi
-  - dub test --arch=x86_64 --build=unittest-cov
-  - dub test --arch=x86_64 --build=optimized-unittest
-  - dub test --arch=x86_64 --build=release-unittest
+  - if [ "$ARCH" != "x86" || "$DC" != "gdc" ]; then dub test --arch=$ARCH --build=unittest-cov; fi
+  - if [ "$ARCH" != "x86" || "$DC" != "gdc" ]; then dub test --arch=$ARCH --build=optimized-unittest; fi
+  - if [ "$ARCH" != "x86" || "$DC" != "gdc" ]; then dub test --arch=$ARCH --build=release-unittest; fi
 
 after_script:
   - dub run doveralls
