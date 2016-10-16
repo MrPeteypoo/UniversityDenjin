@@ -1,45 +1,40 @@
+language: d
+
 # No Mac support until Metal is implemented.
 os:
   - linux
-#  - osx
 
 sudo: false
+
+d:
+  - dmd
+  - ldc2
+  - gdc
 
 addons:
   apt:
     sources:
       - kubuntu-backports # GLFW CMake version.
-    packages:
+    packages: &native_deps
       - gcc-multilib  # unittest-cov support.
       - cmake         # GLFW.
 
 matrix:
+  allow_failures:
+    - d: gdc
   include:
-    - env: ARCH=x86
-      d:
-        - dmd
-        - ldc2
+    - env: ARCH=x86      
       addons:
         apt:
           sources:
-            - libx11-dev:i386
-            - libxrandr-dev:i386
-            - libxinerama-dev:i386
-            - libxcursor-dev:i386
+            - *native_deps
+            - [libx11-dev:i386, libxrandr-dev:i386, libxinerama-dev:i386, libxcursor-dev:i386]
     - env: ARCH=x86_64
-      d:
-        - dmd
-        - ldc2
-        - gdc
-      allow_failures:
-        - d: gdc
       addons:
         apt:
           sources:
-            - libx11-dev
-            - libxrandr-dev
-            - libxinerama-dev
-            - libxcursor-dev
+            - *native_deps
+            - [libx11-dev, libxrandr-dev, libxinerama-dev, libxcursor-dev]
     
 install:
   - dub fetch doveralls
