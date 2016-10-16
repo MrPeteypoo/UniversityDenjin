@@ -33,7 +33,6 @@ addons:
       - libxfixes-dev       # GLFW.
       - libxinerama-dev     # GLFW.
       - libxrandr-dev       # GLFW.
-      - libxrandr-dev:i386  # GLFW.
       - libxrender-dev      # GLFW.
     
 install:
