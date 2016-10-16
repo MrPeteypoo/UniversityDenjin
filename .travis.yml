@@ -27,7 +27,8 @@ addons:
       #- libxrandr-dev   # GLFW.
       #- libxinerama-dev # GLFW.
       #- libxcursor-dev  # GLFW.
-      - g++-multilib    # unittest-cov support.
+      - clang
+      - gcc-multilib    # unittest-cov support.
     
 install:
   - dub fetch doveralls
