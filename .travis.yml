@@ -22,18 +22,10 @@ addons:
     sources:
       - kubuntu-backports # GLFW CMake version.
     packages:
-      - gcc-multilib        # unittest-cov support.
-      - cmake               # GLFW.
-      - libx11-dev          # GLFW.
-      - libx11-dev:i386     # GLFW.
-      - libxau-dev          # GLFW.
-      - libxcursor-dev      # GLFW.
-      - libxdmcp-dev        # GLFW.
-      - libxext-dev         # GLFW.
-      - libxfixes-dev       # GLFW.
-      - libxinerama-dev     # GLFW.
-      - libxrandr-dev       # GLFW.
-      - libxrender-dev      # GLFW.
+      - gcc-multilib  # unittest-cov support.
+      - cmake         # GLFW.
+      - xorg-dev      # GLFW.
+      - xorg-dev:i386 # GLFW.
     
 install:
   - dub fetch doveralls
