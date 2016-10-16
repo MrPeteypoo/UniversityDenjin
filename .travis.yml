@@ -28,7 +28,7 @@ matrix:
         apt:
           sources:
             - *native_deps
-            - [libx11-dev:i386, libxrandr-dev:i386, libxinerama-dev:i386, libxcursor-dev:i386]
+            - ["libx11-dev:i386", "libxrandr-dev:i386", "libxinerama-dev:i386", "libxcursor-dev:i386"]
     - env: ARCH=x86_64
       addons:
         apt:
