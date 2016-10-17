@@ -56,6 +56,6 @@ cmake --build . --target glfw > /dev/null
 echo ""
 
 echo "Copying libglfw.so for $folder..."
-cp src/libglfw.so ../$output > /dev/null
+cp src/libglfw.so ../$output/libglfw3.so > /dev/null
 
 exit_script
