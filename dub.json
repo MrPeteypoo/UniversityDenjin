@@ -4,37 +4,39 @@
 	"license": "MIT",
 	
 	"authors": ["Simon Peter Campbell"],
-	"copyright": "Copyright 2016 Simon Peter Campbell",
+	"copyright": "Copyright © 2016, Simon Peter Campbell",
 
 	"homepage": "https://github.com/storm20200/Denjin",
 
 	"targetType": "library",
 	"targetName": "denjin",
 	"targetPath": "builds/unsupported",	
-	
-	"copyFiles": ["content/"],
+
+	"dependencies": {
+		"erupted": "~>1.4.6",
+		"derelict-glfw3": "~>3.1.0"
+	},
 
 	"importPaths": [
 		"source",
 		"external"
 	],
 
-	"sourcePaths": [
-		"external/glad"
-	],
-
 	"configurations": [
 		{
 			"name": "windows",
 			"platforms": ["windows"],
-			"targetPath": "builds/windows"
-
+			"targetPath": "builds/windows",
+			"preGenerateCommands-x86": ["$PACKAGE_DIR\\scripts\\build-glfw-windows.bat x86"],
+			"preGenerateCommands-x86_64": ["$PACKAGE_DIR\\scripts\\build-glfw-windows.bat x86_64"]
 		},
 		{
 			"name": "linux",
 			"platforms": ["linux"],
-			"libs-linux": ["libdl"],
-			"targetPath": "builds/linux"
+			"libs-linux": ["dl"],
+			"targetPath": "builds/linux",
+			"preGenerateCommands-x86": ["$PACKAGE_DIR/scripts/build-glfw-linux.sh x86"],
+			"preGenerateCommands-x86_64": ["$PACKAGE_DIR/scripts/build-glfw-linux.sh x86_64"]
 		}
 	],
 
@@ -59,5 +61,11 @@
 		"release-unittest": {
 			"buildOptions": ["debugMode", "optimize", "inline", "noBoundsCheck", "unittests"]
 		}
-	}
+	},
+
+	"copyFiles": ["content/all/*"],
+	"copyFiles-windows-x86": ["content/win-x86/*"],
+	"copyFiles-windows-x86_64": ["content/win-x86_64/*"],
+	"copyFiles-linux-x86": ["content/linux-x86/*"],
+	"copyFiles-linux-x86_64": ["content/linux-x86_64/*"]	
 }

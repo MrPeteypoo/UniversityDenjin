@@ -1,0 +1,100 @@
+language: d
+
+d: dmd
+
+# No Mac support until Metal is implemented.
+os:
+  - linux
+
+sudo: false
+
+addons:
+  apt:
+    sources: &native_sources
+      - kubuntu-backports # GLFW CMake version.
+
+    packages: &native_deps
+      - gcc-multilib  # unittest-cov support.
+      - cmake         # GLFW.
+
+matrix:
+  include:
+
+    # 32-bit DMD
+    - env: ARCH=x86
+      d: dmd
+      addons:
+        apt:
+          sources: *native_sources
+          packages:
+            - *native_deps
+            - &32bit_deps ["libx11-dev:i386", "libxrandr-dev:i386", "libxinerama-dev:i386", "libxcursor-dev:i386",
+                           "libxfixes-dev:i386", "libxext-dev:i386", "libgl1-mesa-dev:i386", "libglu1-mesa-dev:i386"]
+
+    # 32-bit LDC2
+    - env: ARCH=x86
+      d: ldc2
+      addons:
+        apt:
+          sources: *native_sources
+          packages:
+            - *native_deps
+            - *32bit_deps
+
+    # 32-bit GDC
+    - env: ARCH=x86
+      d: gdc
+      addons:
+        apt:
+          sources: *native_sources
+          packages:
+            - *native_deps
+            - *32bit_deps
+
+    # 64-bit DMD
+    - env: ARCH=x86_64
+      d: dmd
+      addons:
+        apt:
+          sources: *native_sources
+          packages:
+            - *native_deps
+            - &64bit_deps [libx11-dev, libxrandr-dev, libxinerama-dev, libxcursor-dev]
+
+    # 64-bit LDC2
+    - env: ARCH=x86_64
+      d: ldc2
+      addons:
+        apt:
+          sources: *native_sources
+          packages:
+            - *native_deps
+            - *64bit_deps
+
+    # 64-bit GDC
+    - env: ARCH=x86_64
+      d: gdc
+      addons:
+        apt:
+          sources: *native_sources
+          packages:
+            - *native_deps
+            - *64bit_deps
+
+  allow_failures:
+    - d: gdc
+      
+  exclude:
+    - d: dmd
+    
+install:
+  - dub fetch doveralls
+  - dub build doveralls
+
+script:
+  - dub test --arch=$ARCH --build=unittest-cov
+  - dub test --arch=$ARCH --build=optimized-unittest
+  - dub test --arch=$ARCH --build=release-unittest
+
+after_script:
+  - dub run doveralls
