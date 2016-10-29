@@ -13,7 +13,7 @@ output="../content/$folder"
 outputFile="$output/libglfw3.so"
 extraCMakeFlags=""
 
-if [ -e "$shDir$outputFile" ]; then
+if [ -e "$shDir/$outputFile" ]; then
     exit 0
 fi;
 
