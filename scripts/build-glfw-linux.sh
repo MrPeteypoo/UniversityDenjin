@@ -6,19 +6,16 @@ currentDir=`pwd`
 shDir="${0%/*}"
 shFileName="${0##*/}"
 
-echo ""
-echo "================================="
-echo "Starting $shFileName..."
-echo "================================="
-echo "" 
-
-cd $shDir
-
 arch="$1"
 folder="linux-$arch"
 glfw="../external/glfw"
 output="../content/$folder"
+outputFile="$output/libglfw3.so"
 extraCMakeFlags=""
+
+if [ -e "$shDir$outputFile" ]; then
+    exit 0
+fi;
 
 exit_script ()
 {
@@ -30,6 +27,14 @@ exit_script ()
     echo "" 
     exit 0
 }
+
+echo ""
+echo "================================="
+echo "Starting $shFileName..."
+echo "================================="
+echo ""
+
+cd $shDir
 
 if [ "$arch" == "x86" ]; then
     extraCMakeFlags="-DCMAKE_C_COMPILER_ARG1=-m32"
@@ -56,6 +61,6 @@ cmake --build . --target glfw > /dev/null
 echo ""
 
 echo "Copying libglfw.so for $folder..."
-cp src/libglfw.so ../$output/libglfw3.so > /dev/null
+cp src/libglfw.so ../$outputFile > /dev/null
 
 exit_script

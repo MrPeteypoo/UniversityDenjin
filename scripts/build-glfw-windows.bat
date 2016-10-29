@@ -5,19 +5,16 @@ set currentDir=%cd%
 set batchDir=%~dp0
 set batchFileName=%~n0
 
-echo: 
-echo:=================================
-echo:Starting %batchFileName%...
-echo:=================================
-echo: 
-
-cd %batchDir%
-
 set arch=%1
 set folder=win-%arch%
 set glfw=..\external\glfw
 set output=..\content\%folder%
+set outputFile=%output%%glfw3.dll%
 set generator=""
+
+if exist %batchDir%%outputFile% (
+    exit 0
+)
 
 if %arch% == x86 (
     set generator="Visual Studio 14 2015"
@@ -27,6 +24,14 @@ if %arch% == x86 (
     echo:Incorrect Arch parameter given: %arch%.
     call :exit_script
 )
+
+echo: 
+echo:=================================
+echo:Starting %batchFileName%...
+echo:=================================
+echo: 
+
+cd %batchDir%
 
 if not exist %glfw%\CMakeLists.txt (
     echo:Couldn't find external\glfw\CMakeLists.txt, makes sure you run 'git submodule update --init --recursive'
