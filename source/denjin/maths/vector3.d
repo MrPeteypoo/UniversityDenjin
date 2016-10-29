@@ -1,4 +1,4 @@
-module denjin.math.vector3;
+module denjin.maths.vector3;
 
 
 // Phobos.
