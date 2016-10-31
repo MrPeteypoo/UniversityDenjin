@@ -27,3 +27,4 @@ docs/
 .temp/
 builds/
 
+dub.selections.json
