@@ -13,7 +13,7 @@ import std.traits : isNumeric, isSigned;
 
 
 // Engine.
-import denjin.utility.meta : parameters, GenerateMemberProperty;
+import denjin.utility.meta : parameters, GenerateMemberProperty, UnrollLoop;
 
 
 /**
@@ -81,10 +81,7 @@ struct Vector (Number, size_t Dimensions)
     /// Sets each component of the vector to the given value.
     this (in Number value)
     {
-        foreach (i; 0 .. Dimensions)
-        {
-            array[i] = value;
-        }
+        mixin (UnrollLoop!(0, Dimensions, 1, "array[$@] = value;"));
     }
 
     /// Creates a vector by setting each component to the specified values. The number of parameters being passed must
@@ -94,13 +91,7 @@ struct Vector (Number, size_t Dimensions)
     this (Number...)(in Number values)
         if (values.length == Dimensions)
     {
-        import std.meta : aliasSeqOf;
-        import std.range : iota;
-
-        /*foreach (i; aliasSeqOf!iota (0, Dimensions))
-        {
-            array[i] = values[i];
-        }*/
+        mixin (UnrollLoop!(0, Dimensions, 1, "array[$@] = values[$@];"));
     }
 
 
@@ -119,28 +110,29 @@ struct Vector (Number, size_t Dimensions)
 unittest
 {
     // Most efficient constructor, data is not set to any value.
-    immutable vec1f = Vector!(float, 1)();
+    enum vec1f = Vector!(float, 1)();
+    static assert (vec1f.array.length == vec1f.dimensions);
     
     // Sets each component to zero.
-    immutable vec2f = Vector!(float, 2)(0f);    
-    assert (vec2f.x == 0f && vec2f.y == 0f);
+    enum vec2f = Vector!(float, 2)(0f);
+    static assert (vec2f.x == 0f && vec2f.y == 0f);
 
     // Short-hand exists for common vector values.
-    immutable vec3f = Vector!(float, 3).forward;
-    assert (vec3f.x == 0f && vec3f.y == 0f && vec3f.z == 1f);
+    enum vec3f = Vector!(float, 3).forward;
+    static assert (vec3f.x == 0f && vec3f.y == 0f && vec3f.z == 1f);
 
     // Can be constructed with vectors, values are extracted.
     //immutable vec4f = Vector!(float, 4)(vec1f, vec2f, 0f);
     //assert (vec4f.x == vec1f.x && vec4f.y == vec2f.x && vec4f.z == vec2f.y && vec4f.w == 0f);
     
     // Component-wise construction is also available. Array accessor notation is supported.
-    immutable vec5f = Vector!(float, 5)(1f, 2f, 3f, 4f, 5f);
-    assert (vec5f[0] == 1f && vec5f[1] == 2f && vec5f[2] == 3f && vec5f[3] == 4f && vec5f[4] == 5f);
+    enum vec5f = Vector!(float, 5)(1f, 2f, 3f, 4f, 5f);
+    static assert (vec5f[0] == 1f && vec5f[1] == 2f && vec5f[2] == 3f && vec5f[3] == 4f && vec5f[4] == 5f);
 
     // Short-hand component access is available up to 4D vectors.
-    assert (vec1f.x == vec1f.i && vec1f.x == vec1f.s && vec1f.x == vec1f.r && vec1f.x == vec1f.u);
-    assert (vec2f.y == vec2f.j && vec2f.y == vec2f.t && vec2f.y == vec2f.g && vec2f.x == vec2f.v);
-    assert (vec3f.z == vec3f.k && vec3f.z == vec3f.p && vec3f.z == vec3f.b);
+    static assert (vec2f.x == vec2f.i && vec2f.x == vec2f.s && vec2f.x == vec2f.r && vec2f.x == vec2f.u);
+    static assert (vec2f.y == vec2f.j && vec2f.y == vec2f.t && vec2f.y == vec2f.g && vec2f.x == vec2f.v);
+    static assert (vec3f.z == vec3f.k && vec3f.z == vec3f.p && vec3f.z == vec3f.b);
     //assert (vec4f.w == vec4f.l && vec4f.w == vec4f.q && vec4f.w == vec4f.a);
 }
 
