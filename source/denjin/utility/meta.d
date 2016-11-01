@@ -17,8 +17,8 @@ module denjin.utility.meta;
 string parameters (alias Count, Params...)() @property
     if (Count.max >= Params.length)
 {
-    import std.meta;// : aliasSeqOf;
-    import std.range;// : iota;
+    import std.meta     : aliasSeqOf;
+    import std.range    : iota;
 
     string code = "";
 
