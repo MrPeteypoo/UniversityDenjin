@@ -12,6 +12,10 @@ module denjin.maths.vector3;
 import std.traits : isNumeric, isSigned;
 
 
+// Engine.
+import denjin.utility.meta : parameters, GenerateMemberProperty;
+
+
 /**
     A templatised Vector which can contain any numerical data type and can be as large as you wish.
     
@@ -27,71 +31,57 @@ struct Vector (Number, size_t Dimensions)
 
 
     // Template info.
-    alias Vector    = Vector!(Number, Dimensions);  /// The complete usable type.
-    alias Type      = Number;                       /// The underlying type used to store data.
-    enum dimensions = Dimensions;                   /// How many dimenions of space the vector represents.
-    
+    alias   Type            = Vector!(Number, Dimensions);  /// The complete usable type.
+    alias   UnderlyingType  = Number;                       /// The underlying type used to store data.
+    enum    dimensions      = Dimensions;                   /// How many components the vector stores.
+
 
     // 1D short-hand.
-    alias   x = array[0],   /// The right/left component.
-            i = x,          /// ditto
-            s = x,          /// ditto
-            u = x,          /// ditto
-            r = x;          /// The red colour channel.
+    mixin (GenerateMemberProperty!(Number, "array[0]", "x", "i", "s", "r", "u"));
             
-    enum    zero   = Vector (0),                            /// Each component is zero: (0...).
-            one    = Vector (1),                            /// Each component is one: (1...).
-            right  = Vector (mixin (parameters (1, 0)));    /// Represents (1, 0...);
+    enum    zero   = Type (0),                                      /// Each component is zero: (0...).
+            one    = Type (1),                                      /// Each component is one: (1...).
+            right  = Type (mixin (parameters!(Dimensions, 1, 0)));  /// Represents (1, 0...);
     
     static if (isSigned!Number)
-        enum left = Vector (mixin (parameters (-1, 0))); /// Represents (-1, 0...).
+        enum left = Type (mixin (parameters!(Dimensions, -1, 0)));  /// Represents (-1, 0...).
 
 
     // 2D short-hand.
     static if (Dimensions >= 2)
     {
-        alias   y = array[1],   /// The up/down component.
-                j = y,          /// ditto
-                t = y,          /// ditto
-                v = y,          /// ditto
-                g = y;          /// The green colour channel.
-
-        enum up = Vector (mixin (parameters (0, 1, 0))); /// Represents (0, 1, 0...).
+        mixin (GenerateMemberProperty!(Number, "array[1]", "y", "j", "t", "g", "v"));
+        
+        enum up = Type (mixin (parameters!(Dimensions, 0, 1, 0)));          /// Represents (0, 1, 0...).
 
         static if (isSigned!Number)
-            enum down = Vector (mixin (parameters (0, -1, 0))); /// Represents (0, -1, 0...).
+            enum down = Type (mixin (parameters!(Dimensions, 0, -1, 0)));   /// Represents (0, -1, 0...).
     }
 
 
     // 3D short-hand.
     static if (Dimensions >= 3)
     {
-        alias   z = array[2],   /// The forward/backward component.
-                k = z,          /// ditto
-                p = z,          /// ditto
-                b = z;          /// The blue colour channel.
+        mixin (GenerateMemberProperty!(Number, "array[2]", "z", "k", "p", "b"));
 
-        enum forward = Vector (mixin (parameters (0, 0, 1, 0))); /// Represents (0, 0, 1, 0...).
+        enum forward = Type (mixin (parameters!(Dimensions, 0, 0, 1, 0)));          /// Represents (0, 0, 1, 0...).
 
         static if (isSigned!Number)
-            enum backward = Vector (mixin (parameters (0, 0, -1, 0))); /// Represents (0, 0, -1, 0...).
+            enum backward = Type (mixin (parameters!(Dimensions, 0, 0, -1, 0)));    /// Represents (0, 0, -1, 0...).
     }
 
 
     // 4D short-hand.
     static if (Dimensions >= 4)
     {
-        alias   w = array[3],   /// The fourth-dimensional axis component.
-                l = w,          /// ditto
-                q = w,          /// ditto
-                a = w;          /// The alpha colour channel for transparency.
+        mixin (GenerateMemberProperty!(Number, "array[3]", "w", "l", "q", "a"));
     }
 
 
     /// Sets each component of the vector to the given value.
     this (in Number value)
     {
-        foreach (i; 0 .. dimensions)
+        foreach (i; 0 .. Dimensions)
         {
             array[i] = value;
         }
@@ -104,38 +94,32 @@ struct Vector (Number, size_t Dimensions)
     this (Number...)(in Number values)
         if (values.length == Dimensions)
     {
-        foreach (i; 0 .. Dimensions)
+        import std.meta : aliasSeqOf;
+        import std.range : iota;
+
+        /*foreach (i; aliasSeqOf!iota (0, Dimensions))
         {
             array[i] = values[i];
-        }
+        }*/
     }
 
-    
-    
-    private:
 
-        /// Produces a string to mixin a parameter list for component-wise construction of a vector.
-        /// Params: 
-        ///     Args = A pack of specified parameters, the last will be used as the value for unspecified values. 
-        auto parameters (T...)(in T args)
-            if (args.length > 0)
-        {
-            auto        code    = "" ~ args[0];
-            immutable   length  = args.length;
+    // Operators.
+    ref Number opIndex (size_t index)
+    {
+        return array[index];
+    }
 
-            foreach (i; 1 .. Dimensions)
-            {
-                code ~= i < length ? ", " ~ args[i] : ", " ~ args[length - 1];
-            }
-
-            return code;
-        }
+    Number opIndex (size_t index) const
+    {
+        return array[index];
+    }
 }
 ///
 unittest
 {
     // Most efficient constructor, data is not set to any value.
-    immutable vec1f = Vector!(float, 1);
+    immutable vec1f = Vector!(float, 1)();
     
     // Sets each component to zero.
     immutable vec2f = Vector!(float, 2)(0f);    
@@ -146,18 +130,18 @@ unittest
     assert (vec3f.x == 0f && vec3f.y == 0f && vec3f.z == 1f);
 
     // Can be constructed with vectors, values are extracted.
-    immutable vec4f = Vector!(float, 4)(vec1f, vec2f, 0f);
-    assert (vec4f.x == vec1f.x && vec4f.y == vec2f.x && vec4f.z == vec2f.y && vec4f.w == 0f);
+    //immutable vec4f = Vector!(float, 4)(vec1f, vec2f, 0f);
+    //assert (vec4f.x == vec1f.x && vec4f.y == vec2f.x && vec4f.z == vec2f.y && vec4f.w == 0f);
     
     // Component-wise construction is also available. Array accessor notation is supported.
     immutable vec5f = Vector!(float, 5)(1f, 2f, 3f, 4f, 5f);
-    assert (vec5f[0] == 1f && vec5f[1] == 2f && vec5f[2] == 3f && vec5f[3] == 4f && vec5[4] == 5f);
+    assert (vec5f[0] == 1f && vec5f[1] == 2f && vec5f[2] == 3f && vec5f[3] == 4f && vec5f[4] == 5f);
 
     // Short-hand component access is available up to 4D vectors.
     assert (vec1f.x == vec1f.i && vec1f.x == vec1f.s && vec1f.x == vec1f.r && vec1f.x == vec1f.u);
     assert (vec2f.y == vec2f.j && vec2f.y == vec2f.t && vec2f.y == vec2f.g && vec2f.x == vec2f.v);
     assert (vec3f.z == vec3f.k && vec3f.z == vec3f.p && vec3f.z == vec3f.b);
-    assert (vec4f.w == vec4f.l && vec4f.w == vec4f.q && vec4f.w == vec4f.a);
+    //assert (vec4f.w == vec4f.l && vec4f.w == vec4f.q && vec4f.w == vec4f.a);
 }
 
 
