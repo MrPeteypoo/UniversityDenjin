@@ -14,15 +14,14 @@ module denjin.utility.meta;
 /// Params: 
 ///     Count   = How many parameters are required, this must be more than zero.
 ///     Params  = The parameter values to use when producing the list.
-string parameters (alias Count, Params...)() @property
-    if (Count.max >= Params.length)
+string parameters (size_t count, Params...)() @property
 {
     import std.meta     : aliasSeqOf;
     import std.range    : iota;
 
     string code = "";
 
-    foreach (i; aliasSeqOf!(iota (0, Count)))
+    foreach (i; aliasSeqOf!(iota (0, count)))
     {
         static if (i == 0)
         {
@@ -67,10 +66,10 @@ unittest
 /// Generates a property to access a component and optionally, any aliases to the given property.
 /// Params:
 ///     Type            = The type of the member being accessed by the property.
-///     MemberAccessor  = How the member should be accessed by the property.
-///     PropertyName    = The desired symbol name of the property to be generated.
-///     Aliases         = Any additional aliases that will redirect to PropertyName.
-template GenerateMemberProperty (Type, string MemberAccessor, string PropertyName, Aliases...)
+///     memberAccessor  = How the member should be accessed by the property.
+///     propertyName    = The desired symbol name of the property to be generated.
+///     Aliases         = Any additional aliases that will redirect to propertyName.
+template GenerateMemberProperty (Type, string memberAccessor, string propertyName, Aliases...)
 {
     import std.array    : replace;
     import std.traits   : fullyQualifiedName;
@@ -78,8 +77,8 @@ template GenerateMemberProperty (Type, string MemberAccessor, string PropertyNam
     enum GenerateMemberProperty = 
         (getter ~ setter ~ aliases)
         .replace ("$Type", fullyQualifiedName!Type)
-        .replace ("$PropertyName", PropertyName)
-        .replace ("$MemberAccessor", MemberAccessor);
+        .replace ("$PropertyName", propertyName)
+        .replace ("$MemberAccessor", memberAccessor);
     
     enum getter = "
         $Type $PropertyName() @property const
@@ -93,22 +92,22 @@ template GenerateMemberProperty (Type, string MemberAccessor, string PropertyNam
             $MemberAccessor = value;
         }";
 
-    enum aliases = Aliases.length == 0 ? "" : GenerateAliases!(PropertyName, Aliases);
+    enum aliases = Aliases.length == 0 ? "" : GenerateAliases!(propertyName, Aliases);
 }
 
 
 /// Generates a series of aliases to the desired symbol.
 /// Params:
-///     ReferTo = The type/function/variable that the generated aliases will refer to.
-///     Aliases = A collection of string aliases that will be generated to refer to ReferTo.
-template GenerateAliases (string ReferTo, Aliases...)
-    if (ReferTo.length > 0 && Aliases.length > 0)
+///     referTo = The type/function/variable that the generated aliases will refer to.
+///     Aliases = A collection of string aliases that will be generated to refer to referTo.
+template GenerateAliases (string referTo, Aliases...)
+    if (referTo.length > 0 && Aliases.length > 0)
 {
-    import std.array : join, replace;
+    import std.array : replace;
 
     static if (Aliases.length > 1)
     {
-        enum GenerateAliases = join ([GenerateAliases!(ReferTo, Aliases[1 .. $]), newAlias]);
+        enum GenerateAliases = GenerateAliases!(referTo, Aliases[1 .. $]) ~ newAlias;
     }
     
     else
@@ -119,5 +118,22 @@ template GenerateAliases (string ReferTo, Aliases...)
     private enum newAlias = 
         "alias $Alias = $ReferTo;"
         .replace ("$Alias", Aliases[0])
-        .replace ("$ReferTo", ReferTo);
+        .replace ("$ReferTo", referTo);
+}
+
+
+template UnrollLoop (size_t start, size_t end, size_t stride, string loopCode)
+{
+    import std.array    : replace;
+    import std.conv     : to;
+
+    static if (start < end)
+    {
+        enum UnrollLoop = loopCode.replace ("$@", start.to!string) ~ UnrollLoop!(start + stride, end, stride, loopCode);
+    }
+    
+    else
+    {
+        enum UnrollLoop = "";
+    }
 }
