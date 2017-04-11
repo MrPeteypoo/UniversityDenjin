@@ -31,7 +31,7 @@ echo:Starting %batchFileName%...
 echo:=================================
 echo: 
 
-cd %batchDir%
+REM cd %batchDir%
 
 if not exist %glfw%\CMakeLists.txt (
     echo:Couldn't find external\glfw\CMakeLists.txt, makes sure you run 'git submodule update --init --recursive'
@@ -58,7 +58,7 @@ call :exit_script
 
 REM Ensure we go back to the previous directory.
 :exit_script
-cd %currentDir%
+REM cd %currentDir%
 echo: 
 echo:=================================
 echo:Exiting %batchFileName%...

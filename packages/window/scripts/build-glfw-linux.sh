@@ -19,7 +19,7 @@ fi;
 
 exit_script ()
 {
-    cd $currentDir
+    #cd $currentDir
     echo ""
     echo "================================="
     echo "Exiting $shFileName..."
@@ -34,7 +34,7 @@ echo "Starting $shFileName..."
 echo "================================="
 echo ""
 
-cd $shDir
+#cd $shDir
 
 if [ "$arch" == "x86" ]; then
     extraCMakeFlags="-DCMAKE_C_COMPILER_ARG1=-m32"
