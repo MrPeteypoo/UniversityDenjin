@@ -92,6 +92,6 @@ test_script:
  - echo %DC%
  - echo %PATH%
  - '%DC% --version'
- - dub test --arch=%Darch% --compiler=%DC% --build=unittest-cov
- - dub test --arch=%Darch% --compiler=%DC% --build=optimized-unittest
- - dub test --arch=%Darch% --compiler=%DC% --build=release-unittest
+ - ./build.bat test unittest-cov %Darch% %DC%
+ - ./build.bat test optimized-unittest %Darch% %DC%
+ - ./build.bat test release-unittest %Darch% %DC%

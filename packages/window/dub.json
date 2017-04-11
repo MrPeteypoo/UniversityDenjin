@@ -1,0 +1,52 @@
+{
+	"name": "window",
+	"description": "Window management functionality for Denjin.",
+
+	"targetName": "denjin-window",
+	"targetPath": "builds/unsupported",
+
+	"dependencies": {
+		"derelict-glfw3": "~>3.1.0"
+	},
+
+	"configurations": [
+		{
+			"name": "windows",
+			"platforms": ["windows"],
+			"targetPath": "builds/windows",
+			"preGenerateCommands-x86": ["$PACKAGE_DIR\\scripts\\build-glfw-windows.bat x86"],
+			"preGenerateCommands-x86_64": ["$PACKAGE_DIR\\scripts\\build-glfw-windows.bat x86_64"]
+		},
+		{
+			"name": "linux",
+			"platforms": ["linux"],
+			"libs-linux": ["dl"],
+			"targetPath": "builds/linux",
+			"preGenerateCommands-x86": ["$PACKAGE_DIR/scripts/build-glfw-linux.sh x86"],
+			"preGenerateCommands-x86_64": ["$PACKAGE_DIR/scripts/build-glfw-linux.sh x86_64"]
+		}
+	],
+
+	"buildRequirements": [
+		"allowWarnings",
+		"disallowDeprecations"
+	],
+
+	"buildTypes": {		
+		"optimized": {
+			"buildOptions": ["releaseMode", "optimize", "inline", "debugInfo"]
+		},
+
+		"optimized-unittest": {
+			"buildOptions": ["debugMode", "optimize", "inline", "debugInfo", "unittests"]
+		},
+
+		"release": {
+			"buildOptions": ["releaseMode", "optimize", "inline", "noBoundsCheck"]
+		},
+
+		"release-unittest": {
+			"buildOptions": ["debugMode", "optimize", "inline", "noBoundsCheck", "unittests"]
+		}
+	}
+}

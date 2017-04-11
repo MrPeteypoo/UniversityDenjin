@@ -92,9 +92,10 @@ install:
   - dub build doveralls
 
 script:
-  - dub test --arch=$ARCH --build=unittest-cov
-  - dub test --arch=$ARCH --build=optimized-unittest
-  - dub test --arch=$ARCH --build=release-unittest
+  - chmod +x build.sh
+  - ./build.sh test unittest-cov $ARCH
+  - ./build.sh test optimized-unittest $ARCH
+  - ./build.sh test release-unittest $ARCH
 
 after_script:
   - dub run doveralls

@@ -1,6 +1,6 @@
 module denjin.engine;
-import derelict.glfw3.glfw3;
-import erupted;
+//import derelict.glfw3.glfw3;
+//import erupted;
 import std.stdio;
 import std.range;
 import std.array;
@@ -8,7 +8,7 @@ import std.algorithm;
 import std.exception;
 import std.conv;
 import std.string;
-mixin DerelictGLFW3_VulkanBind;
+//mixin DerelictGLFW3_VulkanBind;
 
 struct Engine
 {
@@ -20,7 +20,7 @@ struct Engine
 
 
     */
-    void run()
+    /*void run()
     {
         // load GLFW3 functions 
         DerelictGLFW3.load;
@@ -209,9 +209,14 @@ struct Engine
         }
 
         writeln;
+    }*/
+    void run()
+    {
+        import std.stdio;
+        writeln ("Bob");
     }
 }
-private void enforceVK(VkResult res) {
+/*private void enforceVK(VkResult res) {
 	enforce(res == VkResult.VK_SUCCESS, res.to!string);
 }
 private extern (C) void keyCallback (GLFWwindow* window, int key, int, int action, int) nothrow @nogc
@@ -220,4 +225,4 @@ private extern (C) void keyCallback (GLFWwindow* window, int key, int, int actio
     {
         glfwSetWindowShouldClose (window, GLFW_TRUE);
     }
-}
+}*/

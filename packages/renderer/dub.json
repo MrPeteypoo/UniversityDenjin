@@ -1,34 +1,14 @@
 {
-	"name": "denjin",
-	"description": "A 3D game engine.",
-	"license": "MIT",
-	
-	"authors": ["Simon Peter Campbell"],
-	"copyright": "Copyright © 2017, Simon Peter Campbell",
-
-	"homepage": "https://github.com/storm20200/Denjin",
+	"name": "renderer",
+	"description": "Rendering systems for Denjin.",
 
 	"targetType": "library",
-	"targetName": "denjin",
+	"targetName": "denjin-renderer",
 	"targetPath": "builds/unsupported",
 
-	"subPackages": [
-		"./packages/maths/",
-		"./packages/misc/",
-		"./packages/renderer/",
-		"./packages/window/"
-	],
-
 	"dependencies": {
-		"denjin:maths": "*",
-		"denjin:misc": "*",
-		"denjin:renderer": "*",
-		"denjin:window": "*"
+		"erupted": "~>1.5.2"
 	},
-
-	"importPaths": [
-		"source"
-	],
 
 	"configurations": [
 		{
@@ -64,11 +44,5 @@
 		"release-unittest": {
 			"buildOptions": ["debugMode", "optimize", "inline", "noBoundsCheck", "unittests"]
 		}
-	},
-
-	"copyFiles": ["content/all/*"],
-	"copyFiles-windows-x86": ["content/win-x86/*"],
-	"copyFiles-windows-x86_64": ["content/win-x86_64/*"],
-	"copyFiles-linux-x86": ["content/linux-x86/*"],
-	"copyFiles-linux-x86_64": ["content/linux-x86_64/*"]	
+	}
 }

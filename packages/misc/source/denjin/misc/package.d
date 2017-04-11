@@ -4,6 +4,6 @@
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
     Copyright: MIT
 */
-module denjin.utility;
+module denjin.misc;
 
-public import denjin.utility.meta;
+public import denjin.misc.mixins;
