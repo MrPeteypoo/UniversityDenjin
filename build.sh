@@ -11,6 +11,9 @@ compilerFlag=""
 if [ "$command" == "" ]; then
     command="build"
 fi
+if [ "$command" == "rebuild" ]; then
+    command="build --force"
+fi
 if [ "$build" != "" ]; then
     buildFlag="--build=$build"
 fi

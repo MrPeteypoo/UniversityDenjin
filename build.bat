@@ -10,6 +10,9 @@ set compilerFlag=
 if "%command%" == "" (
     set command=build
 )
+if "%command%" == "rebuild" (
+    set command=build --force
+)
 if not "%build%" == "" (
     set buildFlag="--build=%build%"
 )
