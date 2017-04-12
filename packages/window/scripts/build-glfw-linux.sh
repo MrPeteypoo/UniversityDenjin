@@ -8,18 +8,18 @@ shFileName="${0##*/}"
 
 arch="$1"
 folder="linux-$arch"
-glfw="../external/glfw"
-output="../content/$folder"
+glfw="external/glfw"
+output="content/$folder"
 outputFile="$output/libglfw3.so"
 extraCMakeFlags=""
 
-if [ -e "$shDir/$outputFile" ]; then
+if [ -e "$currentDir/$outputFile" ]; then
     exit 0
 fi;
 
 exit_script ()
 {
-    #cd $currentDir
+    $currentDir
     echo ""
     echo "================================="
     echo "Exiting $shFileName..."
@@ -49,11 +49,11 @@ if [ ! -e "$glfw/CMakeLists.txt" ]; then
 fi;
 
 mkdir -p $output
-mkdir -p ../.temp/$folder
-cd ../.temp/$folder
+mkdir -p .temp/$folder
+cd .temp/$folder
 
 echo "Running CMake on GLFW..."
-cmake ../$glfw -DBUILD_SHARED_LIBS=ON -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF -DCMAKE_BUILD_TYPE=Release $extraCMakeFlags > /dev/null
+cmake ../../$glfw -DBUILD_SHARED_LIBS=ON -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF -DCMAKE_BUILD_TYPE=Release $extraCMakeFlags > /dev/null
 echo ""
 
 echo "Attempting to build GLFW..."
@@ -61,6 +61,6 @@ cmake --build . --target glfw > /dev/null
 echo ""
 
 echo "Copying libglfw.so for $folder..."
-cp src/libglfw.so ../$outputFile > /dev/null
+cp src/libglfw.so ../../$outputFile > /dev/null
 
 exit_script
