@@ -92,6 +92,7 @@ install:
   - dub build doveralls
 
 script:
+  - find . -type f -name "*.sh" -exec chmod +x {} \;
   - chmod +x build.sh
   - ./build.sh test unittest-cov $ARCH
   - ./build.sh test optimized-unittest $ARCH
