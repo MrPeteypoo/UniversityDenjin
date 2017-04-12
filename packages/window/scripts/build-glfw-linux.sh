@@ -19,7 +19,7 @@ fi;
 
 exit_script ()
 {
-    $currentDir
+    cd $currentDir
     echo ""
     echo "================================="
     echo "Exiting $shFileName..."
