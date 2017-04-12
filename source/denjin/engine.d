@@ -210,10 +210,15 @@ struct Engine
 
         writeln;
     }*/
-    void run()
+    bool run()
     {
         import std.stdio;
         writeln ("Bob");
+        import denjin.renderer;
+        import denjin.window;
+        glfw;
+        vulkan;
+        return true;
     }
 }
 /*private void enforceVK(VkResult res) {
@@ -226,3 +231,8 @@ private extern (C) void keyCallback (GLFWwindow* window, int key, int, int actio
         glfwSetWindowShouldClose (window, GLFW_TRUE);
     }
 }*/
+unittest
+{
+    auto engine = Engine();
+    assert (engine.run);
+}
