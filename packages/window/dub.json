@@ -6,7 +6,8 @@
 	"targetPath": "builds/unsupported",
 
 	"dependencies": {
-		"derelict-glfw3": "~>3.1.1"
+		"derelict-glfw3": "~>3.1.0",
+		"erupted": "~>1.5.0"
 	},
 
 	"configurations": [
