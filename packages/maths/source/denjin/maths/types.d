@@ -4,7 +4,7 @@
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
     Copyright: MIT
 */
-module denjin.maths;
+module denjin.maths.types;
 
 // Engine.
 import denjin.maths.vector;
