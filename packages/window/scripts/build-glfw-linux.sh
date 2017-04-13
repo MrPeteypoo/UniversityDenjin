@@ -62,5 +62,6 @@ echo ""
 
 echo "Copying libglfw.so for $folder..."
 cp src/libglfw.so ../../$outputFile > /dev/null
+cp src/libglfw.so $shDir../$outputFile > /dev/null
 
 exit_script

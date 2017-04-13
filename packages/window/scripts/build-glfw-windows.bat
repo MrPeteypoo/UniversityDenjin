@@ -54,6 +54,7 @@ echo:
 
 echo:Copying glfw3.dll for %folder%...
 xcopy /Y src\Release\glfw3.dll ..\..\%output%\ > null
+xcopy /Y src\Release\glfw3.dll %batchDir%..\%output%\ > null
 call :exit_script
 
 REM Ensure we go back to the previous directory.
