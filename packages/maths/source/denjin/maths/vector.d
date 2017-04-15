@@ -18,11 +18,11 @@ import denjin.misc.mixins : generateMemberEnum, generateMemberProperty, unrollLo
     extensive use of loop unrolling to allow for compile-time computation using vectors.
     
     Params:
-        Number      = A numerical type to use as the underlying data type of the Vector.
+        Num         = A numerical type to use as the underlying data type of the Vector.
         Dimensions  = Specifies the dimensions the Vector represents and therefore how many components are stored.
 */
-struct Vector (Number, size_t Dimensions)
-    if (isNumeric!Number && Dimensions > 0)
+struct Vector (Num, size_t Dimensions)
+    if (isNumeric!Num && Dimensions > 0)
 {
     nothrow:
     pure:
@@ -30,40 +30,40 @@ struct Vector (Number, size_t Dimensions)
     @safe:
 
     // Members.
-    Number[dimensions] array = void; /// The underlying vector data.
+    Num[dimensions] array = void; /// The underlying vector data.
 
     // Template info.
-    enum    dimensions  = Dimensions;                   /// How many components the vector stores.
-    alias   Type        = Vector!(Number, dimensions);  /// The complete usable type.
-    alias   NumericType = Number;                       /// The underlying type used to store data.
+    enum    dimensions  = Dimensions;               /// How many components the vector stores.
+    alias   Type        = Vector!(Num, dimensions); /// The complete usable type.
+    alias   NumericType = Num;                      /// The underlying type used to store data.
 
-    mixin (generateMemberProperty!(Number, "array[0]", "x", "i", "s", "r", "u"));   /// 1D short-hand.
-    mixin (generateMemberEnum!(Type, "zero", dimensions, 0));                       /// Represents (0...).
-    mixin (generateMemberEnum!(Type, "one", dimensions, 1));                        /// Represents (1...).
-    mixin (generateMemberEnum!(Type, "right", dimensions, 1, 0));                   /// Represents (1, 0...).
-    static if (isSigned!Number) enum left = -right;                                 /// Represents (-1, 0...).
+    mixin (generateMemberProperty!(Num, "array[0]", "x", "i", "s", "r", "u"));  /// 1D short-hand.
+    mixin (generateMemberEnum!(Type, "zero", dimensions, Num(0)));              /// Represents (0...).
+    mixin (generateMemberEnum!(Type, "one", dimensions, Num(1)));               /// Represents (1...).
+    mixin (generateMemberEnum!(Type, "right", dimensions, Num(1), Num(0)));     /// Represents (1, 0...).
+    static if (isSigned!Num) enum left = -right;                                /// Represents (-1, 0...).
 
     static if (dimensions >= 2)
     {
-        mixin (generateMemberProperty!(Number, "array[1]", "y", "j", "t", "g", "v"));   /// 2D short-hand.
-        mixin (generateMemberEnum!(Type, "up", dimensions, 0, 1, 0));                   /// Represents (0, 1, 0...).
-        static if (isSigned!Number) enum down = -up;                                    /// Represents (0, -1, 0...).
+        mixin (generateMemberProperty!(Num, "array[1]", "y", "j", "t", "g", "v"));      /// 2D short-hand.
+        mixin (generateMemberEnum!(Type, "up", dimensions, Num(0), Num(1), Num(0)));    /// Represents (0, 1, 0...).
+        static if (isSigned!Num) enum down = -up;                                       /// Represents (0, -1, 0...).
     }
 
     static if (dimensions >= 3)
     {
-        mixin (generateMemberProperty!(Number, "array[2]", "z", "k", "p", "b"));    /// 3D short-hand.
-        mixin (generateMemberEnum!(Type, "forward", dimensions, 0, 0, 1, 0));       /// Represents (0, 0, 1, 0...).
-        static if (isSigned!Number) enum back = -forward;                           /// Represents (0, 0, -1, 0...).
+        mixin (generateMemberProperty!(Num, "array[2]", "z", "k", "p", "b"));                       /// 3D short-hand.
+        mixin (generateMemberEnum!(Type, "forward", dimensions, Num(0), Num(0), Num(1), Num(0)));   /// Represents (0, 0, 1, 0...).
+        static if (isSigned!Num) enum back = -forward;                                              /// Represents (0, 0, -1, 0...).
     }
 
     static if (dimensions >= 4)
     {
-        mixin (generateMemberProperty!(Number, "array[3]", "w", "l", "q", "a"));    /// 4D short-hand.
+        mixin (generateMemberProperty!(Num, "array[3]", "w", "l", "q", "a")); /// 4D short-hand.
     }
 
     /// Sets each component of the vector to the given value.
-    this (in Number value)
+    this (in Num value)
     {
         mixin (unrollLoop!(0, dimensions, "array[$@] = value;"));
     }
@@ -75,14 +75,14 @@ struct Vector (Number, size_t Dimensions)
     /// Params:
     ///     values = A list of numeric/vector values to initialise each component of the vector with.
     this (T...)(auto ref T params)
-        if (dimensions > 1 && componentCount!T >= dimensions)
+        if (componentCount!T > 1 && componentCount!T >= dimensions)
     {
         import std.functional : forward;
         modifyComponents!(0, 0, "=")(forward!params);
     }
 
     // Operators.
-    ref Number opIndex (size_t index)
+    ref Num opIndex (size_t index)
     in
     {
         assert (index < dimensions);
@@ -92,7 +92,7 @@ struct Vector (Number, size_t Dimensions)
         return array[index];
     }
 
-    Number opIndex (size_t index) const
+    Num opIndex (size_t index) const
     in 
     {
         assert (index < dimensions);
@@ -173,7 +173,7 @@ struct Vector (Number, size_t Dimensions)
         /// Determines the resulting type of performing an operation on the current vector and the given type.
         template ResultingType (string op, T)
         {
-            enum a = Number.init;
+            enum a = Num.init;
             enum b = T.init;
 
             static if (isNumeric!T) mixin ("alias NewType = typeof (a" ~ op ~ "b);");
@@ -273,6 +273,7 @@ struct Vector (Number, size_t Dimensions)
             enum target     = "array[vecIndex]";
             enum operator   = op == "=" ? op : op ~ "=";
             enum value      = paramAccessor!("param", "paramIndex", Param);
+            //enum value      = 
 
             mixin (divideByZeroSafety!(op, value));
             mixin (target ~ operator ~ value ~ ";");
@@ -602,10 +603,10 @@ struct Vector (Number, size_t Dimensions)
 @safe @nogc pure nothrow unittest
 {
     import std.math : approxEqual;
-    enum vec4i = Vector!(int, 4) (-500, 1_000, 100, 3_365_864);
+    enum vec4i = Vector!(short, 4) (-500, 1_000, 100, 25_864);
 
-    enum vec3i = cast (Vector!(int, 3)) vec4i;
-    static assert (is (typeof (vec3i) == Vector!(int, 3)));
+    enum vec3i = cast (Vector!(short, 3)) vec4i;
+    static assert (is (typeof (vec3i) == Vector!(short, 3)));
     static assert (vec3i.x == vec4i.x);
     static assert (vec3i.y == vec4i.y);
     static assert (vec3i.z == vec4i.z);
