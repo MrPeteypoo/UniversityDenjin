@@ -92,6 +92,7 @@ install:
   - dub build doveralls
 
 script:
+  - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.
   - find . -type f -name "*.sh" -exec chmod +x {} \;
   - chmod +x build.sh
   - ./build.sh test unittest-cov $ARCH

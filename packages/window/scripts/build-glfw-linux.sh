@@ -3,7 +3,7 @@
 # Unfortunately dub doesn't always run the script from the correct working directory, as such we need to cd to the
 # current script directory and return to the previous upon exit.
 currentDir=`pwd`
-shDir="${0%/*}"
+shDir="${0%/*}/"
 shFileName="${0##*/}"
 
 arch="$1"
@@ -49,6 +49,7 @@ if [ ! -e "$glfw/CMakeLists.txt" ]; then
 fi;
 
 mkdir -p $output
+mkdir -p $shDir../$output
 mkdir -p .temp/$folder
 cd .temp/$folder
 
@@ -61,7 +62,7 @@ cmake --build . --target glfw > /dev/null
 echo ""
 
 echo "Copying libglfw.so for $folder..."
-cp src/libglfw.so ../../$outputFile > /dev/null
-cp src/libglfw.so $shDir../$outputFile > /dev/null
+cp -u src/libglfw.so ../../$outputFile > /dev/null
+cp -u src/libglfw.so "$shDir../$outputFile" > /dev/null
 
 exit_script
