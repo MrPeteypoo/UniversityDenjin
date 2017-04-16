@@ -159,7 +159,7 @@ struct Vector (Num, size_t Dimensions)
         // Firstly construct the new object.
         auto copy = T();
         enum loop = "
-            static if (is (T.NumericType : NumericType))    copy.array[$@] = array[$@];
+            static if (is (NumericType : T.NumericType))    copy.array[$@] = array[$@];
             else                                            copy.array[$@] = cast(T.NumericType) array[$@];
         ";
 
@@ -603,7 +603,7 @@ struct Vector (Num, size_t Dimensions)
 @safe @nogc pure nothrow unittest
 {
     import std.math : approxEqual;
-    enum vec4i = Vector!(short, 4) (-500, 1_000, 100, 25_864);
+    enum vec4i = Vector!(int, 4) (-500, 1_000, 100, 25_864);
 
     enum vec3i = cast (Vector!(short, 3)) vec4i;
     static assert (is (typeof (vec3i) == Vector!(short, 3)));
