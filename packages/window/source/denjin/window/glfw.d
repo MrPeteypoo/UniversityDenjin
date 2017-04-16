@@ -109,7 +109,7 @@ extern (C) void logGLFWError (int error, const(char)* description) nothrow
 {
     try
     {
-        stderr.writeln ("GLFW (%i): %s", error, description);
+        stderr.writeln ("GLFW (", error, "): ", description);
     }
     catch (Exception e)
     {
