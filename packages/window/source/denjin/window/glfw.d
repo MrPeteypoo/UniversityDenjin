@@ -9,7 +9,7 @@ module denjin.window.glfw;
 // Phobos.
 import std.algorithm    : move;
 import std.exception    : enforce;
-import std.stdio        : stderr, writeln;
+import std.stdio        : stderr, writefln;
 import std.string       : toStringz;
 
 // Engine.
@@ -109,7 +109,7 @@ extern (C) void logGLFWError (int error, const(char)* description) nothrow
 {
     try
     {
-        stderr.writeln ("GLFW (", error, "): ", description);
+        stderr.writefln ("GLFW (%d): %s", error, description);
     }
     catch (Exception e)
     {
