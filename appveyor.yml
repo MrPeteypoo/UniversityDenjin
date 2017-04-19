@@ -14,7 +14,7 @@ environment:
     arch: x86
     ldcArch: win32
   - DC: ldc
-    DVersion: 1.0.0
+    DVersion: 1.1.1
     arch: x64
     ldcArch: win64
 
