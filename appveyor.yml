@@ -92,6 +92,10 @@ test_script:
  - echo %DC%
  - echo %PATH%
  - '%DC% --version'
+ - echo %errorlevel%
  - ./build.bat build unittest-cov %Darch% %DC%
+ - echo %errorlevel%
  - ./build.bat build optimized-unittest %Darch% %DC%
+ - echo %errorlevel%
  - ./build.bat build release-unittest %Darch% %DC%
+ - echo %errorlevel%
