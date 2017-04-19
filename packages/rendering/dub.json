@@ -39,11 +39,13 @@
 
 		"optimized": {
 			"buildOptions": ["debugMode", "optimize", "inline", "debugInfo"],
-			"debugVersions": [ "Optimized" ]
+			"debugVersions": [ "Optimized" ],
+			"versions": [ "Optimized" ]
 		},
 
 		"optimized-unittest": {
 			"buildOptions": ["debugMode", "optimize", "inline", "debugInfo", "unittests"],
+			"debugVersions": [ "Optimized" ],
 			"versions": [ "Optimized" ]
 		},
 
