@@ -23,8 +23,8 @@ if not "%compiler%" == "" (
     set compilerFlag="--compiler=%compiler%"
 )
 
-dub %command% %buildFlag% %archFlag% %compilerFlag% || exit %errorLevel%
-dub %command% denjin:maths %buildFlag% %archFlag% %compilerFlag% || exit %errorLevel%
-dub %command% denjin:misc %buildFlag% %archFlag% %compilerFlag% || exit %errorLevel%
-dub %command% denjin:rendering %buildFlag% %archFlag% %compilerFlag% || exit %errorLevel%
-dub %command% denjin:window %buildFlag% %archFlag% %compilerFlag% || exit %errorLevel%
+dub %command% %buildFlag% %archFlag% %compilerFlag% || exit /b %errorLevel%
+dub %command% denjin:maths %buildFlag% %archFlag% %compilerFlag% || exit /b %errorLevel%
+dub %command% denjin:misc %buildFlag% %archFlag% %compilerFlag% || exit /b %errorLevel%
+dub %command% denjin:rendering %buildFlag% %archFlag% %compilerFlag% || exit /b %errorLevel%
+dub %command% denjin:window %buildFlag% %archFlag% %compilerFlag% || exit /b %errorLevel%
