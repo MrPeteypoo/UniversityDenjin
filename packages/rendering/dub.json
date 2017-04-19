@@ -28,13 +28,23 @@
 		"disallowDeprecations"
 	],
 
-	"buildTypes": {		
+	"buildTypes": {
+		"debug": {
+			"debugVersions": [ "Debug" ]
+		},
+
+		"unittest": {
+			"debugVersions": [ "Debug" ]
+		},
+
 		"optimized": {
-			"buildOptions": ["debugMode", "optimize", "inline", "debugInfo"]
+			"buildOptions": ["debugMode", "optimize", "inline", "debugInfo"],
+			"debugVersions": [ "Optimized" ]
 		},
 
 		"optimized-unittest": {
-			"buildOptions": ["debugMode", "optimize", "inline", "debugInfo", "unittests"]
+			"buildOptions": ["debugMode", "optimize", "inline", "debugInfo", "unittests"],
+			"versions": [ "Optimized" ]
 		},
 
 		"release": {
