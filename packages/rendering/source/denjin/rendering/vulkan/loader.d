@@ -71,7 +71,7 @@ struct VulkanLoader
 
         /// Gets a const-representation of the renderable surface.
         @property pure nothrow @safe @nogc
-        VkSurfaceKHR surface() const { return m_surface; }
+        ref const(VkSurfaceKHR) surface() const { return m_surface; }
 
         /// Gets a modifiable representation of the renderable surface.
         @property pure nothrow @safe @nogc
