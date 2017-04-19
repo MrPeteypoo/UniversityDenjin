@@ -92,9 +92,9 @@ test_script:
  - echo %DC%
  - echo %PATH%
  - '%DC% --version'
- - ./build.bat test unittest-cov %Darch% %DC%
+ - ./build.bat build unittest-cov %Darch% %DC%
  - if($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode) }
- - ./build.bat test optimized-unittest %Darch% %DC%
+ - ./build.bat build optimized-unittest %Darch% %DC%
  - if($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode) }
- - ./build.bat test release-unittest %Darch% %DC%
+ - ./build.bat build release-unittest %Darch% %DC%
  - if($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode) }
