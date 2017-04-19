@@ -27,5 +27,5 @@ fi
 dub $command $buildFlag $archFlag $compilerFlag
 dub $command denjin:maths $buildFlag $archFlag $compilerFlag
 dub $command denjin:misc $buildFlag $archFlag $compilerFlag
-dub $command denjin:renderer $buildFlag $archFlag $compilerFlag
+dub $command denjin:rendering $buildFlag $archFlag $compilerFlag
 dub $command denjin:window $buildFlag $archFlag $compilerFlag
