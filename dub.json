@@ -8,21 +8,21 @@
 
 	"homepage": "https://github.com/storm20200/Denjin",
 
-	"targetType": "library",
+	"targetType": "executable",
 	"targetName": "denjin",
 	"targetPath": "builds/unsupported",
 
 	"subPackages": [
 		"./packages/maths/",
 		"./packages/misc/",
-		"./packages/renderer/",
+		"./packages/rendering/",
 		"./packages/window/"
 	],
 
 	"dependencies": {
 		"denjin:maths": "*",
 		"denjin:misc": "*",
-		"denjin:renderer": "*",
+		"denjin:rendering": "*",
 		"denjin:window": "*"
 	},
 

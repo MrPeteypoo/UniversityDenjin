@@ -1,17 +1,29 @@
 module denjin.engine;
-//import derelict.glfw3.glfw3;
-//import erupted;
-import std.stdio;
-import std.range;
-import std.array;
-import std.algorithm;
-import std.exception;
-import std.conv;
-import std.string;
-//mixin DerelictGLFW3_VulkanBind;
+
+// Phobos.
+import std.typecons : Flag, No, Yes;
+
+// Engine.
+import denjin.window : IWindow, WindowGLFW;
+
 
 struct Engine
 {
+    IWindow window; /// A reference to a window management system, hard coded to GLFW right now.
+
+    void initialise()
+    {
+        window = new WindowGLFW (1280, 720, No.isFullscreen, "Denjin");
+    }
+
+    void run()
+    {
+        while (!window.shouldClose())
+        {
+            window.update (0f);
+            window.render (0f);
+        }
+    }
     /*
 
 
@@ -210,16 +222,6 @@ struct Engine
 
         writeln;
     }*/
-    bool run()
-    {
-        import std.stdio;
-        writeln ("Bob");
-        import denjin.renderer;
-        import denjin.window;
-        glfw;
-        vulkan;
-        return true;
-    }
 }
 /*private void enforceVK(VkResult res) {
 	enforce(res == VkResult.VK_SUCCESS, res.to!string);
@@ -231,8 +233,10 @@ private extern (C) void keyCallback (GLFWwindow* window, int key, int, int actio
         glfwSetWindowShouldClose (window, GLFW_TRUE);
     }
 }*/
-unittest
+
+void main()
 {
     auto engine = Engine();
-    assert (engine.run);
+    engine.initialise();
+    engine.run();
 }

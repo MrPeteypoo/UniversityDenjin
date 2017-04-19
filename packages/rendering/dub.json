@@ -1,9 +1,9 @@
 {
-	"name": "renderer",
+	"name": "rendering",
 	"description": "Rendering systems for Denjin.",
 
 	"targetType": "library",
-	"targetName": "denjin-renderer",
+	"targetName": "denjin-rendering",
 	"targetPath": "builds/unsupported",
 
 	"dependencies": {

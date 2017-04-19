@@ -9,18 +9,6 @@ module denjin.window.iwindow;
 /// An interface to be implemented by window management systems.
 interface IWindow
 {
-    /// Requests initialisation of the window system with the given parameters.
-    void initialise (in uint width, in uint height, in bool fullscreen, in ref string title)
-    in
-    {
-        assert (width != 0);
-        assert (height != 0);
-    }
-
-    /// Requests the window free any resources and return to a clean state.
-    nothrow @nogc
-    void clean();
-
     /// Requests that the window performs any required updates.
     /// Params: deltaTime = The number of seconds since the last update.
     nothrow
@@ -30,6 +18,10 @@ interface IWindow
     /// Params: deltaTime = The number of seconds since the last update.
     nothrow
     void render (float deltaTime);
+
+    /// Checks if the window has been told to close by the user.
+    @property nothrow
+    bool shouldClose();
 
     /// Gets how many pixels wide the window is.
     @property nothrow
