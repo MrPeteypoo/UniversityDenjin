@@ -9,7 +9,7 @@ module denjin.rendering.vulkan.misc;
 // Phobos.
 import std.conv         : to;
 import std.exception    : enforce;
-import std.traits       : isBuiltinType, isFunction, isFunctionPointer, isPointer;
+import std.traits       : isBuiltinType, isFunctionPointer, isPointer;
 
 // External.
 import erupted.types : VkResult, VK_SUCCESS;
@@ -55,7 +55,7 @@ template nullHandle (T)
 ///     destoryFunc = The function to use to destroy the handle.
 ///     params      = Parameters to be passed to the destroy function.
 auto safelyDestroyVK (Handle, Func, T...) (ref Handle handle, in Func destroyFunc, auto ref T params)
-    if ((isBuiltinType!Handle || isPointer!Handle) && (isFunction!Func || isFunctionPointer!Func))
+    if ((isBuiltinType!Handle || isPointer!Handle) && isFunctionPointer!Func)
 {
     import std.functional   : forward;
     import std.traits       : ReturnType;
