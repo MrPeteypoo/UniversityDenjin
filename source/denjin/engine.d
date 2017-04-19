@@ -233,10 +233,3 @@ private extern (C) void keyCallback (GLFWwindow* window, int key, int, int actio
         glfwSetWindowShouldClose (window, GLFW_TRUE);
     }
 }*/
-
-void main()
-{
-    auto engine = Engine();
-    engine.initialise();
-    engine.run();
-}
