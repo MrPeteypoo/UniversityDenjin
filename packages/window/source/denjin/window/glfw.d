@@ -55,7 +55,7 @@ final class WindowGLFW : IWindow
     }
 
     /// Ensures that GLFW is terminated.
-    public static ~thi()
+    public static ~this()
     {
         glfwTerminate();
     }
