@@ -36,7 +36,7 @@
 
 	"buildTypes": {		
 		"optimized": {
-			"buildOptions": ["releaseMode", "optimize", "inline", "debugInfo"]
+			"buildOptions": ["debugMode", "optimize", "inline", "debugInfo"]
 		},
 
 		"optimized-unittest": {
