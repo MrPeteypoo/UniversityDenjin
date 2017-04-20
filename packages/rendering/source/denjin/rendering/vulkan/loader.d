@@ -20,6 +20,10 @@ import denjin.rendering.vulkan.misc : enforceSuccess, layerExists, nullHandle, s
 // External.
 import erupted;
 
+// Debug.
+debug import denjin.rendering.vulkan.logging : logLayerProperties, logPhysicalDeviceProperties, 
+                                               logQueueFamilyProperties;
+
 /// A basic structure, allowing for the creation and management of Vulkan instances and devices.
 struct VulkanLoader
 {
@@ -27,10 +31,14 @@ struct VulkanLoader
 
         alias Layers = Array!(const(char)*);
 
-        VkInstance      m_instance  = nullHandle!VkInstance;    /// A handle to a created vulkan instance.
-        VkSurfaceKHR    m_surface   = nullHandle!VkSurfaceKHR;  /// A handle to a renderable surface.
-        Layers          m_layers;                               /// The layers enabled for the instance.
-        VulkanInfo      m_info;                                 /// Contains descriptive information regarding how the Vulkan instance is configured.
+        VkDevice            m_device    = nullHandle!VkDevice;          /// A handle to the logical device used for rendering.
+        VkPhysicalDevice    m_gpu       = nullHandle!VkPhysicalDevice;  /// A handle to the chosen physical device.
+        VkInstance          m_instance  = nullHandle!VkInstance;        /// A handle to a created vulkan instance.
+        VkSurfaceKHR        m_surface   = nullHandle!VkSurfaceKHR;      /// A handle to a renderable surface.
+
+        size_t      m_gpuIndex; /// The index of the selected physical device.
+        Layers      m_layers;   /// The layers enabled for the instance.
+        VulkanInfo  m_info;     /// Contains descriptive information regarding how the Vulkan instance is configured.
 
     public:
 
@@ -50,6 +58,7 @@ struct VulkanLoader
             // Ensure the Vulkan objects are destroyed in the correct order.
             m_surface.safelyDestroyVK (vkDestroySurfaceKHR, m_instance, m_surface, null);
             m_instance.safelyDestroyVK (vkDestroyInstance, m_instance, null);
+            m_device.safelyDestroyVK (vkDestroyDevice, m_device, null);
 
             // The GC will take care of deleting the C-strings.
             m_layers.clear();
@@ -111,6 +120,7 @@ struct VulkanLoader
             m_info.instance.enabledExtensionCount   = extensionCount;
             m_info.instance.ppEnabledExtensionNames = extensions;
 
+            // Finally the instance can be created.
             vkCreateInstance (&m_info.instance, null, &m_instance).enforceSuccess;
             printLayersAndExtensions;
         }
@@ -124,15 +134,25 @@ struct VulkanLoader
             
             // Now we can check the hardware on the machine, for now we'll just use the first device.
             enumerateDevices();
+            m_gpuIndex  = 0;
+            m_gpu       = m_info.physicalDevices[m_gpuIndex];
 
+            // Next we need to obtain information about the available queues.
+            const auto queueFamilyIndex = enumerateQueueFamilies();
+            immutable queuePriorities   = 1f;
+
+            m_info.queue.queueFamilyIndex   = queueFamilyIndex;
+            m_info.queue.pQueuePriorities   = &queuePriorities;
+            m_info.device.pQueueCreateInfos = &m_info.queue;
+
+            // Finally create the logical device.
+            vkCreateDevice (m_gpu, &m_info.device, null, &m_device).enforceSuccess;
         }
 
         /// Checks the layers available to the instance and attempts to load any necessary debug layers.
         /// Returns: A pair containing the number of layers and an array of C-strings representing layer names.
         void enumerateLayers()
         {
-            debug import denjin.rendering.vulkan.logging : logLayerProperties;
-
             // First we must retrieve the number of layers.
             uint32_t count = void;
             vkEnumerateInstanceLayerProperties (&count, null).enforceSuccess;
@@ -161,10 +181,9 @@ struct VulkanLoader
             }
         }
 
+        /// Retrieves the number of available devices and their associated properties.
         void enumerateDevices()
         {
-            debug import denjin.rendering.vulkan.logging : logPhysicalDeviceProperties;
-
             // Get the number of devices.
             uint32_t count = void;
             vkEnumeratePhysicalDevices (m_instance, &count, null).enforceSuccess;
@@ -180,6 +199,29 @@ struct VulkanLoader
             }
             
             debug logPhysicalDeviceProperties (m_info.physicalDeviceProperties);
+            enforce (!m_info.physicalDevices.empty);
+        }
+
+        /// Populates the queue family properties and returns the most appropriate family to use for rendering.
+        size_t enumerateQueueFamilies()
+        {
+            // Retrieve the queue family properties.
+            uint32_t count = void;
+            vkGetPhysicalDeviceQueueFamilyProperties (m_gpu, &count, null);
+            
+            m_info.queueFamilyProperties.length = count;
+            vkGetPhysicalDeviceQueueFamilyProperties (m_gpu, &count, &m_info.queueFamilyProperties.front());
+            debug logQueueFamilyProperties (m_info.queueFamilyProperties);
+
+            foreach (i; 0..m_info.queueFamilyProperties.length)
+            {
+                if ((m_info.queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) > 0)
+                {
+                    return i;
+                }
+            }
+
+            assert (false, "Vulkan loader was unable to find an appropriate queue family to use.");
         }
 
         /// Prints the validation layer and extension names in use by the current instance.
@@ -200,11 +242,16 @@ struct VulkanLoader
 
 struct VulkanInfo
 {
+    Array!VkLayerProperties             layerProperties;            /// The details of what layers are available to the instance.
+    Array!VkPhysicalDevice              physicalDevices;            /// The available physical devices.
+    Array!VkPhysicalDeviceProperties    physicalDeviceProperties;   /// The description and capabilities of each device.
+    Array!VkQueueFamilyProperties       queueFamilyProperties;      /// The capabilities of each available queue family.
+
     /// Contains application-specific information required to create a Vulkan instance, hard-coded for now.
     VkApplicationInfo app = 
     {
         sType:              VK_STRUCTURE_TYPE_APPLICATION_INFO,
-        pNext:              VK_NULL_HANDLE,
+        pNext:              null,
         pApplicationName:   "Denjin-dev", 
         applicationVersion: VK_MAKE_VERSION (0,0,1),
         pEngineName:        "Denjin", 
@@ -216,20 +263,40 @@ struct VulkanInfo
     VkInstanceCreateInfo instance =
     {
         sType:                      VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-        pNext:                      VK_NULL_HANDLE,
+        pNext:                      null,
         flags:                      0,
-        pApplicationInfo:           VK_NULL_HANDLE,
+        pApplicationInfo:           null,
         enabledLayerCount:          0,
-        ppEnabledLayerNames:        VK_NULL_HANDLE,
+        ppEnabledLayerNames:        null,
         enabledExtensionCount:      0,
-        ppEnabledExtensionNames:    VK_NULL_HANDLE
+        ppEnabledExtensionNames:    null
     };
 
-    Array!VkLayerProperties             layerProperties;            /// The details of what layers are available to the instance.
-    Array!VkPhysicalDevice              physicalDevices;            /// The available physical devices.
-    Array!VkPhysicalDeviceProperties    physicalDeviceProperties;   /// The description and capabilities of each device.
-    VkPhysicalDevice                    physicalDevice;             /// The chosen physical device.
-    VkPhysicalDeviceProperties*         deviceProps;                /// The
+    /// Contains information required to create queues for a logical device.
+    VkDeviceQueueCreateInfo queue = 
+    {
+        sType:              VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+        pNext:              null,
+        flags:              0,
+        queueFamilyIndex:   0,
+        queueCount:         1,
+        pQueuePriorities:   null
+    };
+
+    /// Contains information required to create a logical device.
+    VkDeviceCreateInfo device = 
+    {
+        sType:                      VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        pNext:                      null,
+        flags:                      0,
+        queueCreateInfoCount:       1,
+        pQueueCreateInfos:          null,
+        enabledLayerCount:          0,
+        ppEnabledLayerNames:        null,
+        enabledExtensionCount:      0,
+        ppEnabledExtensionNames:    null,
+        pEnabledFeatures:           null
+    };
     
     version (optimized)
     {
