@@ -7,12 +7,13 @@
 module denjin.rendering.vulkan.misc;
 
 // Phobos.
+import core.stdc.string : strcmp;
 import std.conv         : to;
 import std.exception    : enforce;
 import std.traits       : isBuiltinType, isFunctionPointer, isPointer;
 
 // External.
-import erupted.types : VkResult, VK_SUCCESS;
+import erupted.types : VkLayerProperties, VkResult, VK_SUCCESS;
 
 /// Throws an exception if the error code of a Vulkan function indicates failure.
 /// Params: 
@@ -79,4 +80,18 @@ auto safelyDestroyVK (Handle, Func, T...) (ref Handle handle, in Func destroyFun
     {
         return returnType.init;
     }
+}
+
+/// Checks if the given c-style layer name exists in the given collection of properties.
+bool layerExists (Container) (in const(char)* layerName, auto ref Container layerProperties)
+{
+    foreach (ref property; layerProperties)
+    {
+        static assert (is (typeof (property) == VkLayerProperties));
+        if (layerName.strcmp (property.layerName.ptr) == 0)
+        {
+            return true;
+        }
+    }
+    return false;
 }

@@ -7,15 +7,14 @@
 module denjin.rendering.vulkan.loader;
 
 // Phobos.
-import core.stdc.string         : strcmp;
 import std.container.array      : Array;
 import std.container.util       : make;
 import std.exception            : enforce;
 import std.meta                 : AliasSeq;
-import std.string               : toStringz;
+import std.string               : fromStringz, toStringz;
 
 // Engine.
-import denjin.rendering.vulkan.misc : enforceSuccess, nullHandle, safelyDestroyVK;
+import denjin.rendering.vulkan.misc : enforceSuccess, layerExists, nullHandle, safelyDestroyVK;
 
 // External.
 import erupted;
@@ -111,6 +110,7 @@ struct VulkanLoader
             m_info.instance.ppEnabledExtensionNames = extensions;
 
             vkCreateInstance (&m_info.instance, null, &m_instance).enforceSuccess;
+            debug printLayersAndExtensions;
         }
 
         /// Checks the layers available to the instance and attempts to load any necessary debug layers.
@@ -140,19 +140,6 @@ struct VulkanLoader
             }
         }
 
-        /// Checks if the given c-style layer name exists in the given collection of properties.
-        bool layerExists (Container) (in const(char)* layerName, auto ref Container properties)
-        {
-            foreach (ref property; properties)
-            {
-                if (layerName.strcmp (property.layerName.ptr) == 0)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
         /// Returns an array of strings representing the names of the layers required by the current debug level.
         template requiredLayers()
         {
@@ -170,6 +157,25 @@ struct VulkanLoader
             {
                 // Don't perform any validation in release mode.
                 enum requiredLayers = AliasSeq!();
+            }
+        }
+
+
+    debug:
+
+        // Phobos.
+        import std.stdio : writeln;
+
+        /// Prints the validation layer and extension names in use by the current instance.
+        void printLayersAndExtensions() const
+        {
+            foreach (i; 0..m_info.instance.enabledLayerCount)
+            {
+                writeln ("Vulkan instance layer activated: ", m_info.instance.ppEnabledLayerNames[i].fromStringz);
+            }
+            foreach (i; 0..m_info.instance.enabledExtensionCount)
+            {
+                writeln ("Vulkan instance extension activated: ", m_info.instance.ppEnabledExtensionNames[i].fromStringz);
             }
         }
 }
