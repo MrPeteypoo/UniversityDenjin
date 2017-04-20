@@ -7,8 +7,12 @@
 module denjin.rendering.vulkan.loader;
 
 // Phobos.
-import std.exception    : enforce;
-import std.typecons     : Unique;
+import core.stdc.string         : strcmp;
+import std.container.array      : Array;
+import std.container.util       : make;
+import std.exception            : enforce;
+import std.meta                 : AliasSeq;
+import std.string               : toStringz;
 
 // Engine.
 import denjin.rendering.vulkan.misc : enforceSuccess, nullHandle, safelyDestroyVK;
@@ -21,9 +25,12 @@ struct VulkanLoader
 {
     private:
 
+        alias Layers = Array!(const(char)*);
+
         VkInstance      m_instance  = nullHandle!VkInstance;    /// A handle to a created vulkan instance.
         VkSurfaceKHR    m_surface   = nullHandle!VkSurfaceKHR;  /// A handle to a renderable surface.
         VulkanInfo      m_info;                                 /// Contains descriptive information regarding how the Vulkan instance is configured.
+        Layers          m_layers;                               /// The layers enabled for the instance.
 
     public:
 
@@ -33,15 +40,19 @@ struct VulkanLoader
         nothrow @nogc
         ~this()
         {
-            clean();
+            clear();
         }
 
         /// Destroys stored instances, devices, surfaces, etc.
         nothrow @nogc
-        clean()
+        clear()
         {
-            m_instance.safelyDestroyVK (vkDestroyInstance, m_instance, null);
+            // Ensure the Vulkan objects are destroyed in the correct order.
             m_surface.safelyDestroyVK (vkDestroySurfaceKHR, m_instance, m_surface, null);
+            m_instance.safelyDestroyVK (vkDestroyInstance, m_instance, null);
+
+            // The GC will take care of deleting the C-strings.
+            m_layers.clear();
         }
 
         /// Creates instances, devices and queues which can be used by a Vulkan-based renderer.
@@ -50,14 +61,12 @@ struct VulkanLoader
         ///     extensionCount  = How many extensions will be loaded.
         ///     extensions      = A collection extension IDs to be loaded.
         void load (in InstanceProcAddress proc, in uint32_t extensionCount, in char** extensions)
-        in
         {
+            // Pre-conditions.
             enforce (proc != null);
             enforce (extensionCount > 0 || extensions == null);
-        }
-        body 
-        {
-            clean();
+
+            clear();
             createInstance (proc, extensionCount, extensions);
         }
 
@@ -91,11 +100,77 @@ struct VulkanLoader
             loadGlobalLevelFunctions (proc);
 
             // Second we must describe how the instance should be created.
+            enumerateLayers();
+            const auto layerCount = cast (uint32_t) m_layers.length;
+            const auto layerNames = layerCount == 0 ? null : &m_layers.front();
+
             m_info.instance.pApplicationInfo        = &m_info.app;
+            m_info.instance.enabledLayerCount       = layerCount;
+            m_info.instance.ppEnabledLayerNames     = layerNames;
             m_info.instance.enabledExtensionCount   = extensionCount;
             m_info.instance.ppEnabledExtensionNames = extensions;
 
             vkCreateInstance (&m_info.instance, null, &m_instance).enforceSuccess;
+        }
+
+        /// Checks the layers available to the instance and attempts to load any necessary debug layers.
+        /// Returns: A pair containing the number of layers and an array of C-strings representing layer names.
+        void enumerateLayers()
+        {
+            // First we must retrieve the number of layers.
+            uint32_t count;
+            vkEnumerateInstanceLayerProperties (&count, null).enforceSuccess;
+
+            // Now we can retrieve them.
+            auto layerProperties = make!(Array!VkLayerProperties);
+            layerProperties.length = count;
+            vkEnumerateInstanceLayerProperties (&count, &layerProperties.front()).enforceSuccess;
+            
+            // Next we must check for layers required by the loader based on the debug level. Also compile-time foreach ftw!
+            enum required = requiredLayers!();
+            m_layers.reserve (required.length);
+            foreach (name; required)
+            {
+                // Ensure the layer is accessible.
+                auto cName = name.toStringz;
+                enforce (layerExists (cName, layerProperties), "Required Vulkan layer is not supported: " ~ name);
+
+                // Add the C-string to the array of valid layer names. Remember that D strings aren't \0 terminated.
+                //m_layers.insertBack (cName);
+            }
+        }
+
+        /// Checks if the given c-style layer name exists in the given collection of properties.
+        bool layerExists (Container) (in const(char)* layerName, auto ref Container properties)
+        {
+            foreach (ref property; properties)
+            {
+                if (layerName.strcmp (property.layerName.ptr) == 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// Returns an array of strings representing the names of the layers required by the current debug level.
+        template requiredLayers()
+        {
+            version (optimized)
+            {
+                // Use only core validation layers for speed.
+                enum requiredLayers = AliasSeq!("VK_LAYER_LUNARG_core_validation");
+            }
+            else version (assert)
+            {
+                // Standard validation enables threading, parameter, object, core, swapchain and unique object validation.
+                enum requiredLayers = AliasSeq!("VK_LAYER_LUNARG_standard_validation");
+            }
+            else
+            {
+                // Don't perform any validation in release mode.
+                enum requiredLayers = AliasSeq!();
+            }
         }
 }
 
