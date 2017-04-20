@@ -9,6 +9,10 @@ module denjin.window.iwindow;
 /// An interface to be implemented by window management systems.
 interface IWindow
 {
+    /// Requests that the window get rid of every resource it owns and close if necessary.
+    nothrow @nogc
+    void clear();
+
     /// Requests that the window performs any required updates.
     /// Params: deltaTime = The number of seconds since the last update.
     nothrow

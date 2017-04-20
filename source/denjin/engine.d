@@ -11,6 +11,12 @@ struct Engine
 {
     IWindow window; /// A reference to a window management system, hard coded to GLFW right now.
 
+    nothrow @nogc
+    ~this()
+    {
+        window.clear();
+    }
+
     void initialise()
     {
         window = new WindowGLFW (1280, 720, No.isFullscreen, "Denjin");

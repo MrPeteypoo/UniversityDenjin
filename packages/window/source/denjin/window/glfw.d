@@ -38,12 +38,6 @@ final class WindowGLFW : IWindow
     ProcAddress     m_vkInstance;   /// A pointer to a function to create a Vulkan instance.
     VulkanLoader    m_loader;       /// Creates and manages the Vulkan instance/device for the window.
 
-    /// Ensure the window has been initialised at all times.
-    invariant
-    {
-        assert (m_window);
-    }
-
     /// Ensures the GLFW and Vulkan dlls are loaded and glfw is initialised.
     public static this()
     {
@@ -67,14 +61,19 @@ final class WindowGLFW : IWindow
     ///     fullscreen  = Should the window cover the entire screen?
     ///     title       = The title of the window, to be displayed by the OS.
     public this (in uint width, in uint height, Flag!"isFullscreen" isFullscreen, string title)
-    in
+    out
     {
-        enforce (width != 0);
-        enforce (height != 0);
-        enforce (glfwVulkanSupported() == GLFW_TRUE);
+        assert (m_window);
+        assert (m_width != 0);
+        assert (m_height != 0);
     }
     body
     {
+        // Pre-conditions.
+        enforce (width != 0);
+        enforce (height != 0);
+        enforce (glfwVulkanSupported() == GLFW_TRUE);
+
         // GLFW gives us a platform-independent way of retrieving the function pointer to vkGetInstanceProcAddr.
         m_vkInstance = cast (typeof (vkGetInstanceProcAddr)) glfwGetInstanceProcAddress (null, "vkGetInstanceProcAddr");
         enforce (m_vkInstance != null);
@@ -103,13 +102,20 @@ final class WindowGLFW : IWindow
         m_title     = move (title);
     }
 
-    /// Ensures the window is destroyed.
     nothrow @nogc
-    public ~this()
+    ~this()
+    {
+        clear();
+    }
+
+    /// Ensures the window is destroyed.
+    override nothrow @nogc
+    public void clear()
     {
         if (m_window)
         {
             glfwDestroyWindow (m_window);
+            m_window = null;
         }
     }
 
@@ -127,6 +133,10 @@ final class WindowGLFW : IWindow
 
     @property override nothrow
     public bool shouldClose()
+    in
+    {
+        assert (m_window);
+    }
     body
     {
         return glfwWindowShouldClose (m_window) == GLFW_TRUE;
@@ -143,8 +153,12 @@ final class WindowGLFW : IWindow
 
     @property override nothrow
     public void title (string text)
+    in
     {
         assert (m_window);
+    }
+    body 
+    {
         m_title = move (text);
         glfwSetWindowTitle (m_window, m_title.toStringz);
     }
