@@ -117,6 +117,8 @@ final class WindowGLFW : IWindow
             glfwDestroyWindow (m_window);
             m_window = null;
         }
+
+        m_loader.clear();
     }
 
     /// Tells glfw to poll events.
