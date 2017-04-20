@@ -11,6 +11,7 @@ import std.container.array      : Array;
 import std.container.util       : make;
 import std.exception            : enforce;
 import std.meta                 : AliasSeq, aliasSeqOf;
+import std.range                : repeat, takeExactly;
 import std.stdio                : writeln;
 import std.string               : fromStringz, toStringz;
 
@@ -141,12 +142,15 @@ struct VulkanLoader
             m_gpu       = m_info.physicalDevices[m_gpuIndex];
 
             // Next we need to obtain information about the available queues.
-            const auto queueFamilyIndex = enumerateQueueFamilies();
-            immutable queuePriorities   = 1f;
+            const auto  queueFamilyIndex    = enumerateQueueFamilies();
+            auto        queuePriorities     = new float[m_info.queueFamilyProperties[queueFamilyIndex].queueCount];
+            queuePriorities[] = 1f;
 
             m_info.queue.queueFamilyIndex   = cast (uint32_t) queueFamilyIndex;
-            m_info.queue.pQueuePriorities   = &queuePriorities;
+            m_info.queue.queueCount         = cast (uint32_t) queuePriorities.length;
+            m_info.queue.pQueuePriorities   = queuePriorities.ptr;
             m_info.device.pQueueCreateInfos = &m_info.queue;
+            scope (exit) m_info.queue.pQueuePriorities = null;
 
             // Finally create the logical device.
             m_device.create (m_gpu, m_info.device, null);
