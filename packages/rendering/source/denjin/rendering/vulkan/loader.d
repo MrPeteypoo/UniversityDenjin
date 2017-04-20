@@ -10,7 +10,7 @@ module denjin.rendering.vulkan.loader;
 import std.container.array      : Array;
 import std.container.util       : make;
 import std.exception            : enforce;
-import std.meta                 : AliasSeq;
+import std.meta                 : AliasSeq, aliasSeqOf;
 import std.string               : fromStringz, toStringz;
 
 // Engine.
@@ -127,15 +127,21 @@ struct VulkanLoader
             vkEnumerateInstanceLayerProperties (&count, &layerProperties.front()).enforceSuccess;
             
             // Next we must check for layers required by the loader based on the debug level. Also compile-time foreach ftw!
-            m_layers.reserve (VulkanInfo.requiredLayers.length);
-            foreach (name; VulkanInfo.requiredLayers)
+            enum requiredLayers = VulkanInfo.requiredLayers;
+            
+            // Handle the case where no layers are to be loaded.
+            static if (requiredLayers.length > 1 && requiredLayers[0] != "")
             {
-                // Ensure the layer is accessible.
-                auto cName = name.toStringz;
-                enforce (layerExists (cName, layerProperties), "Required Vulkan layer is not supported: " ~ name);
+                m_layers.reserve (requiredLayers.length);
+                foreach (name; requiredLayers)
+                {
+                    // Ensure the layer is accessible.
+                    auto cName = name.toStringz;
+                    enforce (layerExists (cName, layerProperties), "Required Vulkan layer is not supported: " ~ name);
 
-                // Add the C-string to the array of valid layer names. Remember that D strings aren't \0 terminated.
-                m_layers.insertBack (cName);
+                    // The C-string can be added to the collection of names.
+                    m_layers.insertBack (cName);
+                }
             }
         }
 
@@ -200,6 +206,6 @@ struct VulkanInfo
     else
     {
         // Don't perform any validation in release mode.
-        static enum requiredLayers = AliasSeq!();
+        static enum requiredLayers = AliasSeq!("");
     }
 }
