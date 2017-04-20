@@ -95,9 +95,11 @@ script:
   - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.:./builds/linux
   - find . -type f -name "*.sh" -exec chmod +x {} \;
   - chmod +x build.sh
+  - ./build.sh build debug $ARCH
   - ./build.sh build unittest-cov $ARCH
+  - ./build.sh build optimized $ARCH
   - ./build.sh build optimized-unittest $ARCH
-  - ./build.sh build release-unittest $ARCH
+  - ./build.sh build release $ARCH
 
 after_script:
   - dub run doveralls
