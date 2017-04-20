@@ -16,7 +16,8 @@ import std.traits   : isNumeric;
 import denjin.rendering.vulkan.misc : vulkanVersionString;
 
 // External.
-import erupted.types : VkLayerProperties, VkPhysicalDeviceLimits, VkPhysicalDeviceProperties;
+import erupted.types : VkLayerProperties, VkPhysicalDeviceLimits, VkPhysicalDeviceProperties, VkQueueFamilyProperties,
+                       VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, VK_QUEUE_SPARSE_BINDING_BIT, VK_QUEUE_TRANSFER_BIT;
 
 /// Iterates through a collection, printing the properties of each layer.
 void logLayerProperties (Container) (auto ref Container layerProperties)
@@ -63,6 +64,26 @@ void logPhysicalDeviceProperties (Container) (auto ref Container physicalDevices
                 writeln ("\t\t", member, ": ", value);
             }
         }
+        writeln;
+    }
+}
+
+/// Iterates through a collection, printing the properties of each queue family.
+void logQueueFamilyProperties (Container) (auto ref Container queueFamilyProperties)
+{
+    foreach (ref queueFamily; queueFamilyProperties)
+    {
+        static assert (is (typeof (queueFamily) == VkQueueFamilyProperties));
+        writeln ("Queue Family: ");
+        writeln ("\t", "Supports Graphics: ", (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) > 0);
+        writeln ("\t", "Supports Compute: ", (queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) > 0);
+        writeln ("\t", "Supports Transfer: ", (queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT) > 0);
+        writeln ("\t", "Supports Sparse Binding: ", (queueFamily.queueFlags & VK_QUEUE_SPARSE_BINDING_BIT) > 0);
+        writeln ("\t", "Queue Count: ", queueFamily.queueCount);
+        writeln ("\t", "Timestamp Valid Bits: ", queueFamily.timestampValidBits);
+        writeln ("\t", "Min Image Transfer Granularity: ", "(", queueFamily.minImageTransferGranularity.width, ", ",
+            queueFamily.minImageTransferGranularity.height, ", ",
+            queueFamily.minImageTransferGranularity.depth, ")");
         writeln;
     }
 }
