@@ -13,7 +13,8 @@ import std.exception    : enforce;
 import std.traits       : isBuiltinType, isFunctionPointer, isPointer;
 
 // External.
-import erupted.types : VkLayerProperties, VkResult, VK_SUCCESS;
+import erupted.types : uint32_t, VkLayerProperties, VkResult, VK_VERSION_MAJOR, VK_VERSION_MINOR, VK_VERSION_PATCH, 
+                       VK_SUCCESS;
 
 /// Throws an exception if the error code of a Vulkan function indicates failure.
 /// Params: 
@@ -94,4 +95,13 @@ bool layerExists (Container) (in const(char)* layerName, auto ref Container laye
         }
     }
     return false;
+}
+
+/// Returns a string representation of a packed Vulkan version number. The string will be separated using full stops.
+pure nothrow
+string vulkanVersionString (in uint32_t versionNumber)
+{
+    return  VK_VERSION_MAJOR (versionNumber).to!string ~ "." ~
+            VK_VERSION_MINOR (versionNumber).to!string ~ "." ~
+            VK_VERSION_PATCH (versionNumber).to!string;
 }

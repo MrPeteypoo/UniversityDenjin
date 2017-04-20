@@ -11,6 +11,7 @@ import std.container.array      : Array;
 import std.container.util       : make;
 import std.exception            : enforce;
 import std.meta                 : AliasSeq, aliasSeqOf;
+import std.stdio                : writeln;
 import std.string               : fromStringz, toStringz;
 
 // Engine.
@@ -28,8 +29,8 @@ struct VulkanLoader
 
         VkInstance      m_instance  = nullHandle!VkInstance;    /// A handle to a created vulkan instance.
         VkSurfaceKHR    m_surface   = nullHandle!VkSurfaceKHR;  /// A handle to a renderable surface.
-        VulkanInfo      m_info;                                 /// Contains descriptive information regarding how the Vulkan instance is configured.
         Layers          m_layers;                               /// The layers enabled for the instance.
+        VulkanInfo      m_info;                                 /// Contains descriptive information regarding how the Vulkan instance is configured.
 
     public:
 
@@ -67,6 +68,7 @@ struct VulkanLoader
 
             clear();
             createInstance (proc, extensionCount, extensions);
+            createDevice();
         }
 
         /// Gets a const-representation of the loaded instance.
@@ -91,7 +93,7 @@ struct VulkanLoader
 
     private:
 
-        /// Performs the first stage of vulkan loading, retrieving global-level Vulkan functions and creating an 
+        /// Performs the first stage of Vulkan loading, retrieving global-level Vulkan functions and creating an 
         /// instance.
         void createInstance (in InstanceProcAddress proc, in uint32_t extensionCount, in char** extensions)
         {
@@ -110,34 +112,48 @@ struct VulkanLoader
             m_info.instance.ppEnabledExtensionNames = extensions;
 
             vkCreateInstance (&m_info.instance, null, &m_instance).enforceSuccess;
-            debug printLayersAndExtensions;
+            printLayersAndExtensions;
+        }
+
+        /// Performs the second stage of Vulkan loading, retrieving instance-level Vulkan functions and checking the 
+        /// available devices, creating a logical device for use with rendering.
+        void createDevice()
+        {
+            // Ensure we load the function pointers required to create a device.
+            loadInstanceLevelFunctions (m_instance);
+            
+            // Now we can check the hardware on the machine, for now we'll just use the first device.
+            enumerateDevices();
+
         }
 
         /// Checks the layers available to the instance and attempts to load any necessary debug layers.
         /// Returns: A pair containing the number of layers and an array of C-strings representing layer names.
         void enumerateLayers()
         {
+            debug import denjin.rendering.vulkan.logging : logLayerProperties;
+
             // First we must retrieve the number of layers.
-            uint32_t count;
+            uint32_t count = void;
             vkEnumerateInstanceLayerProperties (&count, null).enforceSuccess;
 
             // Now we can retrieve them.
-            auto layerProperties = make!(Array!VkLayerProperties);
-            layerProperties.length = count;
-            vkEnumerateInstanceLayerProperties (&count, &layerProperties.front()).enforceSuccess;
+            m_info.layerProperties.length = count;
+            vkEnumerateInstanceLayerProperties (&count, &m_info.layerProperties.front()).enforceSuccess;
+            debug logLayerProperties (m_info.layerProperties);
             
             // Next we must check for layers required by the loader based on the debug level. Also compile-time foreach ftw!
             enum requiredLayers = VulkanInfo.requiredLayers;
             
             // Handle the case where no layers are to be loaded.
-            static if (requiredLayers.length > 1 && requiredLayers[0] != "")
+            static if (requiredLayers.length > 0 && requiredLayers[0] != "")
             {
                 m_layers.reserve (requiredLayers.length);
                 foreach (name; requiredLayers)
                 {
                     // Ensure the layer is accessible.
                     auto cName = name.toStringz;
-                    enforce (layerExists (cName, layerProperties), "Required Vulkan layer is not supported: " ~ name);
+                    enforce (layerExists (cName, m_info.layerProperties), "Required Vulkan layer is not supported: " ~ name);
 
                     // The C-string can be added to the collection of names.
                     m_layers.insertBack (cName);
@@ -145,11 +161,26 @@ struct VulkanLoader
             }
         }
 
+        void enumerateDevices()
+        {
+            debug import denjin.rendering.vulkan.logging : logPhysicalDeviceProperties;
 
-    debug:
+            // Get the number of devices.
+            uint32_t count = void;
+            vkEnumeratePhysicalDevices (m_instance, &count, null).enforceSuccess;
 
-        // Phobos.
-        import std.stdio : writeln;
+            // Retrieve the handles and properties of each device.
+            m_info.physicalDevices.length           = count;
+            m_info.physicalDeviceProperties.length  = count;
+            vkEnumeratePhysicalDevices (m_instance, &count, &m_info.physicalDevices.front()).enforceSuccess;
+
+            foreach (i; 0..count)
+            {
+                vkGetPhysicalDeviceProperties (m_info.physicalDevices[i], &m_info.physicalDeviceProperties[i]);
+            }
+            
+            debug logPhysicalDeviceProperties (m_info.physicalDeviceProperties);
+        }
 
         /// Prints the validation layer and extension names in use by the current instance.
         void printLayersAndExtensions() const
@@ -162,6 +193,7 @@ struct VulkanLoader
             {
                 writeln ("Vulkan instance extension activated: ", m_info.instance.ppEnabledExtensionNames[i].fromStringz);
             }
+            writeln;
         }
 }
 
@@ -192,6 +224,12 @@ struct VulkanInfo
         enabledExtensionCount:      0,
         ppEnabledExtensionNames:    VK_NULL_HANDLE
     };
+
+    Array!VkLayerProperties             layerProperties;            /// The details of what layers are available to the instance.
+    Array!VkPhysicalDevice              physicalDevices;            /// The available physical devices.
+    Array!VkPhysicalDeviceProperties    physicalDeviceProperties;   /// The description and capabilities of each device.
+    VkPhysicalDevice                    physicalDevice;             /// The chosen physical device.
+    VkPhysicalDeviceProperties*         deviceProps;                /// The
     
     version (optimized)
     {
