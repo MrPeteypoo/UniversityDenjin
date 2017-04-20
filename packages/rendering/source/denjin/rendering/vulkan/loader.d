@@ -127,9 +127,8 @@ struct VulkanLoader
             vkEnumerateInstanceLayerProperties (&count, &layerProperties.front()).enforceSuccess;
             
             // Next we must check for layers required by the loader based on the debug level. Also compile-time foreach ftw!
-            enum required = requiredLayers!();
-            m_layers.reserve (required.length);
-            foreach (name; required)
+            m_layers.reserve (VulkanInfo.requiredLayers.length);
+            foreach (name; VulkanInfo.requiredLayers)
             {
                 // Ensure the layer is accessible.
                 auto cName = name.toStringz;
@@ -137,26 +136,6 @@ struct VulkanLoader
 
                 // Add the C-string to the array of valid layer names. Remember that D strings aren't \0 terminated.
                 m_layers.insertBack (cName);
-            }
-        }
-
-        /// Returns an array of strings representing the names of the layers required by the current debug level.
-        template requiredLayers()
-        {
-            version (optimized)
-            {
-                // Use only core validation layers for speed.
-                enum requiredLayers = AliasSeq!("VK_LAYER_LUNARG_core_validation");
-            }
-            else version (assert)
-            {
-                // Standard validation enables threading, parameter, object, core, swapchain and unique object validation.
-                enum requiredLayers = AliasSeq!("VK_LAYER_LUNARG_standard_validation");
-            }
-            else
-            {
-                // Don't perform any validation in release mode.
-                enum requiredLayers = AliasSeq!();
             }
         }
 
@@ -207,4 +186,20 @@ struct VulkanInfo
         enabledExtensionCount:      0,
         ppEnabledExtensionNames:    VK_NULL_HANDLE
     };
+    
+    version (optimized)
+    {
+        // Use only core validation layers for speed.
+        static enum requiredLayers = AliasSeq!("VK_LAYER_LUNARG_core_validation");
+    }
+    else version (assert)
+    {
+        // Standard validation enables threading, parameter, object, core, swapchain and unique object validation.
+        static enum requiredLayers = AliasSeq!("VK_LAYER_LUNARG_standard_validation");
+    }
+    else
+    {
+        // Don't perform any validation in release mode.
+        static enum requiredLayers = AliasSeq!();
+    }
 }
