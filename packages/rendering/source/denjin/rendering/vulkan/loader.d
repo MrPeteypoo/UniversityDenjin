@@ -141,7 +141,7 @@ struct VulkanLoader
             const auto queueFamilyIndex = enumerateQueueFamilies();
             immutable queuePriorities   = 1f;
 
-            m_info.queue.queueFamilyIndex   = queueFamilyIndex;
+            m_info.queue.queueFamilyIndex   = cast (uint32_t) queueFamilyIndex;
             m_info.queue.pQueuePriorities   = &queuePriorities;
             m_info.device.pQueueCreateInfos = &m_info.queue;
 
