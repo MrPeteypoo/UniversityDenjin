@@ -136,7 +136,7 @@ struct VulkanLoader
                 enforce (layerExists (cName, layerProperties), "Required Vulkan layer is not supported: " ~ name);
 
                 // Add the C-string to the array of valid layer names. Remember that D strings aren't \0 terminated.
-                //m_layers.insertBack (cName);
+                m_layers.insertBack (cName);
             }
         }
 
