@@ -15,7 +15,8 @@ import std.stdio                : writeln;
 import std.string               : fromStringz, toStringz;
 
 // Engine.
-import denjin.rendering.vulkan.misc : enforceSuccess, layerExists, nullHandle, safelyDestroyVK;
+import denjin.rendering.vulkan.misc     : enforceSuccess, layerExists, nullHandle, safelyDestroyVK;
+import denjin.rendering.vulkan.device   : VulkanDevice;
 
 // External.
 import erupted;
@@ -29,12 +30,15 @@ struct VulkanLoader
 {
     private:
 
+        // Gotta use selective importing to access a required private struct of erupted, I've reported it as an issue.
+        import erupted.functions : DispatchDevice;
         alias Layers = Array!(const(char)*);
 
-        VkDevice            m_device    = nullHandle!VkDevice;          /// A handle to the logical device used for rendering.
-        VkPhysicalDevice    m_gpu       = nullHandle!VkPhysicalDevice;  /// A handle to the chosen physical device.
+        VulkanDevice m_device; /// Contains the handle and device-level functions of the current device.
+
         VkInstance          m_instance  = nullHandle!VkInstance;        /// A handle to a created vulkan instance.
         VkSurfaceKHR        m_surface   = nullHandle!VkSurfaceKHR;      /// A handle to a renderable surface.
+        VkPhysicalDevice    m_gpu       = nullHandle!VkPhysicalDevice;  /// A handle to the chosen physical device.
 
         size_t      m_gpuIndex; /// The index of the selected physical device.
         Layers      m_layers;   /// The layers enabled for the instance.
@@ -55,13 +59,12 @@ struct VulkanLoader
         nothrow @nogc
         clear()
         {
-            // Ensure the Vulkan objects are destroyed in the correct order.
+            m_layers.clear();
+            m_device.clear();
+
+            // The surface must be destroyed before the instance.
             m_surface.safelyDestroyVK (vkDestroySurfaceKHR, m_instance, m_surface, null);
             m_instance.safelyDestroyVK (vkDestroyInstance, m_instance, null);
-            m_device.safelyDestroyVK (vkDestroyDevice, m_device, null);
-
-            // The GC will take care of deleting the C-strings.
-            m_layers.clear();
         }
 
         /// Creates instances, devices and queues which can be used by a Vulkan-based renderer.
@@ -146,7 +149,7 @@ struct VulkanLoader
             m_info.device.pQueueCreateInfos = &m_info.queue;
 
             // Finally create the logical device.
-            vkCreateDevice (m_gpu, &m_info.device, null, &m_device).enforceSuccess;
+            m_device.create (m_gpu, m_info.device, null);
         }
 
         /// Checks the layers available to the instance and attempts to load any necessary debug layers.
@@ -239,7 +242,8 @@ struct VulkanLoader
         }
 }
 
-
+/// Contains creation information and enumerated properties of the current instance. Most of the data is only useful
+/// for debugging purposes.
 struct VulkanInfo
 {
     Array!VkLayerProperties             layerProperties;            /// The details of what layers are available to the instance.
