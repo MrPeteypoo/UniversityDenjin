@@ -11,7 +11,7 @@ import std.algorithm    : move;
 import std.conv         : to;
 import std.exception    : enforce;
 import std.stdio        : stderr, writefln;
-import std.string       : toStringz;
+import std.string       : fromStringz, toStringz;
 import std.typecons     : Flag, No, Yes;
 
 // Engine.
@@ -171,7 +171,7 @@ private void logGLFWError (int error, const(char)* description)
     try
     {
         string errorString = errorNumberToString (error);
-        stderr.writefln ("GLFW Error (%s): %s", errorString, description.to!string);
+        stderr.writefln ("GLFW Error (%s): %s", errorString, description.fromStringz);
     }
     catch (Exception e)
     {
