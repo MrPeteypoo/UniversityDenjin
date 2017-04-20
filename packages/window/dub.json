@@ -35,32 +35,18 @@
 	],
 
 	"buildTypes": {
-		"debug": {
-			"debugVersions": [ "Debug" ]
-		},
-
-		"unittest": {
-			"debugVersions": [ "Debug" ]
-		},
-
 		"optimized": {
 			"buildOptions": ["debugMode", "optimize", "inline", "debugInfo"],
-			"debugVersions": [ "Optimized" ],
-			"versions": [ "Optimized" ]
+			"version": [ "optimized" ]
 		},
 
 		"optimized-unittest": {
 			"buildOptions": ["debugMode", "optimize", "inline", "debugInfo", "unittests"],
-			"debugVersions": [ "Optimized" ],
-			"versions": [ "Optimized" ]
+			"version": [ "optimized" ]
 		},
 
 		"release": {
 			"buildOptions": ["releaseMode", "optimize", "inline", "noBoundsCheck"]
-		},
-
-		"release-unittest": {
-			"buildOptions": ["debugMode", "optimize", "inline", "noBoundsCheck", "unittests"]
 		}
 	},
 
