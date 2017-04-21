@@ -11,7 +11,7 @@ struct Engine
 {
     IWindow window; /// A reference to a window management system, hard coded to GLFW right now.
 
-    nothrow @nogc
+    nothrow
     ~this()
     {
         window.clear();

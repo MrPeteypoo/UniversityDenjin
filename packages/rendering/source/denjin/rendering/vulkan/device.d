@@ -24,20 +24,60 @@ import erupted.types        : uint32_t, VkAllocationCallbacks, VkDevice, VkDevic
 /// VkDevice to Vulkan functions as necessary. Device-level functions can be called directly using opDispatch too.
 struct VulkanDevice
 {
-    private alias Queues    = Array!VkQueue;
-    private enum nullDevice = nullHandle!VkDevice;
+    private
+    {
+        alias Queues    = Array!VkQueue;
+        enum nullDevice = nullHandle!VkDevice;
 
-    private VkDevice        m_handle = nullDevice;  /// The handle of the logical device.
-    private uint32_t        m_queueFamilyIndex;     /// The index of the queue family that the device was created with.
-    private Queues          m_queues;               /// Contains every queue available, as specified during device creation.
-    private DispatchDevice  m_funcs;                /// Contains function pointers to device-level functions related to this logical device.
-
+        VkDevice        m_handle = nullDevice;  /// The handle of the logical device.
+        uint32_t        m_renderQueueFamily;    /// The index of the queue family used to render.
+        uint32_t        m_presentQueueFamily;   /// The index of the queue family used to present to the display.
+        Queues          m_renderQueues;         /// Contains every queue available, as specified during device creation.
+        Queues          m_presentQueues;        /// Contains every queue available for presenting, this will be empty if a single queue family is used for both tasks.
+        DispatchDevice  m_funcs;                /// Contains function pointers to device-level functions related to this logical device.
+    }
 
     // Use subtyping to allow the retrieval of the handle implicitly.
     alias handle this;
 
     /// The object is not copyable.
     @disable this (this);
+
+    /// Creates the Vulkan device based in the given physical device and creation information.
+    this (ref VkPhysicalDevice physicalDevice, in ref VkDeviceCreateInfo info, in VkAllocationCallbacks* alloc = null,
+          in uint32_t renderQueueIndex = uint32_t.max, in uint32_t presentQueueIndex = uint32_t.max)
+    in
+    {
+        assert (vkCreateDevice);
+        assert (physicalDevice != nullHandle!VkPhysicalDevice);
+    }
+    out
+    {
+        assert (handle != nullHandle!VkDevice);
+    }
+    body
+    {
+        // Ensure we clean up after ourselves.
+        clear();
+
+        // Create the device and retrieve the device-level function pointers.
+        vkCreateDevice (physicalDevice, &info, alloc, &m_handle).enforceSuccess;
+        m_funcs = createDispatchDeviceLevelFunctions (m_handle);
+
+        // Now we need to initialise the queues.
+        const auto infos        = info.pQueueCreateInfos[0..info.queueCreateInfoCount];
+        m_renderQueueFamily     = renderQueueIndex;
+        m_presentQueueFamily    = presentQueueIndex;
+
+        if (m_renderQueueFamily != uint32_t.max)
+        {
+            retrieveQueues (infos, m_renderQueueFamily, m_renderQueues);
+        }
+        if (m_presentQueueFamily != uint32_t.max && m_presentQueueFamily != m_renderQueueFamily)
+        {
+            retrieveQueues (infos, m_renderQueueFamily, m_renderQueues);
+        }  
+    }
 
     /// Ensure we free the device upon destruction.
     nothrow @nogc
@@ -82,29 +122,6 @@ struct VulkanDevice
         }
     }
 
-    void create (ref VkPhysicalDevice physicalDevice, in ref VkDeviceCreateInfo info, in VkAllocationCallbacks* alloc = null)
-    in
-    {
-        assert (vkCreateDevice);
-        assert (physicalDevice != nullHandle!VkPhysicalDevice);
-    }
-    out
-    {
-        assert (handle != nullHandle!VkDevice);
-    }
-    body
-    {
-        // Ensure we clean up after ourselves.
-        clear();
-
-        // Create the device and retrieve the device-level function pointers.
-        vkCreateDevice (physicalDevice, &info, alloc, &m_handle).enforceSuccess;
-        m_funcs = createDispatchDeviceLevelFunctions (m_handle);
-
-        // Now we need to initialise the queues.
-        retrieveQueues (info.pQueueCreateInfos[0..info.queueCreateInfoCount]);
-    }
-
     /// Destroys the device and returns the logical device to an uninitialised state.
     nothrow @nogc
     void clear()
@@ -119,22 +136,25 @@ struct VulkanDevice
         }
     }
 
-    /// Retrieves the queues specified during device creation.
-    void retrieveQueues (in VkDeviceQueueCreateInfo[] queueInfo)
+    /// Retrieves the queues for the given queue family index.
+    void retrieveQueues (in VkDeviceQueueCreateInfo[] queueInfo, in uint32_t queueFamilyIndex, ref Queues container)
     in
     {
         assert (m_funcs.vkGetDeviceQueue);
     }
     body
     {
-        enforce (queueInfo.length == 1, "Only one queue family supported right now.");
-
-        m_queueFamilyIndex  = queueInfo[0].queueFamilyIndex;
-        m_queues.length     = queueInfo[0].queueCount;
-        foreach (i; 0..queueInfo[0].queueCount)
+        foreach (ref info; queueInfo)
         {
-            m_funcs.vkGetDeviceQueue (m_handle, m_queueFamilyIndex, i, &m_queues[i]);
-            enforce (m_queues[i]);
+            if (info.queueFamilyIndex == queueFamilyIndex)
+            {
+                container.length = info.queueCount;
+                foreach (i; 0..info.queueCount)
+                {
+                    m_funcs.vkGetDeviceQueue (m_handle, queueFamilyIndex, i, &container[i]);
+                    enforce (container[i]);
+                }
+            }
         }
     }
 
@@ -150,12 +170,40 @@ struct VulkanDevice
     pure nothrow @safe @nogc
     @property ref const(DispatchDevice) funcs() const { return m_funcs; }
 
-    /// Gets the index of the queue family used to create the device.
+    /// Gets the index of the queue family that was specified for rendering.
     pure nothrow @safe @nogc
-    @property uint32_t queueFamilyIndex() const { return m_queueFamilyIndex; }
+    @property uint32_t renderQueueFamily() const { return m_renderQueueFamily; }
+
+    /// Gets the index of the queue family that was specified for presenting.
+    pure nothrow @safe @nogc
+    @property uint32_t presentQueueFamily() const { return m_presentQueueFamily; }
+
+    /// Gets a const reference to the render queues loaded during device creation.
+    pure nothrow @safe @nogc
+    @property ref const(Queues) renderQueues() const { return m_renderQueues; }
+
+    /// Gets a const reference to the presentation queues loaded during device creation. These queues may be the same
+    /// as the render queues as they may come from the same family. Be careful.
+    pure nothrow @safe @nogc
+    @property ref const(Queues) presentQueues() const 
+    { 
+        return hasPresentableRenderQueues ? m_renderQueues : m_presentQueues;
+    }
+
+    /// Checks whether render queue family and present queue family indices are the same. If they are then it's likely
+    /// that presentation commands can be called in the normal render queues.
+    pure nothrow @safe @nogc
+    @property bool hasPresentableRenderQueues() const 
+    { 
+        if (m_renderQueueFamily == uint32_t.max && m_presentQueueFamily == uint32_t.max)
+        {
+            return false;
+        }
+        return m_renderQueueFamily == m_presentQueueFamily; 
+    }
 
     /// Determines whether the given name is a function available to the device.
-    private template isVkFunc (string name)
+    static template isVkFunc (string name)
     {
         import std.traits : isFunctionPointer, hasMember;
 

@@ -91,7 +91,11 @@ final class WindowGLFW : IWindow
         m_window = glfwCreateWindow (cast (int) width, cast (int) height, title.toStringz, null, null);
 
         // Create the renderable surface.
-        glfwCreateWindowSurface (m_loader.instance, m_window, null, &m_loader.surface()).enforceSuccess;
+        VkSurfaceKHR surface;
+        glfwCreateWindowSurface (m_loader.instance, m_window, null, &surface).enforceSuccess;
+
+        // Create the device.
+        auto device = m_loader.createRenderableDevice (surface);
 
         // And finally store the attributes of the window.
         int finalWidth = void, finalHeight = void;
@@ -102,14 +106,14 @@ final class WindowGLFW : IWindow
         m_title     = move (title);
     }
 
-    nothrow @nogc
+    nothrow
     ~this()
     {
         clear();
     }
 
     /// Ensures the window is destroyed.
-    override nothrow @nogc
+    override nothrow
     public void clear()
     {
         if (m_window)

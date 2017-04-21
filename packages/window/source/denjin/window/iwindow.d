@@ -10,7 +10,7 @@ module denjin.window.iwindow;
 interface IWindow
 {
     /// Requests that the window get rid of every resource it owns and close if necessary.
-    nothrow @nogc
+    nothrow
     void clear();
 
     /// Requests that the window performs any required updates.

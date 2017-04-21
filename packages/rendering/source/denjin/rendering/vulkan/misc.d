@@ -83,26 +83,6 @@ auto safelyDestroyVK (Handle, Func, T...) (ref Handle handle, in Func destroyFun
     }
 }
 
-/// Checks if the given c-style layer name exists in the given collection of properties.
-bool extensionOrLayerExists (Container) (in const(char)* name, in ref Container propertyContainer)
-{
-    foreach (ref property; propertyContainer)
-    {
-        static if (is (Unqual!(typeof (property)) == VkLayerProperties))
-        {
-            enum accessor = property.stringof ~ ".layerName.ptr";
-        }
-        else static if (is (Unqual!(typeof (property)) == VkExtensionProperties))
-        {
-            enum accessor = property.stringof ~ ".extensionName.ptr";
-        }
-        else static assert (false);
-
-        if (name.strcmp (mixin (accessor)) == 0) return true;
-    }
-    return false;
-}
-
 /// Returns a string representation of a packed Vulkan version number. The string will be separated using full stops.
 pure nothrow
 string vulkanVersionString (in uint32_t versionNumber)
