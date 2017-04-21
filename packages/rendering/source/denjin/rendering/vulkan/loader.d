@@ -342,7 +342,7 @@ struct VulkanLoader
         // Check which queue families to use for rendering and presenting.
         QueueFamilies   families    = uint32_t.max;
         VkBool32        presentable = void;
-        foreach (i; 0..m_info.queueFamilyProperties.length)
+        foreach (i; 0..cast(uint32_t) m_info.queueFamilyProperties.length)
         {
             const auto renderable = (m_info.queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) > 0;
             if (renderable && families[renderQueueFamily] == uint32_t.max)
