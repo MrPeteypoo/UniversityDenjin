@@ -10,11 +10,11 @@ module denjin.rendering.vulkan.misc;
 import core.stdc.string : strcmp;
 import std.conv         : to;
 import std.exception    : enforce;
-import std.traits       : isBuiltinType, isFunctionPointer, isPointer;
+import std.traits       : isBuiltinType, isFunctionPointer, isPointer, Unqual;
 
 // External.
-import erupted.types : uint32_t, VkLayerProperties, VkResult, VK_VERSION_MAJOR, VK_VERSION_MINOR, VK_VERSION_PATCH, 
-                       VK_SUCCESS;
+import erupted.types :  uint32_t, VkExtensionProperties, VkLayerProperties, VkResult, VK_VERSION_MAJOR, 
+                        VK_VERSION_MINOR, VK_VERSION_PATCH, VK_SUCCESS;
 
 /// Throws an exception if the error code of a Vulkan function indicates failure.
 /// Params: 
@@ -84,15 +84,21 @@ auto safelyDestroyVK (Handle, Func, T...) (ref Handle handle, in Func destroyFun
 }
 
 /// Checks if the given c-style layer name exists in the given collection of properties.
-bool layerExists (Container) (in const(char)* layerName, auto ref Container layerProperties)
+bool extensionOrLayerExists (Container) (in const(char)* name, in ref Container propertyContainer)
 {
-    foreach (ref property; layerProperties)
+    foreach (ref property; propertyContainer)
     {
-        static assert (is (typeof (property) == VkLayerProperties));
-        if (layerName.strcmp (property.layerName.ptr) == 0)
+        static if (is (Unqual!(typeof (property)) == VkLayerProperties))
         {
-            return true;
+            enum accessor = property.stringof ~ ".layerName.ptr";
         }
+        else static if (is (Unqual!(typeof (property)) == VkExtensionProperties))
+        {
+            enum accessor = property.stringof ~ ".extensionName.ptr";
+        }
+        else static assert (false);
+
+        if (name.strcmp (mixin (accessor)) == 0) return true;
     }
     return false;
 }
