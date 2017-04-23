@@ -24,7 +24,7 @@ import std.typecons             : No, Yes;
 // Engine.
 import denjin.rendering.vulkan.device       : Device;
 import denjin.rendering.vulkan.misc         : enforceSuccess, nullHandle, safelyDestroyVK;
-import denjin.rendering.vulkan.renderer     : Renderer;
+import denjin.rendering.vulkan.renderer     : RendererVulkan;
 import denjin.rendering.vulkan.swapchain    : Swapchain;
 
 // External.
@@ -97,7 +97,7 @@ struct Instance
     ///
     /// Params: surface = The surface to display images to. The instance will take ownership of this.
     /// Returns: A renderer which will need to be initialised before being used for rendering.
-    public Renderer createRenderer (VkSurfaceKHR surface = nullHandle!VkSurfaceKHR)
+    public RendererVulkan createRenderer (VkSurfaceKHR surface = nullHandle!VkSurfaceKHR)
     in
     {
         assert (m_instance != nullHandle!VkInstance);
@@ -122,7 +122,7 @@ struct Instance
         // Construct the renderer!
         auto device     = Device (gpu, m_info.device, surface, null);
         auto swapchain  = Swapchain (gpu, surface);
-        return new Renderer (move (device), move (swapchain));
+        return new RendererVulkan (move (device), move (swapchain));
     }
 
     /// Gets the handle being managed by the Instance struct.

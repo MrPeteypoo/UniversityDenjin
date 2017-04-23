@@ -64,11 +64,37 @@ struct Swapchain
         vkGetPhysicalDeviceSurfacePresentModesKHR (m_gpu, m_surface, &count, &m_modes.front()).enforceSuccess;
     }
 
+    /// Destroys the currently managed swapchain. This will leave the object in an unusable/unitialised state and 
+    /// should not be used any further.
+    /// Params:
+    ///     device      = The logical device used to create the swapchain in the first place.
+    ///     callbacks   = Any allocation callbacks used to initialise the swapchain with.
+    public void clear (ref Device device, in VkAllocationCallbacks* callbacks = null) nothrow
+    in
+    {
+        assert (device != nullHandle!VkDevice);
+    }
+    body
+    {
+        if (m_swapchain != nullHandle!VkSwapchainKHR)
+        {
+            device.vkDestroySwapchainKHR (m_swapchain, callbacks);
+            m_swapchain = nullHandle!VkSwapchainKHR;
+        }
+
+        m_surface       = nullHandle!VkSurfaceKHR;
+        m_gpu           = nullHandle!VkPhysicalDevice;
+        m_capabilities  = m_capabilities.init;
+        m_formats.clear();
+        m_modes.clear();
+    }
     /// Gets the handle to the managed swapchain.
     public @property inout (VkSwapchainKHR) swapchain() inout pure nothrow @safe @nogc { return m_swapchain; }
 
-    /// Creates/recreates the swapchain with the given device and desired dimensions.
-    public void create (ref Device device, in VkAllocationCallbacks* callbacks, in VSync desiredMode)
+    /// Initially creates the swapchain with the given display mode. Calling this not recreate the swapchain properly,
+    /// use recreate() for that.
+    public void create (ref Device device, in VSync desiredMode = VSync.TripleBuffering, 
+                        in VkAllocationCallbacks* callbacks = null)
     in
     {
         assert (device != nullHandle!VkDevice);
@@ -107,6 +133,14 @@ struct Swapchain
         {
             device.vkDestroySwapchainKHR (info.oldSwapchain, callbacks);
         }
+    }
+
+    /// Recreates the swapchain by discarding any stored images, discarding the current swapchain and creating a new
+    /// one.
+    public void recreate (ref Device device, in VSync desiredMode = VSync.TripleBuffering, 
+                          in VkAllocationCallbacks* callbacks = null)
+    {
+        
     }
 
     /// Attempts to set the image count and presentation mode to be the same as the desired VSync mode. If the device

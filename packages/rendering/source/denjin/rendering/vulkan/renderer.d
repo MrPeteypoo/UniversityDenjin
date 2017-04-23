@@ -18,7 +18,9 @@ import denjin.rendering.vulkan.swapchain    : Swapchain, VSync;
 // External.
 import erupted.types;
 
-class Renderer : IRenderer
+/// A basic 3D renderer implemented using Vulkan. A Vulkan instance must be created and loaded before using the
+/// renderer. The current implementation also requires a logical device and swapchain be generated externally.
+final class RendererVulkan : IRenderer
 {
     private 
     {
@@ -26,19 +28,74 @@ class Renderer : IRenderer
         Swapchain   m_swapchain;    /// Manages the display mode and displayable images available to the renderer.
     }
 
-    invariant
+    this (Device device, Swapchain swapchain)
+    out
     {
         assert (m_device != nullHandle!VkDevice);
         assert (m_swapchain != nullHandle!VkSwapchainKHR);
     }
-
-    this (Device device, Swapchain swapchain)
+    body
     {
         // Take ownership of the resources.
         m_device    = move (device);
         m_swapchain = move (swapchain);
 
         // We need a swapchain to start rendering.
-        m_swapchain.create (m_device, null, VSync.TripleBuffering);
+        m_swapchain.create (m_device);
+    }
+
+    ~this() nothrow
+    {
+        clear();
+    }
+
+    public override void clear() nothrow
+    {
+        if (m_device != nullHandle!VkDevice)
+        {
+            m_swapchain.clear (m_device);
+            m_device.clear();
+        }
+    }
+
+    public override void load()
+    in
+    {
+        assert (m_device != nullHandle!VkDevice);
+        assert (m_swapchain != nullHandle!VkSwapchainKHR);
+    }
+    body
+    {
+    }
+
+    /// The given resolution is ignored because if it differs from the swapchain we will cause an error.
+    public override void reset (in uint, in uint)
+    in
+    {
+        assert (m_device != nullHandle!VkDevice);
+        assert (m_swapchain != nullHandle!VkSwapchainKHR);
+    }
+    body
+    {
+    }
+
+    public override void update (in float deltaTime)
+    in
+    {
+        assert (m_device != nullHandle!VkDevice);
+        assert (m_swapchain != nullHandle!VkSwapchainKHR);
+    }
+    body
+    {
+    }
+
+    public override void render() nothrow
+        in
+        {
+            assert (m_device != nullHandle!VkDevice);
+            assert (m_swapchain != nullHandle!VkSwapchainKHR);
+        }
+    body
+    {
     }
 }

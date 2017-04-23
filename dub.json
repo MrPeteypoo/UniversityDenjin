@@ -11,6 +11,7 @@
 	"targetType": "executable",
 	"targetName": "denjin",
 	"targetPath": "builds/unsupported",
+	"mainSourceFile": "source/main.d",
 
 	"subPackages": [
 		"./packages/maths/",

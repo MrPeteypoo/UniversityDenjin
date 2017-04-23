@@ -6,6 +6,9 @@
 */
 module denjin.window.interfaces;
 
+// Engine.
+import denjin.rendering.interfaces : IRenderer;
+
 /// An interface to be implemented by window management systems.
 interface IWindow
 {
@@ -14,11 +17,10 @@ interface IWindow
 
     /// Requests that the window performs any required updates.
     /// Params: deltaTime = The number of seconds since the last update.
-    void update (float deltaTime) nothrow;
+    void update (float deltaTime);
 
-    /// Requests that a frame be rendered by the GPU.
-    /// Params: deltaTime = The number of seconds since the last update.
-    void render (float deltaTime) nothrow;
+    /// Gets a reference to the currently owned renderer.
+    @property inout(IRenderer) renderer() inout pure nothrow @safe @nogc;
 
     /// Checks if the window has been told to close by the user.
     @property bool shouldClose() nothrow;

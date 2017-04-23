@@ -32,8 +32,8 @@ final class WindowGLFW : IWindow
 {
     private
     {
-        uint        m_width;    /// How many pixels wide the window currently is.
-        uint        m_height;   /// How many pixels tall the window currently is.
+        int         m_width;    /// How many pixels wide the window currently is.
+        int         m_height;   /// How many pixels tall the window currently is.
         string      m_title;    /// The title of the window, as it is displayed to the user.
         GLFWwindow* m_window;   /// A pointer to a GLFW window handle.
         IRenderer   m_renderer; /// The renderer managed by the window system. GLFW supports OpenGL and Vulkan but only Vulkan is implemented right now.
@@ -70,8 +70,8 @@ final class WindowGLFW : IWindow
     out
     {
         assert (m_window);
-        assert (m_width != 0);
-        assert (m_height != 0);
+        assert (m_width > 0);
+        assert (m_height > 0);
     }
     body
     {
@@ -102,20 +102,11 @@ final class WindowGLFW : IWindow
         m_renderer = m_vulkan.createRenderer (surface);
 
         // And finally store the attributes of the window.
-        int finalWidth = void, finalHeight = void;
-        glfwGetWindowSize (m_window, &finalWidth, &finalHeight);
-
-        m_width     = cast (uint) finalWidth;
-        m_height    = cast (uint) finalHeight;
-        m_title     = move (title);
+        glfwGetWindowSize (m_window, &m_width, &m_height);
+        m_title = move (title);
     }
 
-    ~this() nothrow
-    {
-        clear();
-    }
-
-    /// Ensures the window is destroyed.
+    /// Ensures the window is destroyed and the renderer stops running.
     public override void clear() nothrow
     {
         if (m_window)
@@ -124,19 +115,38 @@ final class WindowGLFW : IWindow
             m_window = null;
         }
 
+        m_renderer.clear();
         m_vulkan.clear();
     }
 
     /// Tells glfw to poll events.
-    public override void update (float deltaTime) nothrow
+    public override void update (float deltaTime)
+    in
     {
+        assert (m_window);
+        assert (m_renderer);
+    }
+    body
+    {
+        // Ensure the window never stops being responsive.
         glfwPollEvents();
+
+        // Check whether the window size has changed in case we need to inform the renderer.
+        int width = void, height = void;
+        glfwGetWindowSize (m_window, &width, &height);
+        assert (width != 0);
+        assert (height != 0);
+
+        if (width != m_width || height != m_height)
+        {
+            m_renderer.reset (cast (uint) width, cast (uint) height);
+        }
+
+        m_width     = width;
+        m_height    = height;
     }
 
-    public override void render (float deltaTime) nothrow
-    {
-    }
-    
+    public @property inout(IRenderer) renderer() inout pure nothrow @safe @nogc { return m_renderer; }
     public @property override bool shouldClose() nothrow
     in
     {
@@ -147,8 +157,8 @@ final class WindowGLFW : IWindow
         return glfwWindowShouldClose (m_window) == GLFW_TRUE;
     }
 
-    public override @property uint width() const nothrow { return m_width; }
-    public override @property uint height() const nothrow { return m_height; }
+    public override @property uint width() const nothrow { return cast(uint) m_width; }
+    public override @property uint height() const nothrow { return cast(uint) m_height; }
     public override @property string title() const nothrow { return m_title; }
     public override @property void title (string text) nothrow
     in
