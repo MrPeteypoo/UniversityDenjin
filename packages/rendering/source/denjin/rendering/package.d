@@ -6,4 +6,5 @@
 */
 module denjin.rendering;
 
+public import denjin.rendering.interfaces;
 public import denjin.rendering.vulkan;

@@ -7,34 +7,42 @@
 module denjin.rendering.vulkan.device;
 
 // Phobos.
-import std.container.array  : Array;
-import std.exception        : enforce;
-import std.functional       : forward;
-import std.string           : startsWith;
+import std.array                : array;
+import std.algorithm.iteration  : filter, uniq;
+import std.algorithm.sorting    : sort;
+import std.container.array      : Array;
+import std.exception            : enforce;
+import std.functional           : forward;
+import std.string               : startsWith;
+import std.typecons             : Flag;
 
 // Engine.
-import denjin.rendering.vulkan.misc : enforceSuccess, nullHandle, safelyDestroyVK;
+import denjin.rendering.vulkan.misc : enforceSuccess, enumerateQueueFamilyProperties, findPresentableQueueFamily,
+                                      findSuitableQueueFamily, nullHandle, safelyDestroyVK;
 
 // External.
 import erupted.functions    : createDispatchDeviceLevelFunctions, DispatchDevice, vkCreateDevice;
 import erupted.types        : uint32_t, VkAllocationCallbacks, VkDevice, VkDeviceCreateInfo, VkDeviceQueueCreateInfo, 
-                              VkPhysicalDevice, VkQueue;
+                              VkPhysicalDevice, VkQueue, VkQueueFamilyProperties, VkQueueFlagBits, VkSurfaceKHR,
+                              VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 
 /// A logical device, allowing for the storage and calling of device-level functionality. It can be passed as a 
 /// VkDevice to Vulkan functions as necessary. Device-level functions can be called directly using opDispatch too.
-struct VulkanDevice
+struct Device
 {
     private
     {
-        alias Queues    = Array!VkQueue;
-        enum nullDevice = nullHandle!VkDevice;
+        VkDevice    m_handle        = nullHandle!VkDevice;  /// The handle of the logical device.
+        VkQueue     m_renderQueue   = nullHandle!VkQueue;   /// A handle to the queue used for rendering, this should be general purpose.
+        VkQueue     m_computeQueue  = nullHandle!VkQueue;   /// A handle to the queue used for compute operations.
+        VkQueue     m_transferQueue = nullHandle!VkQueue;   /// A handle to the queue used for transfer operations.
+        VkQueue     m_presentQueue  = nullHandle!VkQueue;   /// A handle to the queue used for presenting swapchains.
 
-        VkDevice        m_handle = nullDevice;  /// The handle of the logical device.
-        uint32_t        m_renderQueueFamily;    /// The index of the queue family used to render.
-        uint32_t        m_presentQueueFamily;   /// The index of the queue family used to present to the display.
-        Queues          m_renderQueues;         /// Contains every queue available, as specified during device creation.
-        Queues          m_presentQueues;        /// Contains every queue available for presenting, this will be empty if a single queue family is used for both tasks.
         DispatchDevice  m_funcs;                /// Contains function pointers to device-level functions related to this logical device.
+        uint32_t        m_renderQueueFamily;    /// The index of the queue family used to render.
+        uint32_t        m_computeQueueFamily;   /// The index of the queue family used for compute operations.
+        uint32_t        m_transferQueueFamily;  /// The index of the queue family used for transfer operations.
+        uint32_t        m_presentQueueFamily;   /// The index of the queue family used for present operations.
     }
 
     // Use subtyping to allow the retrieval of the handle implicitly.
@@ -43,40 +51,23 @@ struct VulkanDevice
     /// The object is not copyable.
     @disable this (this);
 
-    /// Creates the Vulkan device based in the given physical device and creation information.
-    this (ref VkPhysicalDevice physicalDevice, in ref VkDeviceCreateInfo info, in VkAllocationCallbacks* alloc = null,
-          in uint32_t renderQueueIndex = uint32_t.max, in uint32_t presentQueueIndex = uint32_t.max)
+    /// Creates a logical device based on the given physical device and creation information. The device will determine
+    /// which queue families to use for different tasks so this data will be modified.
+    this (VkPhysicalDevice gpu, ref VkDeviceCreateInfo deviceInfo, 
+          VkSurfaceKHR presentationSurface = nullHandle!VkSurfaceKHR,
+          in VkAllocationCallbacks* callbacks = null)
     in
     {
         assert (vkCreateDevice);
-        assert (physicalDevice != nullHandle!VkPhysicalDevice);
-    }
-    out
-    {
-        assert (handle != nullHandle!VkDevice);
+        assert (gpu != nullHandle!VkPhysicalDevice);
     }
     body
     {
-        // Ensure we clean up after ourselves.
-        clear();
-
-        // Create the device and retrieve the device-level function pointers.
-        vkCreateDevice (physicalDevice, &info, alloc, &m_handle).enforceSuccess;
-        m_funcs = createDispatchDeviceLevelFunctions (m_handle);
-
-        // Now we need to initialise the queues.
-        const auto infos        = info.pQueueCreateInfos[0..info.queueCreateInfoCount];
-        m_renderQueueFamily     = renderQueueIndex;
-        m_presentQueueFamily    = presentQueueIndex;
-
-        if (m_renderQueueFamily != uint32_t.max)
-        {
-            retrieveQueues (infos, m_renderQueueFamily, m_renderQueues);
-        }
-        if (m_presentQueueFamily != uint32_t.max && m_presentQueueFamily != m_renderQueueFamily)
-        {
-            retrieveQueues (infos, m_renderQueueFamily, m_renderQueues);
-        }  
+        // We'll need to retrieve information about the available queue families first.
+        const auto familyProperties = gpu.enumerateQueueFamilyProperties();
+        setQueueFamilyIndices (familyProperties, gpu, presentationSurface);
+        createLogicalDevice (gpu, deviceInfo, callbacks);
+        retrieveQueues (familyProperties);
     }
 
     /// Ensure we free the device upon destruction.
@@ -88,7 +79,7 @@ struct VulkanDevice
 
     /// Forward function calls to the funcs structure at compile-time if possible. If the first parameter of the 
     /// function is a VkDevice then the parameter can be omitted.
-    template opDispatch (string func)
+    public template opDispatch (string func)
         if (func.startsWith ("vk"))
     {
         auto opDispatch (T...) (auto ref T params)
@@ -122,12 +113,65 @@ struct VulkanDevice
         }
     }
 
+    /// Gets the Vulkan handle to the managed device.
+    public @property inout(VkDevice) handle() inout pure nothrow @safe @nogc { return m_handle; }
+
+    /// Gets a reference to the device-level Vulkan functions relevant to this device.
+    public @property ref inout(DispatchDevice) funcs() inout pure nothrow @safe @nogc { return m_funcs; }
+
+    /// Gets the index of the queue family retrieved for rendering.
+    public @property uint32_t renderQueueFamily() inout pure nothrow @safe @nogc { return m_renderQueueFamily; }
+
+    /// Gets the index of the queue family retrieved for compute.
+    public @property uint32_t computeQueueFamily() inout pure nothrow @safe @nogc { return m_computeQueueFamily; }
+
+    /// Gets the index of the queue family retrieved for transfers.
+    public @property uint32_t transferQueueFamily() inout pure nothrow @safe @nogc { return m_transferQueueFamily; }
+
+    /// Gets the index of the queue family retrieved for presenting swapchain images.
+    public @property uint32_t presentQueueFamily() inout pure nothrow @safe @nogc { return m_presentQueueFamily; }
+
+    /// Gets a copy of the queue handle which supports rendering capabilities.
+    public @property inout(VkQueue) renderQueue() inout pure nothrow @safe @nogc { return m_renderQueue; }
+
+    /// Gets a copy of the queue handle which supports compute capabilities.
+    public @property inout(VkQueue) computeQueue() inout pure nothrow @safe @nogc { return m_computeQueue; }
+
+    /// Gets a copy of the queue handle which supports transferring data.
+    public @property inout(VkQueue) transferQueue() inout pure nothrow @safe @nogc { return m_transferQueue; }
+
+    /// Gets a copy of the queue handle which supports presenting swapchain images.
+    public @property inout(VkQueue) presentQueue() inout pure nothrow @safe @nogc { return m_presentQueue; }
+
+    /// Checks whether the device has a queue family dedicated to rendering operations.
+    public @property bool hasDedicatedRenderFamily() inout pure nothrow @safe @nogc
+    { 
+        return mixin (hasDedicatedFamilyCheck!(m_renderQueueFamily.stringof));
+    }
+
+    /// Checks whether the device has a queue family dedicated to compute operations.
+    public @property bool hasDedicatedComputeFamily() inout pure nothrow @safe @nogc
+    { 
+        return mixin (hasDedicatedFamilyCheck!(m_computeQueueFamily.stringof));
+    }
+
+    /// Checks whether the device has a queue family dedicated to transfer operations.
+    public @property bool hasDedicatedTransferFamily() inout pure nothrow @safe @nogc
+    { 
+        return mixin (hasDedicatedFamilyCheck!(m_transferQueueFamily.stringof));
+    }
+
+    /// Checks whether the device has a queue family dedicated to presenting swapchain images.
+    public @property bool hasDedicatedPresentFamily() inout pure nothrow @safe @nogc
+    { 
+        return mixin (hasDedicatedFamilyCheck!(m_presentQueueFamily.stringof));
+    }
+
     /// Destroys the device and returns the logical device to an uninitialised state.
-    nothrow @nogc
-    void clear()
+    public void clear() nothrow @nogc
     {
         // Be sure to wait until the device is idle to destroy it.
-        if (handle != nullDevice)
+        if (handle != nullHandle!VkDevice)
         {
             assert (m_funcs.vkDeviceWaitIdle);
             m_funcs.vkDeviceWaitIdle (m_handle);
@@ -136,74 +180,32 @@ struct VulkanDevice
         }
     }
 
-    /// Retrieves the queues for the given queue family index.
-    void retrieveQueues (in VkDeviceQueueCreateInfo[] queueInfo, in uint32_t queueFamilyIndex, ref Queues container)
+    /// Retrieves the first queue for the given queue family index.
+    public VkQueue retrieveQueue (in uint32_t queueFamilyIndex)
     in
     {
         assert (m_funcs.vkGetDeviceQueue);
     }
+    out (result)
+    {
+        assert (result != nullHandle!VkQueue || queueFamilyIndex == uint32_t.max);
+    }
     body
     {
-        foreach (ref info; queueInfo)
+        if (queueFamilyIndex != uint32_t.max)
         {
-            if (info.queueFamilyIndex == queueFamilyIndex)
-            {
-                container.length = info.queueCount;
-                foreach (i; 0..info.queueCount)
-                {
-                    m_funcs.vkGetDeviceQueue (m_handle, queueFamilyIndex, i, &container[i]);
-                    enforce (container[i]);
-                }
-            }
+            VkQueue output = nullHandle!VkQueue;
+            m_funcs.vkGetDeviceQueue (m_handle, queueFamilyIndex, 0, &output);
+            return output;
         }
-    }
-
-    /// Gets a const copy of the device handle.
-    pure nothrow @safe @nogc
-    @property const(VkDevice) handle() const { return m_handle; }
-
-    /// Gets a modifiable copy of the device handle.
-    pure nothrow @safe @nogc
-    @property VkDevice handle() { return m_handle; }
-
-    /// Gets a const reference to the available device-level functions.
-    pure nothrow @safe @nogc
-    @property ref const(DispatchDevice) funcs() const { return m_funcs; }
-
-    /// Gets the index of the queue family that was specified for rendering.
-    pure nothrow @safe @nogc
-    @property uint32_t renderQueueFamily() const { return m_renderQueueFamily; }
-
-    /// Gets the index of the queue family that was specified for presenting.
-    pure nothrow @safe @nogc
-    @property uint32_t presentQueueFamily() const { return m_presentQueueFamily; }
-
-    /// Gets a const reference to the render queues loaded during device creation.
-    pure nothrow @safe @nogc
-    @property ref const(Queues) renderQueues() const { return m_renderQueues; }
-
-    /// Gets a const reference to the presentation queues loaded during device creation. These queues may be the same
-    /// as the render queues as they may come from the same family. Be careful.
-    pure nothrow @safe @nogc
-    @property ref const(Queues) presentQueues() const 
-    { 
-        return hasPresentableRenderQueues ? m_renderQueues : m_presentQueues;
-    }
-
-    /// Checks whether render queue family and present queue family indices are the same. If they are then it's likely
-    /// that presentation commands can be called in the normal render queues.
-    pure nothrow @safe @nogc
-    @property bool hasPresentableRenderQueues() const 
-    { 
-        if (m_renderQueueFamily == uint32_t.max && m_presentQueueFamily == uint32_t.max)
+        else
         {
-            return false;
+            return nullHandle!VkQueue;
         }
-        return m_renderQueueFamily == m_presentQueueFamily; 
     }
 
     /// Determines whether the given name is a function available to the device.
-    static template isVkFunc (string name)
+    public static template isVkFunc (string name)
     {
         import std.traits : isFunctionPointer, hasMember;
 
@@ -216,5 +218,117 @@ struct VulkanDevice
         {
             enum isVkFunc = false;
         }
+    }
+
+    /// Searches through the given family properties, setting suitable queue family indices for each type of queue.
+    private void setQueueFamilyIndices (in ref Array!VkQueueFamilyProperties familyProperties, VkPhysicalDevice gpu,
+                                        VkSurfaceKHR surface)
+    {
+        // Next we can choose an appropriate queue family to use based on our requirements.
+        m_renderQueueFamily     = familyProperties.findSuitableQueueFamily (VkQueueFlagBits.VK_QUEUE_GRAPHICS_BIT);
+        m_computeQueueFamily    = familyProperties.findSuitableQueueFamily (VkQueueFlagBits.VK_QUEUE_COMPUTE_BIT);
+        m_transferQueueFamily   = familyProperties.findSuitableQueueFamily (VkQueueFlagBits.VK_QUEUE_TRANSFER_BIT);
+
+        if (surface != nullHandle!VkSurfaceKHR)
+        {
+            const auto familyCount = cast (uint32_t) familyProperties.length;
+            m_presentQueueFamily = findPresentableQueueFamily (familyCount, gpu, surface);
+        }
+    }
+
+    /// Creates a logical device from the given GPU based on the current queue family indices.
+    private void createLogicalDevice (VkPhysicalDevice gpu, ref VkDeviceCreateInfo deviceInfo, 
+                                      in VkAllocationCallbacks* callbacks)
+    out
+    {
+        assert (m_handle != nullHandle!VkDevice);
+    }
+    body
+    {
+        // Now we can compile information about the required queue families.
+        immutable float[1] queuePriorities = [1f];
+        const auto familyIndices = 
+            [m_renderQueueFamily, m_computeQueueFamily, m_transferQueueFamily, m_presentQueueFamily]
+                .sort()
+                .uniq()
+                .filter!(a => a != uint32_t.max)
+                .array();
+
+        auto queueInfos = new VkDeviceQueueCreateInfo[familyIndices.length];
+        foreach (i, ref queueInfo; queueInfos)
+        {
+            queueInfo.sType             = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queueInfo.pNext             = null;
+            queueInfo.flags             = 0;
+            queueInfo.queueFamilyIndex  = familyIndices[i];
+            queueInfo.queueCount        = 1;
+            queueInfo.pQueuePriorities  = queuePriorities.ptr;
+        }
+
+        // Update the device info and create the device.
+        deviceInfo.queueCreateInfoCount = cast (uint32_t) queueInfos.length;
+        deviceInfo.pQueueCreateInfos    = queueInfos.ptr;
+
+        vkCreateDevice (gpu, &deviceInfo, callbacks, &m_handle).enforceSuccess;
+        m_funcs = createDispatchDeviceLevelFunctions (m_handle);
+    }
+
+    /// Retrieves a handle for each queue type which specify an index other than uint32_t.max.
+    private void retrieveQueues (in ref Array!VkQueueFamilyProperties familyProperties)
+    out
+    {
+        assert (!(m_renderQueue == nullHandle!VkQueue && 
+                  m_computeQueue == nullHandle!VkQueue &&
+                  m_transferQueue == nullHandle!VkQueue &&
+                  m_presentQueue == nullHandle!VkQueue));
+    }
+    body
+    {
+        m_renderQueue   = retrieveQueue (m_renderQueueFamily);
+        m_computeQueue  = retrieveQueue (m_computeQueueFamily);
+        m_transferQueue = retrieveQueue (m_transferQueueFamily);
+        m_presentQueue  = retrieveQueue (m_presentQueueFamily);
+    }
+
+    /// Returns code which will check whether the given member has a unique queue family.
+    /// Params: s = Ideally a member.stringof representation of the member to check.
+    private template hasDedicatedFamilyCheck (string s)
+    {
+        import std.meta     : AliasSeq, Filter, anySatisfy;
+        import std.traits   : Select;
+
+        static assert (anySatisfy!(isMember, testAgainst));
+        template isMember (string check)
+        {
+            enum isMember = Select!(s == check, true, false);
+        }
+
+        template isDifferentMember (string check)
+        {
+            enum isDifferentMember = !isMember!(check);
+        }
+
+        template code (string test, Members...)
+        {
+            static if (Members.length > 0)
+            {
+                enum code = s ~ "!=" ~ test ~ " && " ~ code!(Members);
+            }
+            else
+            {
+                enum code = s ~ " != " ~ test;
+            }
+        }
+
+        enum testAgainst = AliasSeq!
+        (
+             m_renderQueueFamily.stringof,
+             m_computeQueueFamily.stringof,
+             m_transferQueueFamily.stringof,
+             m_presentQueueFamily.stringof,
+             uint32_t.max.stringof
+        );
+        enum excludingCurrentMember  = Filter!(isDifferentMember, testAgainst);
+        enum hasDedicatedFamilyCheck = code!(testAgainst);
     }
 }

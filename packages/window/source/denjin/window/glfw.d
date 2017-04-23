@@ -12,11 +12,12 @@ import std.conv         : to;
 import std.exception    : enforce;
 import std.stdio        : stderr, writefln;
 import std.string       : fromStringz, toStringz;
-import std.typecons     : Flag, No, Yes;
+import std.typecons     : Flag;
 
 // Engine.
-import denjin.window.iwindow            : IWindow;
-import denjin.rendering.vulkan.loader   : VulkanLoader;
+import denjin.window.interfaces         : IWindow;
+import denjin.rendering.interfaces      : IRenderer;
+import denjin.rendering.vulkan.instance : Instance;
 import denjin.rendering.vulkan.misc     : enforceSuccess;
 
 // External.
@@ -29,14 +30,19 @@ mixin DerelictGLFW3_VulkanBind;
 /// A window management system which encapsulates GLFW.
 final class WindowGLFW : IWindow
 {
-    alias ProcAddress = typeof (vkGetInstanceProcAddr);
+    private
+    {
+        uint        m_width;    /// How many pixels wide the window currently is.
+        uint        m_height;   /// How many pixels tall the window currently is.
+        string      m_title;    /// The title of the window, as it is displayed to the user.
+        GLFWwindow* m_window;   /// A pointer to a GLFW window handle.
+        IRenderer   m_renderer; /// The renderer managed by the window system. GLFW supports OpenGL and Vulkan but only Vulkan is implemented right now.
 
-    uint            m_width;        /// How many pixels wide the window currently is.
-    uint            m_height;       /// How many pixels tall the window currently is.
-    string          m_title;        /// The title of the window, as it is displayed to the user.
-    GLFWwindow*     m_window;       /// A pointer to a GLFW window handle.
-    ProcAddress     m_vkInstance;   /// A pointer to a function to create a Vulkan instance.
-    VulkanLoader    m_loader;       /// Creates and manages the Vulkan instance/device for the window.
+        /// The application-wide Vulkan instance from which devices and renderers can be created from. Realistically this
+        /// should not be managed here because it means we can't have two GLFW windows in use at the same time. Not a
+        /// a problem for this stage of development but it needs to be moved at some point.
+        Instance m_vulkan; 
+    }
 
     /// Ensures the GLFW and Vulkan dlls are loaded and glfw is initialised.
     public static this()
@@ -75,27 +81,25 @@ final class WindowGLFW : IWindow
         enforce (glfwVulkanSupported() == GLFW_TRUE);
 
         // GLFW gives us a platform-independent way of retrieving the function pointer to vkGetInstanceProcAddr.
-        m_vkInstance = cast (typeof (vkGetInstanceProcAddr)) glfwGetInstanceProcAddress (null, "vkGetInstanceProcAddr");
-        enforce (m_vkInstance != null);
+        auto vkProcAddr = cast (typeof (vkGetInstanceProcAddr)) glfwGetInstanceProcAddress (null, "vkGetInstanceProcAddr");
+        enforce (vkProcAddr);
 
         // GLFW requires certain extensions to be able to create a surface.
         uint32_t count = void;
         const auto glfwExtensions = glfwGetRequiredInstanceExtensions (&count);
-        enforce (glfwExtensions != null);
+        enforce (glfwExtensions);
 
         // Now we can prepare for rendering.
-        m_loader.load (m_vkInstance, count, glfwExtensions);
-        
-        // Create the window.
         glfwWindowHint (GLFW_CLIENT_API, GLFW_NO_API);
         m_window = glfwCreateWindow (cast (int) width, cast (int) height, title.toStringz, null, null);
+        m_vulkan = Instance (vkProcAddr, count, glfwExtensions);
 
         // Create the renderable surface.
         VkSurfaceKHR surface;
-        glfwCreateWindowSurface (m_loader.instance, m_window, null, &surface).enforceSuccess;
+        glfwCreateWindowSurface (m_vulkan, m_window, null, &surface).enforceSuccess;
 
-        // Create the device.
-        auto device = m_loader.createRenderableDevice (surface);
+        // Finally we can initialise a Vulkan renderer!
+        m_renderer = m_vulkan.createRenderer (surface);
 
         // And finally store the attributes of the window.
         int finalWidth = void, finalHeight = void;
@@ -106,15 +110,13 @@ final class WindowGLFW : IWindow
         m_title     = move (title);
     }
 
-    nothrow
-    ~this()
+    ~this() nothrow
     {
         clear();
     }
 
     /// Ensures the window is destroyed.
-    override nothrow
-    public void clear()
+    public override void clear() nothrow
     {
         if (m_window)
         {
@@ -122,23 +124,20 @@ final class WindowGLFW : IWindow
             m_window = null;
         }
 
-        m_loader.clear();
+        m_vulkan.clear();
     }
 
     /// Tells glfw to poll events.
-    override nothrow
-    public void update (float deltaTime)
+    public override void update (float deltaTime) nothrow
     {
         glfwPollEvents();
     }
 
-    override nothrow
-    public void render (float deltaTime)
+    public override void render (float deltaTime) nothrow
     {
     }
-
-    @property override nothrow
-    public bool shouldClose()
+    
+    public @property override bool shouldClose() nothrow
     in
     {
         assert (m_window);
@@ -148,17 +147,10 @@ final class WindowGLFW : IWindow
         return glfwWindowShouldClose (m_window) == GLFW_TRUE;
     }
 
-    @property override nothrow
-    public uint width() const { return m_width; }
-
-    @property override nothrow
-    public uint height() const { return m_height; }
-
-    @property override nothrow
-    public string title() const { return m_title; }
-
-    @property override nothrow
-    public void title (string text)
+    public override @property uint width() const nothrow { return m_width; }
+    public override @property uint height() const nothrow { return m_height; }
+    public override @property string title() const nothrow { return m_title; }
+    public override @property void title (string text) nothrow
     in
     {
         assert (m_window);

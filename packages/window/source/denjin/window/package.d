@@ -7,4 +7,4 @@
 module denjin.window;
 
 public import denjin.window.glfw;
-public import denjin.window.iwindow;
+public import denjin.window.interfaces;

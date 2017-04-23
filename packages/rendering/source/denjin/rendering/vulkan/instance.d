@@ -9,6 +9,7 @@ module denjin.rendering.vulkan.loader;
 // Phobos.
 import core.stdc.string         : strcmp;
 import std.algorithm.iteration  : each;
+import std.algorithm.mutation   : move;
 import std.algorithm.searching  : all, canFind;
 import std.container.array      : Array;
 import std.container.util       : make;
@@ -18,10 +19,13 @@ import std.meta                 : AliasSeq, aliasSeqOf;
 import std.range                : repeat, takeExactly;
 import std.stdio                : writeln;
 import std.string               : fromStringz, toStringz;
+import std.typecons             : No, Yes;
 
 // Engine.
-import denjin.rendering.vulkan.misc     : enforceSuccess, nullHandle, safelyDestroyVK;
-import denjin.rendering.vulkan.device   : VulkanDevice;
+import denjin.rendering.vulkan.device       : Device;
+import denjin.rendering.vulkan.misc         : enforceSuccess, nullHandle, safelyDestroyVK;
+import denjin.rendering.vulkan.renderer     : Renderer;
+import denjin.rendering.vulkan.swapchain    : Swapchain;
 
 // External.
 import erupted;
@@ -31,15 +35,10 @@ debug import denjin.rendering.vulkan.logging : logExtensionProperties, logLayerP
                                                logQueueFamilyProperties;
 
 /// A basic structure, allowing for the creation and management of Vulkan instances and devices.
-struct VulkanLoader
+struct Instance
 {
     private
     {
-        // Compile time values.
-        enum renderQueueFamily  = 0;
-        enum presentQueueFamily = 1;
-
-        alias QueueFamilies = uint32_t[2];
         alias DebugCallback = VkDebugReportCallbackEXT;
         alias Extensions    = Array!(const(char)*);
         alias Layers        = Array!(const(char)*);
@@ -54,11 +53,35 @@ struct VulkanLoader
 
         // Device creation cache.
         Extensions  m_deviceExts;   /// The extensions enabled for the device.
-        VulkanInfo  m_info;         /// Contains descriptive information regarding how the Vulkan instance is configured.
-
+        Info        m_info;         /// Contains descriptive information regarding how the Vulkan instance is configured.
     }
+
+    /// Subtype VkInstance to allow for implicit retrieval of the managed handle.
+    alias handle this;
     
+    /// A function pointer to the vkGetInstanceProcAddr function is required to create instances.
     alias InstanceProcAddress = typeof (vkGetInstanceProcAddr);
+
+    /// The object is not copyable.
+    @disable this(this);
+
+    /// Performs the first and second stage of Vulkan loading. Loading the global-level functions required by Vulkan, 
+    /// creating an instance and loading instance-level functions. The next stage would be to create devices/renderers. 
+    /// In debug builds this will also register a debug callback which will prints information to the console.
+    /// Params:
+    ///     proc            = The pointer to a function used to load global-level Vulkan functions.
+    ///     extensionCount  = How many extensions will be loaded.
+    ///     extensions      = A collection extension names to be loaded.
+    public this (in InstanceProcAddress proc, in uint32_t extensionCount, in char** extensions)
+    {
+        // Pre-conditions.
+        enforce (proc != null);
+        enforce (extensionCount == 0 || extensions != null);
+
+        // We must ensure that global-level Vulkan functions are loaded before trying to create an instance.
+        loadGlobalLevelFunctions (proc);
+        createInstance (extensionCount, extensions);
+    }
 
     /// Destroys any stored instances/surfaces.
     nothrow
@@ -67,9 +90,49 @@ struct VulkanLoader
         clear();
     }
 
-    /// Destroys stored instances, surfaces, etc.
-    nothrow
-    public void clear()
+    /// Constructs a renderer which is derived from the current instance. This will evaluate physical devices available
+    /// to the system, check their capabilities and create a logical device which will be given to the constructed
+    /// renderer. The given surface will also be used to initialise a swapchain which will also be given to the 
+    /// constructed renderer.
+    ///
+    /// Params: surface = The surface to display images to. The instance will take ownership of this.
+    /// Returns: A renderer which will need to be initialised before being used for rendering.
+    public Renderer createRenderer (VkSurfaceKHR surface = nullHandle!VkSurfaceKHR)
+    in
+    {
+        assert (m_instance != nullHandle!VkInstance);
+        assert (surface != nullHandle!VkSurfaceKHR);
+    }
+    body
+    {
+        // Take ownership of the surface.
+        if (surface != nullHandle!VkSurfaceKHR && !(canFind (m_surfaces[0..$], surface)))
+        {
+            m_surfaces.insertBack (surface);
+        }
+
+        // Now we can check the hardware on the machine to chose a physical device to use.
+        const auto gpuIndex = enumerateDevices();
+        auto       gpu      = m_info.physicalDevices[gpuIndex];
+
+        // Ensure we enable any necessary extensions.
+        m_info.device.enabledExtensionCount     = cast (uint32_t) m_deviceExts.length;
+        m_info.device.ppEnabledExtensionNames   = &m_deviceExts.front();
+
+        // Construct the renderer!
+        auto device     = Device (gpu, m_info.device, surface, null);
+        auto swapchain  = Swapchain (gpu, surface);
+        return new Renderer (move (device), move (swapchain));
+    }
+
+    /// Gets the handle being managed by the Instance struct.
+    public @property inout(VkInstance) handle() inout pure nothrow @safe @nogc { return m_instance; }
+
+    /// Checks if the vulkan instance has been initialised and is ready for use.
+    public @property bool isInitialised() const pure nothrow @safe @nogc { return m_instance != nullHandle!VkInstance; }
+
+    /// Destroys stored instance and surfaces, etc.
+    public void clear() nothrow
     {
         // The instance must be destroyed last.
         debug m_debugCallback.safelyDestroyVK (vkDestroyDebugReportCallbackEXT, m_instance, m_debugCallback, null);
@@ -83,99 +146,8 @@ struct VulkanLoader
         m_info.clear();
     }
 
-    /// Performs the initial stage of Vulkan loading. Loading the global-level functions required by Vulkan and 
-    /// creates an instance from which devices may be created.
-    /// Params:
-    ///     proc            = The pointer to a function used to load global-level Vulkan functions.
-    ///     extensionCount  = How many extensions will be loaded.
-    ///     extensions      = A collection extension names to be loaded.
-    public void load (in InstanceProcAddress proc, in uint32_t extensionCount, in char** extensions)
-    {
-        // Pre-conditions.
-        enforce (proc != null);
-        enforce (extensionCount > 0 || extensions == null);
-
-        // We must ensure that global-level Vulkan functions are loaded.
-        loadGlobalLevelFunctions (proc);
-
-        clear();
-        createInstance (extensionCount, extensions);
-    }
-
-    /// Performs the final stage of Vulkan loading, enumerating devices, choosing an appropriate physical device
-    /// and creating a logical device from it. Upon creation of the logical device, device-level functionality will
-    /// be loaded. The generated logical device can be used for rendering and presenting to the display. Also be
-    /// sure to clear the device before clearing the loader as the generated device will be tied to the current
-    /// instance.
-    ///
-    /// Params: surface = The surface to display images to. The loader will take ownership of this.
-    /// Returns: A Vulkan device which can be used for rendering, compute and presentation tasks.
-    public VulkanDevice createRenderableDevice (VkSurfaceKHR surface)
-    in
-    {
-        assert (m_instance != nullHandle!VkInstance);
-    }
-    body
-    {
-        // Take ownership of the surface.
-        if (surface != nullHandle!VkSurfaceKHR && !(canFind (m_surfaces[0..$], surface)))
-        {
-            m_surfaces.insertBack (surface);
-        }
-
-        // Now we can check the hardware on the machine, for now we'll just use the first device.
-        const auto gpuIndex = enumerateDevices();
-        auto       gpu      = m_info.physicalDevices[gpuIndex];
-
-        // Next we need to determine which queue families to use.
-        const auto queueFamilyIndices = enumerateQueueFamilies (gpu, surface);
-        static assert (queueFamilyIndices.length == 2);
-            
-        // There may be two families, the family used to render and the family used to present.
-        const auto renderQueueFamily    = queueFamilyIndices[renderQueueFamily];
-        const auto presentQueueFamily   = queueFamilyIndices[presentQueueFamily];
-        const auto renderQueueCount     = m_info.queueFamilyProperties[renderQueueFamily].queueCount;
-        const auto presentQueueCount    = m_info.queueFamilyProperties[presentQueueFamily].queueCount;
-
-        auto queuePriorities = [new float[renderQueueCount], new float[presentQueueCount]];
-        queuePriorities.each!(arr => arr[] = 1f);
-
-        // Now we compile the information together. Rely on the defaults in VulkanInfo.
-        VkDeviceQueueCreateInfo[2] queueInfo = m_info.queue;
-        with (queueInfo[renderQueueFamily])
-        {
-            queueFamilyIndex    = renderQueueFamily;
-            queueCount          = renderQueueCount;
-            pQueuePriorities    = queuePriorities[renderQueueFamily].ptr;
-        }
-        with (queueInfo[presentQueueFamily])
-        {
-            queueFamilyIndex    = presentQueueFamily;
-            queueCount          = presentQueueCount;
-            pQueuePriorities    = queuePriorities[presentQueueFamily].ptr;
-        }
-        m_info.device.queueCreateInfoCount      = cast (uint32_t) queueInfo.length;
-        m_info.device.pQueueCreateInfos         = queueInfo.ptr;
-        m_info.device.enabledExtensionCount     = cast (uint32_t) m_deviceExts.length;
-        m_info.device.ppEnabledExtensionNames   = &m_deviceExts.front();
-
-        // Finally create the logical device.
-        auto device = VulkanDevice (gpu, m_info.device, null, renderQueueFamily, presentQueueFamily);
-        printExtensionsAndLayers;
-        return device;
-    }
-
-    /// Gets a const-representation of the loaded instance.
-    @property pure nothrow @safe @nogc
-    public ref const(VkInstance) instance() const { return m_instance; };
-
-    /// Gets a modifiable representation of the loaded instance.
-    @property pure nothrow @safe @nogc
-    public ref VkInstance instance() { return m_instance; };
-
     /// Performs the second stage of Vulkan loading, creating an instance for the application and loading 
-    /// the instance-level functions associated with it. In debug builds this will also register a debug callback
-    /// which will prints information to the console.
+    /// the instance-level functions associated with it. 
     private void createInstance (in uint32_t extensionCount, in char** extensions)
     {
         // We must describe how the instance should be created.
@@ -197,7 +169,8 @@ struct VulkanLoader
 
         // Ensure we load the function pointers required to create a device and a debug callback.
         loadInstanceLevelFunctions (m_instance);
-        debug createDebugCallback;
+        printExtensionsAndLayers();
+        debug createDebugCallback();
     }
 
     /// Checks the extensions available to the instance and attempts to load any necessary for rendering.
@@ -213,8 +186,8 @@ struct VulkanLoader
         debug logExtensionProperties ("Instance", m_info.instanceExtProperties);
 
         // Reserve memory to speed up the process.
-        enum requiredExtensions = VulkanInfo.requiredInstanceExtensions!();
-        m_instanceExts.clear();
+        enum requiredExtensions = Info.requiredInstanceExtensions!();
+        m_instanceExts.clear;
         m_instanceExts.reserve (requiredExtensions.length + externalExtCount);
 
         // First check the externally required extensions exist.
@@ -260,7 +233,7 @@ struct VulkanLoader
         debug logLayerProperties (m_info.layerProperties);
             
         // Next we must check for layers required by the loader based on the debug level. Also compile-time foreach ftw!
-        enum requiredLayers = VulkanInfo.requiredLayers!();
+        enum requiredLayers = Info.requiredLayers!();
         m_layers.clear();
             
         // Handle the case where no layers are to be loaded.
@@ -312,11 +285,11 @@ struct VulkanLoader
         enforce (!m_info.physicalDevices.empty);
 
         // Only check the first device atm.
-        enum requiredExtensions = VulkanInfo.requiredDeviceExtensions!();
+        enum requiredExtensions = Info.requiredDeviceExtensions!();
         m_deviceExts.clear();
         m_deviceExts.reserve (requiredExtensions.length);
 
-        alias cmpExtension  = (a, b) => strcmp (a.extensionName.ptr, b) == 0;
+        alias cmpExtension = (a, b) => strcmp (a.extensionName.ptr, b) == 0;
         foreach (ext; requiredExtensions)
         {
             auto cName = ext.toStringz;
@@ -325,40 +298,6 @@ struct VulkanLoader
         }
 
         return 0;
-    }
-
-    /// Populates the queue family properties
-    /// Returns: The index of the most appropriate family to use for rendering.
-    private uint32_t[2] enumerateQueueFamilies (VkPhysicalDevice gpu, VkSurfaceKHR surface)
-    {
-        // Retrieve the queue family properties.
-        uint32_t count = void;
-        vkGetPhysicalDeviceQueueFamilyProperties (gpu, &count, null);
-            
-        m_info.queueFamilyProperties.length = count;
-        vkGetPhysicalDeviceQueueFamilyProperties (gpu, &count, &m_info.queueFamilyProperties.front());
-        debug logQueueFamilyProperties (m_info.queueFamilyProperties);
-
-        // Check which queue families to use for rendering and presenting.
-        QueueFamilies   families    = uint32_t.max;
-        VkBool32        presentable = void;
-        foreach (i; 0..cast(uint32_t) m_info.queueFamilyProperties.length)
-        {
-            const auto renderable = (m_info.queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) > 0;
-            if (renderable && families[renderQueueFamily] == uint32_t.max)
-            {
-                families[renderQueueFamily] = i;
-            }
-
-            vkGetPhysicalDeviceSurfaceSupportKHR (gpu, i, surface, &presentable).enforceSuccess;
-            if (presentable == VK_TRUE && families[presentQueueFamily] == uint32_t.max)
-            {
-                families[presentQueueFamily] = i;
-            }
-        }
-        
-        enforce (families[].all!"a != a.max");
-        return families;
     }
 
     /// Prints the validation layer and extension names in use by the current instance.
@@ -371,10 +310,6 @@ struct VulkanLoader
         foreach (i; 0..m_info.instance.enabledLayerCount)
         {
             writeln ("Vulkan instance layer activated: ", m_info.instance.ppEnabledLayerNames[i].fromStringz);
-        }
-        foreach (i; 0..m_info.device.enabledExtensionCount)
-        {
-            writeln ("Vulkan device extension activated: ", m_info.device.ppEnabledExtensionNames[i].fromStringz);
         }
         writeln;
     }
@@ -461,14 +396,13 @@ VkBool32 logVulkanError (VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT
 
 /// Contains creation information and enumerated properties of the current instance. Most of the data is only useful
 /// for debugging purposes.
-private struct VulkanInfo
+private struct Info
 {
     Array!VkExtensionProperties         instanceExtProperties;      /// The details of what extensions are available to the instance.
     Array!VkLayerProperties             layerProperties;            /// The details of what layers are available to the instance.
     Array!VkPhysicalDevice              physicalDevices;            /// The available physical devices.
     Array!VkPhysicalDeviceProperties    physicalDeviceProperties;   /// The description and capabilities of each device.
     Array!(Array!VkExtensionProperties) deviceExtProperties;        /// A collection of extension properties for every device.
-    Array!VkQueueFamilyProperties       queueFamilyProperties;      /// The capabilities of each available queue family.
 
     /// Contains application-specific information required to create a Vulkan instance, hard-coded for now.
     VkApplicationInfo app = 
@@ -495,24 +429,13 @@ private struct VulkanInfo
         ppEnabledExtensionNames:    null
     };
 
-    /// Contains information required to link a queue family to a device.
-    VkDeviceQueueCreateInfo queue = 
-    {
-        sType:              VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-        pNext:              null,
-        flags:              0,
-        queueFamilyIndex:   0,
-        queueCount:         0,
-        pQueuePriorities:   null
-    };
-
     /// Contains information required to create a logical device.
     VkDeviceCreateInfo device = 
     {
         sType:                      VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         pNext:                      null,
         flags:                      0,
-        queueCreateInfoCount:       1,
+        queueCreateInfoCount:       0,
         pQueueCreateInfos:          null,
         enabledLayerCount:          0,
         ppEnabledLayerNames:        null,
@@ -522,7 +445,7 @@ private struct VulkanInfo
     };
 
     /// Contains information regarding the creation of a debug callback.
-    VkDebugReportCallbackCreateInfoEXT debugCallback = 
+    debug VkDebugReportCallbackCreateInfoEXT debugCallback = 
     {
         sType: VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
         pNext: null,
@@ -579,6 +502,5 @@ private struct VulkanInfo
         physicalDevices.clear();
         physicalDeviceProperties.clear();
         deviceExtProperties.clear();
-        queueFamilyProperties.clear();
     }
 }

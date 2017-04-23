@@ -7,22 +7,101 @@
 module denjin.rendering.vulkan.misc;
 
 // Phobos.
-import core.stdc.string : strcmp;
-import std.conv         : to;
-import std.exception    : enforce;
-import std.traits       : isBuiltinType, isFunctionPointer, isPointer, Unqual;
+import std.container.array  : Array;
+import core.stdc.string     : strcmp;
+import std.conv             : to;
+import std.exception        : enforce;
+import std.traits           : isBuiltinType, isFunctionPointer, isPointer, Unqual;
+
+// Engine.
+import denjin.rendering.vulkan.logging : logQueueFamilyProperties;
 
 // External.
-import erupted.types :  uint32_t, VkExtensionProperties, VkLayerProperties, VkResult, VK_VERSION_MAJOR, 
-                        VK_VERSION_MINOR, VK_VERSION_PATCH, VK_SUCCESS;
+import erupted.functions    : vkGetPhysicalDeviceSurfaceSupportKHR, vkGetPhysicalDeviceQueueFamilyProperties;
+import erupted.types        : uint32_t, VkBool32, VkExtensionProperties, VkLayerProperties, VkPhysicalDevice, VkResult, 
+                              VkQueueFamilyProperties, VkQueueFlags, VkSurfaceKHR, VK_VERSION_MAJOR, VK_VERSION_MINOR, 
+                              VK_VERSION_PATCH, VK_SUCCESS;
 
 /// Throws an exception if the error code of a Vulkan function indicates failure.
-/// Params: 
-///     code = The Vulkan error code that was generated.
+/// Params: code = The Vulkan error code that was generated.
 pure @safe
 void enforceSuccess (in VkResult code)
 {
     enforce (code == VK_SUCCESS, code.to!string);
+}
+
+/// Given a physical device, this function will enumerate the available queue families and return them in a container.
+Array!VkQueueFamilyProperties enumerateQueueFamilyProperties (VkPhysicalDevice gpu)
+{
+    auto array = Array!VkQueueFamilyProperties();
+    uint32_t count = void;
+    vkGetPhysicalDeviceQueueFamilyProperties (gpu, &count, null);
+
+    array.length = count;
+    vkGetPhysicalDeviceQueueFamilyProperties (gpu, &count, &array.front());
+
+    array.logQueueFamilyProperties();
+    return array;
+}
+
+/// Attempts to find a suitable queue family index by iterating over the given family properties and doing two things.
+/// Firstly, it will look for a queue family which is dedicated to the requirements described. Secondly, if a dedicated
+/// queue family doesn't exist then it will look for one which is more general purpose but still fulfils the 
+/// requirements. 
+/// Params:
+///     familyProperties    = The family properties available to a physical device.
+///     flags               = The requirements of the different family queues.
+/// Returns: An index value if successful, uint32_t.max if not.
+uint32_t findSuitableQueueFamily (in ref Array!VkQueueFamilyProperties familyProperties, in VkQueueFlags flags)
+{
+    // We only need to keep track of the fallback as we can return early when we find a dedicate queue family.
+    uint32_t fallback       = uint32_t.max;
+    VkQueueFlags current    = void;
+
+    foreach (i; 0..cast (uint32_t) familyProperties.length)
+    {
+        current = familyProperties[i].queueFlags;
+
+        // The flags will be exactly the same if the queue family is dedicated to the given task.
+        if ((current | flags) == flags)
+        {
+            return i;
+        }
+
+        // To find general purpose families we only need to check whether the flags exist in the queue family.
+        else if ((current & flags) == flags)
+        {
+            fallback = i;
+        }
+    }
+    return fallback;
+}
+
+/// Attempts to find the first queue family which supports presenting swapchain images to the screen.
+/// Params: 
+///     queueFamilyCount    = The total number of queue families on the given physical device.
+///     gpu                 = The physical device which will be used to present.
+///     surface             = The surface which will be presented to.
+/// Returns: An index value if a suitable queue family is found, uint32_t.max if not.
+uint32_t findPresentableQueueFamily (in uint32_t queueFamilyCount, VkPhysicalDevice gpu, VkSurfaceKHR surface)
+in
+{
+    assert (gpu != nullHandle!VkPhysicalDevice);
+    assert (surface != nullHandle!VkSurfaceKHR);
+}
+body
+{
+    VkBool32 isPresentable = void;
+    foreach (i; 0..queueFamilyCount)
+    {
+        vkGetPhysicalDeviceSurfaceSupportKHR (gpu, i, surface, &isPresentable).enforceSuccess;
+        
+        if (isPresentable)
+        {
+            return i;
+        }
+    }
+    return uint32_t.max;
 }
 
 /// Gets the correct null handle to use when checking if a VK handle is null.
