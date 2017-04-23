@@ -17,8 +17,13 @@ import denjin.rendering.vulkan.device   : Device;
 import denjin.rendering.vulkan.misc     : enforceSuccess, nullHandle;
 
 // External.
-import erupted.functions;
-import erupted.types;
+import erupted.functions    : vkGetPhysicalDeviceSurfaceCapabilitiesKHR, vkGetPhysicalDeviceSurfaceFormatsKHR, vkGetPhysicalDeviceSurfacePresentModesKHR;
+import erupted.types        : uint32_t, VkAllocationCallbacks, VkColorSpaceKHR, VkDevice, VkFormat, VkPhysicalDevice, 
+                              VkPresentModeKHR, VkSurfaceKHR, VkSurfaceCapabilitiesKHR, VkSurfaceFormatKHR, 
+                              VkSwapchainKHR, VkSwapchainCreateInfoKHR, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR, 
+                              VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR, VK_FORMAT_UNDEFINED, VK_FORMAT_R8G8B8A8_UNORM, 
+                              VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_SHARING_MODE_EXCLUSIVE, 
+                              VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, VK_TRUE;
 
 /// Facilitates the creation, management and destruction of Vulkan swapchains, these control what is displayed to the
 /// user, and how. Note: Swapchains cannot destroy themselves, they must be destroyed externally by a device.
@@ -47,8 +52,8 @@ struct Swapchain
         // Pre-conditions.
         enforce (physicalDevice != nullHandle!VkPhysicalDevice);
         enforce (surface != nullHandle!VkSurfaceKHR);
-        m_surface = surface;
-        m_gpu = physicalDevice;
+        m_surface   = surface;
+        m_gpu       = physicalDevice;
         
         // Avoid run-time allocation by retrieving the support formats and presentation modes now.
         uint32_t count = void;
@@ -190,10 +195,10 @@ struct Swapchain
 /// Determines how the present mode will function. Triple buffering will use the most memory.
 enum VSync : VkPresentModeKHR
 {
-    Off             = VK_PRESENT_MODE_IMMEDIATE_KHR,
-    On              = VK_PRESENT_MODE_FIFO_KHR,
-    Relaxed         = VK_PRESENT_MODE_FIFO_RELAXED_KHR,
-    TripleBuffering = VK_PRESENT_MODE_MAILBOX_KHR
+    Off             = VkPresentModeKHR.VK_PRESENT_MODE_IMMEDIATE_KHR,
+    On              = VkPresentModeKHR.VK_PRESENT_MODE_FIFO_KHR,
+    Relaxed         = VkPresentModeKHR.VK_PRESENT_MODE_FIFO_RELAXED_KHR,
+    TripleBuffering = VkPresentModeKHR.VK_PRESENT_MODE_MAILBOX_KHR
 }
 
 /// Gets the number of buffers required for the given VSync mode.
