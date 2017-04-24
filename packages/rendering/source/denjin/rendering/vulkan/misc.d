@@ -18,25 +18,9 @@ import denjin.rendering.vulkan.device   : Device;
 import denjin.rendering.vulkan.logging  : logQueueFamilyProperties;
 
 // External.
-import erupted.functions :  vkCreateSemaphore, vkGetPhysicalDeviceSurfaceSupportKHR, 
-                            vkGetPhysicalDeviceQueueFamilyProperties;
+import erupted.functions :  vkGetPhysicalDeviceSurfaceSupportKHR, vkGetPhysicalDeviceQueueFamilyProperties;
 import erupted.types;
 
-/// Creates a semaphore with the given parameters.
-/// Returns: The result of the creation.
-VkResult createSemaphore (out VkSemaphore semaphore, ref Device device, 
-                 in VkAllocationCallbacks* callbacks = null) nothrow @nogc
-{
-    // Creation information for semaphores are pretty irrelevant.
-    immutable VkSemaphoreCreateInfo info =
-    {
-        sType: VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-        pNext: null,
-        flags: 0
-    };
-
-    return device.vkCreateSemaphore (&info, callbacks, &semaphore);
-}
 
 /// Throws an exception if the error code of a Vulkan function indicates failure.
 /// Params: code = The Vulkan error code that was generated.

@@ -198,10 +198,8 @@ struct Device
             m_funcs.vkGetDeviceQueue (m_handle, queueFamilyIndex, 0, &output);
             return output;
         }
-        else
-        {
-            return nullHandle!VkQueue;
-        }
+
+        return nullHandle!VkQueue;
     }
 
     /// Determines whether the given name is a function available to the device.
@@ -329,6 +327,6 @@ struct Device
              uint32_t.max.stringof
         );
         enum excludingCurrentMember  = Filter!(isDifferentMember, testAgainst);
-        enum hasDedicatedFamilyCheck = code!(testAgainst);
+        enum hasDedicatedFamilyCheck = code!(excludingCurrentMember);
     }
 }

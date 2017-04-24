@@ -15,7 +15,8 @@ import std.exception            : enforce;
 
 // Engine.
 import denjin.rendering.vulkan.device   : Device;
-import denjin.rendering.vulkan.misc     : createSemaphore, enforceSuccess, nullHandle, safelyDestroyVK;
+import denjin.rendering.vulkan.misc     : enforceSuccess, nullHandle, safelyDestroyVK;
+import denjin.rendering.vulkan.objects  : createSemaphore;
 
 // External.
 import erupted.functions : vkGetPhysicalDeviceSurfaceCapabilitiesKHR, vkGetPhysicalDeviceSurfaceFormatsKHR, 
