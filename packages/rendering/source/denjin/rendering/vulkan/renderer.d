@@ -77,6 +77,7 @@ final class RendererVulkan : IRenderer
     }
     body
     {
+        m_swapchain.create (m_device);
     }
 
     public override void update (in float deltaTime)
