@@ -36,7 +36,7 @@ body
         level:              arePrimaryBuffers ? VK_COMMAND_BUFFER_LEVEL_PRIMARY : VK_COMMAND_BUFFER_LEVEL_SECONDARY,
         commandBufferCount: cast (uint32_t) output.length
     };
-    return device.vkAllocateCommandBuffers (&info, &output.front());
+    return device.vkAllocateCommandBuffers (&info, &output[0]);
 }
 
 /// Creates a command pool with the given flags for the given queue family.
@@ -58,6 +58,25 @@ body
     };
 
     return device.vkCreateCommandPool (&info, callbacks, &pool);
+}
+
+/// Creates a fence with the given parameters.
+VkResult createFence (out VkFence fence, ref Device device, in VkFenceCreateFlags flags = 0, 
+                      in VkAllocationCallbacks* callbacks = null) nothrow @nogc
+in
+{
+    assert (device != nullDevice);
+}
+body
+{
+    immutable VkFenceCreateInfo info =
+    {
+        sType:  VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+        pNext:  null,
+        flags:  flags
+    };
+
+    return device.vkCreateFence (&info, callbacks, &fence);
 }
 
 /// Creates a semaphore with the given parameters.

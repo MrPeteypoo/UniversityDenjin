@@ -36,11 +36,12 @@ struct Swapchain
         alias PresentModes      = Array!VkPresentModeKHR;
 
         // Constantly accessed data.
-        VkSwapchainKHR      m_swapchain         = nullSwapchain;    /// The handle of the created swapchain.
-        VkSemaphore         m_imageAvailability = nullSemaphore;    /// The handle to the semaphore used to indicate that the current image is available for writing.
-        VkImageView         m_currentView       = nullImageView;    /// Contains the handle to the image view of the current swapchain image.
-        uint32_t            m_currentImage;                         /// Contains the index of the current swapchain image to use for displaying.
-        ImageViews          m_imageViews;                           /// Contains writing image views for each image in the swapchain.
+        VkSwapchainKHR      m_handle        = nullSwapchain;    /// The handle of the created swapchain.
+        VkImage             m_currentImage  = nullImage;        /// The handle to the image acquired from the swapchain.
+        VkImageView         m_currentView   = nullImageView;    /// The handle to the image view of the current swapchain image.
+        uint32_t            m_currentIndex;                     /// The index of the current swapchain image to use for displaying.
+        Images              m_images;                           /// Contains handles to each swapchain image.
+        ImageViews          m_views;                            /// Contains writing image views for each image in the swapchain.
 
         // Rarely accessed data.
         VkSurfaceKHR                m_surface   = nullSurface;      /// The handle to the surface which will display images.
@@ -48,11 +49,15 @@ struct Swapchain
         VkSurfaceCapabilitiesKHR    m_capabilities;                 /// The capabilities of the physical device + surface combination.
         SurfaceFormats              m_formats;                      /// Available colour formats for the current surface.
         PresentModes                m_modes;                        /// Single, double, triple buffering capabilities.
-        Images                      m_images;                       /// Contains handles to each swapchain image.
     }
 
     // Subtype VkSwapchainKHR to allow for implicit usage.
-    alias swapchain this;
+    alias handle this;
+
+    /// The default timeout when acquiring the next image will halt the application until an image is ready in debug
+    /// and will wait a second in release modes. This is to make debugging easier 
+    debug enum acquireImageTimeout  = uint64_t.max;
+    else enum acquireImageTimeout   = 1_000_000_000;
 
     /// Retrieve the capabilities of the given device/surface combination to allow for the creation of a swapchain.
     public this (VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
@@ -78,7 +83,16 @@ struct Swapchain
     }
 
     /// Gets the handle to the managed swapchain.
-    public @property inout (VkSwapchainKHR) swapchain() inout pure nothrow @safe @nogc { return m_swapchain; }
+    public @property inout(VkSwapchainKHR) handle() inout pure nothrow @safe @nogc { return m_handle; }
+
+    /// Gets the handle to the currently acquired image.
+    public @property inout(VkImage) image() inout pure nothrow @safe @nogc { return m_currentImage; }
+
+    /// Gets the handle to the image view for the currently acquired image.
+    public @property inout(VkImageView) imageView() inout pure nothrow @safe @nogc { return m_currentView; }
+
+    /// Gets the index of the currently acquired swapchain image.
+    public @property uint32_t imageIndex() inout pure nothrow @safe @nogc { return m_currentIndex; }
 
     /// Gets the number of images managed by the current swapchain.
     public @property uint32_t imageCount() const pure nothrow @safe @nogc { return cast (uint32_t) m_images.length; }
@@ -93,8 +107,10 @@ struct Swapchain
     }
     body
     {
-        // Firstly ensure we know the capabilities of the surface.
+        // Firstly ensure we know the capabilities of the surface and that the surface is a suitable transfer
+        // destination as this is necessary for clearing the data and makes using framebuffers easier.
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR (m_gpu, m_surface, &m_capabilities).enforceSuccess;
+        enforce ((m_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) > 0);
 
         // Compile the creation information.
         VkSwapchainCreateInfoKHR info = 
@@ -105,28 +121,22 @@ struct Swapchain
             surface:                m_surface,
             imageExtent:            m_capabilities.currentExtent,
             imageArrayLayers:       1,
-            imageUsage:             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            imageUsage:             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
             imageSharingMode:       VK_SHARING_MODE_EXCLUSIVE,
             queueFamilyIndexCount:  0,
             pQueueFamilyIndices:    null,
             preTransform:           m_capabilities.currentTransform,
             compositeAlpha:         VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             clipped:                VK_TRUE,
-            oldSwapchain:           m_swapchain
+            oldSwapchain:           m_handle
         };
 
         setPresentMode (info.minImageCount, info.presentMode, desiredMode);
         setFormat (info.imageFormat, info.imageColorSpace);
 
         // Create the swapchain and destroy the old one!
-        device.vkCreateSwapchainKHR (&info, callbacks, &m_swapchain).enforceSuccess;
+        device.vkCreateSwapchainKHR (&info, callbacks, &m_handle).enforceSuccess;
         info.oldSwapchain.safelyDestroyVK (device.vkDestroySwapchainKHR, device, info.oldSwapchain, callbacks);
-
-        // Create the semaphore if necessary.
-        if (m_imageAvailability == nullSemaphore)
-        {
-            m_imageAvailability.createSemaphore (device, callbacks).enforceSuccess;
-        }
         
         // Finally retrieve the swapchain images.
         createImageViews (device, info.imageFormat, callbacks);
@@ -144,17 +154,36 @@ struct Swapchain
     }
     body
     {
-        m_swapchain.safelyDestroyVK (device.vkDestroySwapchainKHR, device, m_swapchain, callbacks);
-        m_imageAvailability.safelyDestroyVK (device.vkDestroySemaphore, device, m_imageAvailability, callbacks);
-        m_imageViews.each!(v => v.safelyDestroyVK (device.vkDestroyImageView, device, v, callbacks));
+        m_handle.safelyDestroyVK (device.vkDestroySwapchainKHR, device, m_handle, callbacks);
+        m_views.each!(v => v.safelyDestroyVK (device.vkDestroyImageView, device, v, callbacks));
         
         m_currentView   = nullImageView;
         m_surface       = nullSurface;
         m_gpu           = nullPhysDevice;
-        m_imageViews.clear();
+        m_views.clear();
         m_formats.clear();
         m_modes.clear();
         m_images.clear();
+    }
+
+    /// Attempts to acquire the next available image from the presentaton engine.
+    nothrow
+    public VkResult acquireNextImage (ref Device device, VkSemaphore signalA = nullSemaphore, 
+                                      VkFence signalB = nullFence, in uint64_t timeout = acquireImageTimeout) 
+    {
+        // Acquire the image and track the result.
+        immutable result = device.vkAcquireNextImageKHR (m_handle, timeout, signalA, signalB, &m_currentIndex);
+
+        // If the acquisition is successful then we should cache the current image and image view.
+        if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)
+        {
+            assert (m_currentIndex < m_images.length);
+            assert (m_currentIndex < m_views.length);
+            m_currentImage  = m_images[m_currentIndex];
+            m_currentView   = m_views[m_currentIndex];
+        }
+
+        return result;
     }
 
     /// Attempts to set the image count and presentation mode to be the same as the desired VSync mode. If the device
@@ -204,15 +233,15 @@ struct Swapchain
     private void createImageViews (ref Device device, in VkFormat format, in VkAllocationCallbacks* callbacks)
     {
         // Firstly ensure we don't leak data.
-        m_imageViews.each!(v => v.safelyDestroyVK (device.vkDestroyImageView, device, v, callbacks));
+        m_views.each!(v => v.safelyDestroyVK (device.vkDestroyImageView, device, v, callbacks));
 
         // Firstly retrieve the images for the swapchain.
         uint32_t count = void;
-        device.vkGetSwapchainImagesKHR (m_swapchain, &count, null).enforceSuccess;
+        device.vkGetSwapchainImagesKHR (m_handle, &count, null).enforceSuccess;
 
-        m_images.length     = cast (size_t) count;
-        m_imageViews.length = m_images.length;
-        device.vkGetSwapchainImagesKHR (m_swapchain, &count, &m_images.front()).enforceSuccess;
+        m_images.length = cast (size_t) count;
+        m_views.length  = m_images.length;
+        device.vkGetSwapchainImagesKHR (m_handle, &count, &m_images.front()).enforceSuccess;
 
         // Now create the image views for each image.
         enum VkComponentMapping componentMapping = 
@@ -244,7 +273,7 @@ struct Swapchain
         foreach (i; 0..m_images.length)
         {
             info.image = m_images[i];
-            device.vkCreateImageView (&info, callbacks, &m_imageViews[i]);
+            device.vkCreateImageView (&info, callbacks, &m_views[i]);
         }
     }
 }

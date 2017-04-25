@@ -137,7 +137,7 @@ struct Instance
     {
         // The instance must be destroyed last.
         debug m_debugCallback.safelyDestroyVK (vkDestroyDebugReportCallbackEXT, m_instance, m_debugCallback, null);
-        m_surfaces.each!(s => s.safelyDestroyVK (vkDestroySurfaceKHR, m_instance, s, null));
+        m_surfaces.each!((ref s) => s.safelyDestroyVK (vkDestroySurfaceKHR, m_instance, s, null));
         m_instance.safelyDestroyVK (vkDestroyInstance, m_instance, null);
 
         m_instanceExts.clear();

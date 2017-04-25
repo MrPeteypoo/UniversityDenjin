@@ -14,8 +14,8 @@ module denjin.rendering.vulkan.nulls;
 import std.traits : isBuiltinType, isPointer;
 
 // External.
-import erupted.types : VkDebugReportCallbackEXT, VkCommandBuffer, VkCommandPool, VkDevice, VkImageView, VkInstance, 
-                       VkPhysicalDevice, VkQueue, VkSemaphore, VkSurfaceKHR, VkSwapchainKHR;
+import erupted.types : VkDebugReportCallbackEXT, VkCommandBuffer, VkCommandPool, VkDevice, VkFence, VkImage, 
+                       VkImageView, VkInstance, VkPhysicalDevice, VkQueue, VkSemaphore, VkSurfaceKHR, VkSwapchainKHR;
 
 /// Gets the correct null handle to use when checking if a VK handle is null.
 /// Params: T = The type to retrieve the null handle for.
@@ -44,6 +44,8 @@ template nullHandle (T)
 enum nullCMDBuffer      = nullHandle!VkCommandBuffer;
 enum nullDebug          = nullHandle!VkDebugReportCallbackEXT;
 enum nullDevice         = nullHandle!VkDevice;
+enum nullFence          = nullHandle!VkFence;
+enum nullImage          = nullHandle!VkImage;
 enum nullImageView      = nullHandle!VkImageView;
 enum nullInstance       = nullHandle!VkInstance;
 enum nullPhysDevice     = nullHandle!VkPhysicalDevice;

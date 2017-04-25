@@ -18,69 +18,80 @@ import denjin.rendering.vulkan.nulls    : nullCMDBuffer, nullPool;
 import denjin.rendering.vulkan.objects  : allocateCommandBuffers, createCommandPool;
 
 // External.
-import erupted.types : uint32_t, VkCommandBuffer, VkCommandPool, VK_SUCCESS;
+import erupted.types : uint32_t, VkCommandBuffer, VkCommandPool, VkCommandPoolCreateFlags, 
+                       VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, VK_SUCCESS;
 
-/// Maintains the command pools available to the primary renderer thread.
-struct CommandPools
+/// Maintains the command pools and buffers available to the primary renderer thread.
+struct Commands
 {
     alias CommandBuffers = Array!VkCommandBuffer;
 
-    CommandBuffers  presentCommands;            /// A command buffer for each swapchain image.
+    VkCommandBuffer[]   render;     /// A command buffer for each swapchain image dedicated to rendering work.
+    VkCommandBuffer[]   compute;    /// A command buffer for each swapchain image dedicated to compute work.
+    VkCommandBuffer[]   transfer;   /// A command buffer for each swapchain image dedicated to data transfer work.
 
     VkCommandPool   renderPool      = nullPool; /// Used for rendering work.
     VkCommandPool   computePool     = nullPool; /// Used for dedicated compute task.
     VkCommandPool   transferPool    = nullPool; /// Used for transferring data to the GPU.
-    VkCommandPool   presentPool     = nullPool; /// Used for presenting swapchain images to the display.
 
     /// Creates, if possible, and assigns each category of command pool variable.
-    public void createCommandPools (ref Device device, in uint32_t swapchainImageCount)
+    public void create (ref Device device, in uint32_t bufferCount)
     in
     {
         assert (renderPool == nullPool);
         assert (computePool == nullPool);
         assert (transferPool == nullPool);
-        assert (presentPool == nullPool);
     }
     out
     {
         assert (renderPool != nullPool);
         assert (computePool != nullPool);
         assert (transferPool != nullPool);
-        assert (presentPool != nullPool);
     }
     body
     {
         // Create the pools.
-        if (renderPool.createCommandPool (device, device.renderQueueFamily) != VK_SUCCESS)
+        enum flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        if (renderPool.createCommandPool (device, device.renderQueueFamily, flags) != VK_SUCCESS)
         {
             assert (false, "Uh oh, the renderer isn't flexible enough for this yet!");
         }
 
-        computePool     = createCommandPoolIfPossible (device, device.hasDedicatedComputeFamily, device.computeQueueFamily);
-        transferPool    = createCommandPoolIfPossible (device, device.hasDedicatedTransferFamily, device.transferQueueFamily);
-        presentPool     = createCommandPoolIfPossible (device, device.hasDedicatedPresentFamily, device.presentQueueFamily);
+        computePool  = createCommandPoolIfPossible (device, device.hasDedicatedComputeFamily, device.computeQueueFamily, flags);
+        transferPool = createCommandPoolIfPossible (device, device.hasDedicatedTransferFamily, device.transferQueueFamily, flags);
 
         // Allocate the command buffers.
-        presentCommands.length = swapchainImageCount;
-        allocateCommandBuffers (presentCommands[], device, presentPool).enforceSuccess;
+        render.length   = bufferCount;
+        compute.length  = bufferCount;
+        transfer.length = bufferCount;
+
+        allocateCommandBuffers (render[], device, renderPool).enforceSuccess;
+        allocateCommandBuffers (compute[], device, computePool).enforceSuccess;
+        allocateCommandBuffers (transfer[], device, transferPool).enforceSuccess;
     }
 
     /// Destroys all unique command pools, ensuring duplicates aren't deleted.
-    public void destroyCommandPools (ref Device device) nothrow @nogc
+    public void clear (ref Device device) nothrow
     {
-        VkCommandPool[4] pools = [renderPool, computePool, transferPool, presentPool];
+        VkCommandPool[3] pools = [renderPool, computePool, transferPool];
         pools[0..$].sort()
             .uniq()
             .filter!(a => a != nullPool)
             .each!(p => device.vkDestroyCommandPool (p, null));
 
-        renderPool = computePool = transferPool = presentPool = nullPool;
+        renderPool = computePool = transferPool = nullPool;
+
+        // Command buffers are automatically freed when destroying command pools.
+        render.length = 0;
+        compute.length = 0;
+        transfer.length = 0;
     }
     
     /// If the device doesn't have a dedicated queue family as specified by the given parameter, then the render family
     /// is assumed to be general purpose and that command pool will be used as a fallback.
+    nothrow @nogc
     private VkCommandPool createCommandPoolIfPossible (ref Device device, in bool hasDedicatedQueueFamily, 
-                                                       in uint32_t queueFamily) nothrow @nogc
+                                                       in uint32_t queueFamily, in VkCommandPoolCreateFlags flags)
     {
         if (hasDedicatedQueueFamily)
         {

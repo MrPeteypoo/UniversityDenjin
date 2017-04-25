@@ -15,7 +15,7 @@ import std.algorithm.mutation   : move;
 // Engine.
 import denjin.rendering.interfaces          : IRenderer;
 import denjin.rendering.vulkan.device       : Device;
-import denjin.rendering.vulkan.internals    : CommandPools;
+import denjin.rendering.vulkan.internals    : Commands, Syncs;
 import denjin.rendering.vulkan.misc         : safelyDestroyVK;
 import denjin.rendering.vulkan.nulls;
 import denjin.rendering.vulkan.objects      : createCommandPool;
@@ -30,11 +30,17 @@ final class RendererVulkan : IRenderer
 {
     private 
     {
-        Device          m_device;       /// The logical device containing device-level Functionality.
-        Swapchain       m_swapchain;    /// Manages the display mode and displayable images available to the renderer.
-        CommandPools    m_pools;        /// The primary command pools used by the main renderer thread.
+        size_t      m_frameCount;   /// Counts how many frames in total have been rendered.
+        Device      m_device;       /// The logical device containing device-level Functionality.
+        Swapchain   m_swapchain;    /// Manages the display mode and displayable images available to the renderer.
+        Commands    m_cmds;         /// The command pools and buffers required by the primary rendering thread.
+        Syncs       m_syncs;        /// The synchronization objects used to control the flow of generated commands.
     }
 
+    /// Initialises the renderer, creating Vulkan objects that are required for loading and rendering a scene.
+    /// Params:
+    ///     device      = The device which the renderer should take ownership of and use to render with.
+    ///     swapchain   = The swapchain where the renderer should acquire and present images to.
     this (Device device, Swapchain swapchain)
     out
     {
@@ -49,20 +55,26 @@ final class RendererVulkan : IRenderer
 
         // We need to build the resources required by the rendering before loading a scene.
         m_swapchain.create (m_device);
-        m_pools.createCommandPools (m_device, m_swapchain.imageCount);
+        m_cmds.create (m_device, m_swapchain.imageCount);
+        m_syncs.create (m_device);
     }
 
+    /// If necessary it will destroy and free any resources the renderer owns.
     ~this() nothrow
     {
         clear();
     }
 
+    /// Destroys all contained data in a safe order. This may take a while as it will wait for any pending GPU tasks to
+    /// complete before returning. This will leave the renderer in an uninitialised state and it should not be used 
+    /// again.
     public override void clear() nothrow
     {
         if (m_device != nullDevice)
         {
             m_device.vkDeviceWaitIdle();
-            m_pools.destroyCommandPools (m_device);
+            m_syncs.clear (m_device);
+            m_cmds.clear (m_device);
             m_swapchain.clear (m_device);
             m_device.clear();
         }
@@ -90,6 +102,7 @@ final class RendererVulkan : IRenderer
         m_swapchain.create (m_device);
     }
 
+    /// Does absolutely nothing right now. Likely will be used to track and update time.
     public override void update (in float deltaTime)
     in
     {
@@ -100,6 +113,7 @@ final class RendererVulkan : IRenderer
     {
     }
 
+    /// Renders and displays a frame to the display.
     public override void render() nothrow
     in
     {
@@ -108,5 +122,135 @@ final class RendererVulkan : IRenderer
     }
     body
     {
+        // Firstly we must request an image from the presentation engine to start working on the next frame.
+        validateNextSwapchainImage();
+        m_syncs.advanceFenceIndex (++m_frameCount);
+
+        // Record the actual rendering work.
+        recordRender();
+
+        // Submit the commands for execution.
+        submitRender();
+
+        // We're finished and can inform the presentation engine to display the image.
+        presentImage();
+    }
+
+    /// Informs the swapchain to acquire the next image from the presentation engine and halts the application if it's
+    /// unable to do this.
+    private void validateNextSwapchainImage() nothrow
+    {
+        const auto result = m_swapchain.acquireNextImage (m_device, m_syncs.imageAvailable);
+        if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+        {
+            assert (false, "Not handling this case yet.");
+        }
+    }
+
+    /// Informs the presentation engine that it can read from the current swapchain image and display it on screen.
+    private void presentImage() nothrow @nogc
+    {
+        const auto handle   = m_swapchain.handle;
+        const auto index    = m_swapchain.imageIndex;
+        const VkPresentInfoKHR info =
+        {
+            sType:              VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+            pNext:              null,
+            waitSemaphoreCount: 1,
+            pWaitSemaphores:    &m_syncs.frameComplete,
+            swapchainCount:     1,
+            pSwapchains:        &handle,
+            pImageIndices:      &index,
+            pResults:           null
+        };
+
+        if (m_device.vkQueuePresentKHR (m_device.presentQueue, &info) != VK_SUCCESS)
+        {
+            assert (false, "Not handling this case yet");
+        }
+    }
+
+    /// Performs that actual rendering aspect of the frame.
+    private void recordRender() nothrow
+    {
+        // Firstly we must ensure we aren't writing to a buffer which is pending.
+        const auto fence = m_syncs.renderFence;
+        m_device.vkWaitForFences (1, &fence, VK_FALSE, uint64_t.max);
+        m_device.vkResetFences (1, &fence);
+
+        // Secondly we must make the command buffer enters a "recording" state.
+        auto cmdBuffer = m_cmds.render[m_swapchain.imageIndex];
+        VkCommandBufferBeginInfo beginInfo = 
+        {
+            sType:              VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            pNext:              null,
+            flags:              VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+            pInheritanceInfo:   null
+        };
+        m_device.vkBeginCommandBuffer (cmdBuffer, &beginInfo);
+
+        // Prepare a clear colour value.
+        VkClearColorValue colour = { float32: 0f };
+        colour.float32[m_swapchain.imageIndex%3] = 1f;
+        
+        // We need to inform the GPU where in the image we'll be clearing.
+        auto subresourceRange = VkImageSubresourceRange (VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1);
+
+        // We need to ensure configure the memory barriers properly.
+        VkImageMemoryBarrier presentToClear = 
+        {
+            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            null,
+            0,
+            VK_ACCESS_TRANSFER_WRITE_BIT,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            m_device.presentQueueFamily,
+            m_device.renderQueueFamily,
+            m_swapchain.image,
+            subresourceRange
+        };
+
+        VkImageMemoryBarrier clearToPresent = 
+        {
+            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            null,
+            VK_ACCESS_TRANSFER_WRITE_BIT,
+            VK_ACCESS_MEMORY_READ_BIT,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            m_device.renderQueueFamily,
+            m_device.presentQueueFamily,
+            m_swapchain.image,
+            subresourceRange
+        };
+
+        m_device.vkCmdPipelineBarrier (cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, null, 0, null, 1, &presentToClear);
+
+        m_device.vkCmdClearColorImage (cmdBuffer, m_swapchain.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &colour, 1, &subresourceRange);
+
+        m_device.vkCmdPipelineBarrier (cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, null, 0, null, 1, &clearToPresent);
+
+        m_device.vkEndCommandBuffer (cmdBuffer);
+    }
+
+    private void submitRender() nothrow
+    {
+        const VkPipelineStageFlags waitFlags = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        const auto buffer = m_cmds.render[m_swapchain.imageIndex];
+        VkSubmitInfo submitInfo =
+        {
+            sType:                  VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            pNext:                  null,
+            waitSemaphoreCount:     1,
+            pWaitSemaphores:        &m_syncs.imageAvailable,
+            pWaitDstStageMask:      &waitFlags,
+            commandBufferCount:     1,
+            pCommandBuffers:        &buffer,
+            signalSemaphoreCount:   1,
+            pSignalSemaphores:      &m_syncs.frameComplete
+        };
+
+        m_device.vkQueueSubmit (m_device.renderQueue, 1, &submitInfo, m_syncs.renderFence);
     }
 }
