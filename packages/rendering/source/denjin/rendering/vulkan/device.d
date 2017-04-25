@@ -18,7 +18,8 @@ import std.typecons             : Flag;
 
 // Engine.
 import denjin.rendering.vulkan.misc : enforceSuccess, enumerateQueueFamilyProperties, findPresentableQueueFamily,
-                                      findSuitableQueueFamily, nullHandle, safelyDestroyVK;
+                                      findSuitableQueueFamily, safelyDestroyVK;
+import denjin.rendering.vulkan.nulls;
 
 // External.
 import erupted.functions    : createDispatchDeviceLevelFunctions, DispatchDevice, vkCreateDevice;
@@ -32,11 +33,11 @@ struct Device
 {
     private
     {
-        VkDevice    m_handle        = nullHandle!VkDevice;  /// The handle of the logical device.
-        VkQueue     m_renderQueue   = nullHandle!VkQueue;   /// A handle to the queue used for rendering, this should be general purpose.
-        VkQueue     m_computeQueue  = nullHandle!VkQueue;   /// A handle to the queue used for compute operations.
-        VkQueue     m_transferQueue = nullHandle!VkQueue;   /// A handle to the queue used for transfer operations.
-        VkQueue     m_presentQueue  = nullHandle!VkQueue;   /// A handle to the queue used for presenting swapchains.
+        VkDevice    m_handle        = nullDevice;   /// The handle of the logical device.
+        VkQueue     m_renderQueue   = nullQueue;    /// A handle to the queue used for rendering, this should be general purpose.
+        VkQueue     m_computeQueue  = nullQueue;    /// A handle to the queue used for compute operations.
+        VkQueue     m_transferQueue = nullQueue;    /// A handle to the queue used for transfer operations.
+        VkQueue     m_presentQueue  = nullQueue;    /// A handle to the queue used for presenting swapchains.
 
         DispatchDevice  m_funcs;                /// Contains function pointers to device-level functions related to this logical device.
         uint32_t        m_renderQueueFamily;    /// The index of the queue family used to render.
@@ -54,12 +55,12 @@ struct Device
     /// Creates a logical device based on the given physical device and creation information. The device will determine
     /// which queue families to use for different tasks so this data will be modified.
     this (VkPhysicalDevice gpu, ref VkDeviceCreateInfo deviceInfo, 
-          VkSurfaceKHR presentationSurface = nullHandle!VkSurfaceKHR,
+          VkSurfaceKHR presentationSurface = nullSurface,
           in VkAllocationCallbacks* callbacks = null)
     in
     {
         assert (vkCreateDevice);
-        assert (gpu != nullHandle!VkPhysicalDevice);
+        assert (gpu != nullPhysDevice);
     }
     body
     {
@@ -171,7 +172,7 @@ struct Device
     public void clear() nothrow @nogc
     {
         // Be sure to wait until the device is idle to destroy it.
-        if (handle != nullHandle!VkDevice)
+        if (handle != nullDevice)
         {
             assert (m_funcs.vkDeviceWaitIdle);
             m_funcs.vkDeviceWaitIdle (m_handle);
@@ -188,18 +189,18 @@ struct Device
     }
     out (result)
     {
-        assert (result != nullHandle!VkQueue || queueFamilyIndex == uint32_t.max);
+        assert (result != nullQueue || queueFamilyIndex == uint32_t.max);
     }
     body
     {
         if (queueFamilyIndex != uint32_t.max)
         {
-            VkQueue output = nullHandle!VkQueue;
+            VkQueue output = nullQueue;
             m_funcs.vkGetDeviceQueue (m_handle, queueFamilyIndex, 0, &output);
             return output;
         }
 
-        return nullHandle!VkQueue;
+        return nullQueue;
     }
 
     /// Determines whether the given name is a function available to the device.
@@ -227,7 +228,7 @@ struct Device
         m_computeQueueFamily    = familyProperties.findSuitableQueueFamily (VkQueueFlagBits.VK_QUEUE_COMPUTE_BIT);
         m_transferQueueFamily   = familyProperties.findSuitableQueueFamily (VkQueueFlagBits.VK_QUEUE_TRANSFER_BIT);
 
-        if (surface != nullHandle!VkSurfaceKHR)
+        if (surface != nullSurface)
         {
             const auto familyCount = cast (uint32_t) familyProperties.length;
             m_presentQueueFamily = findPresentableQueueFamily (familyCount, gpu, surface);
@@ -239,7 +240,7 @@ struct Device
                                       in VkAllocationCallbacks* callbacks)
     out
     {
-        assert (m_handle != nullHandle!VkDevice);
+        assert (m_handle != nullDevice);
     }
     body
     {
@@ -275,10 +276,10 @@ struct Device
     private void retrieveQueues (in ref Array!VkQueueFamilyProperties familyProperties)
     out
     {
-        assert (!(m_renderQueue == nullHandle!VkQueue && 
-                  m_computeQueue == nullHandle!VkQueue &&
-                  m_transferQueue == nullHandle!VkQueue &&
-                  m_presentQueue == nullHandle!VkQueue));
+        assert (!(m_renderQueue == nullQueue && 
+                  m_computeQueue == nullQueue &&
+                  m_transferQueue == nullQueue &&
+                  m_presentQueue == nullQueue));
     }
     body
     {

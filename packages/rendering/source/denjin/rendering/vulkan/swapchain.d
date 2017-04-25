@@ -15,7 +15,8 @@ import std.exception            : enforce;
 
 // Engine.
 import denjin.rendering.vulkan.device   : Device;
-import denjin.rendering.vulkan.misc     : enforceSuccess, nullHandle, safelyDestroyVK;
+import denjin.rendering.vulkan.misc     : enforceSuccess, safelyDestroyVK;
+import denjin.rendering.vulkan.nulls;
 import denjin.rendering.vulkan.objects  : createSemaphore;
 
 // External.
@@ -35,19 +36,19 @@ struct Swapchain
         alias PresentModes      = Array!VkPresentModeKHR;
 
         // Constantly accessed data.
-        VkSwapchainKHR      m_swapchain         = nullHandle!VkSwapchainKHR;    /// The handle of the created swapchain.
-        VkSemaphore         m_imageAvailability = nullHandle!VkSemaphore;       /// The handle to the semaphore used to indicate that the current image is available for writing.
-        VkImageView         m_currentView       = nullHandle!VkImageView;       /// Contains the handle to the image view of the current swapchain image.
-        uint32_t            m_currentImage;                                     /// Contains the index of the current swapchain image to use for displaying.
-        ImageViews          m_imageViews;                                       /// Contains writing image views for each image in the swapchain.
+        VkSwapchainKHR      m_swapchain         = nullSwapchain;    /// The handle of the created swapchain.
+        VkSemaphore         m_imageAvailability = nullSemaphore;    /// The handle to the semaphore used to indicate that the current image is available for writing.
+        VkImageView         m_currentView       = nullImageView;    /// Contains the handle to the image view of the current swapchain image.
+        uint32_t            m_currentImage;                         /// Contains the index of the current swapchain image to use for displaying.
+        ImageViews          m_imageViews;                           /// Contains writing image views for each image in the swapchain.
 
         // Rarely accessed data.
-        VkSurfaceKHR                m_surface   = nullHandle!VkSurfaceKHR;      /// The handle to the surface which will display images.
-        VkPhysicalDevice            m_gpu       = nullHandle!VkPhysicalDevice;  /// The handle of the GPU interfacing with the presentation engine.
-        VkSurfaceCapabilitiesKHR    m_capabilities;                             /// The capabilities of the physical device + surface combination.
-        SurfaceFormats              m_formats;                                  /// Available colour formats for the current surface.
-        PresentModes                m_modes;                                    /// Single, double, triple buffering capabilities.
-        Images                      m_images;                                   /// Contains handles to each swapchain image.
+        VkSurfaceKHR                m_surface   = nullSurface;      /// The handle to the surface which will display images.
+        VkPhysicalDevice            m_gpu       = nullPhysDevice;   /// The handle of the GPU interfacing with the presentation engine.
+        VkSurfaceCapabilitiesKHR    m_capabilities;                 /// The capabilities of the physical device + surface combination.
+        SurfaceFormats              m_formats;                      /// Available colour formats for the current surface.
+        PresentModes                m_modes;                        /// Single, double, triple buffering capabilities.
+        Images                      m_images;                       /// Contains handles to each swapchain image.
     }
 
     // Subtype VkSwapchainKHR to allow for implicit usage.
@@ -57,8 +58,8 @@ struct Swapchain
     public this (VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
     {
         // Pre-conditions.
-        enforce (physicalDevice != nullHandle!VkPhysicalDevice);
-        enforce (surface != nullHandle!VkSurfaceKHR);
+        enforce (physicalDevice != nullPhysDevice);
+        enforce (surface != nullSurface);
         m_surface   = surface;
         m_gpu       = physicalDevice;
         
@@ -85,7 +86,7 @@ struct Swapchain
                         in VkAllocationCallbacks* callbacks = null)
     in
     {
-        assert (device != nullHandle!VkDevice);
+        assert (device != nullDevice);
     }
     body
     {
@@ -119,7 +120,7 @@ struct Swapchain
         info.oldSwapchain.safelyDestroyVK (device.vkDestroySwapchainKHR, device, info.oldSwapchain, callbacks);
 
         // Create the semaphore if necessary.
-        if (m_imageAvailability == nullHandle!VkSemaphore)
+        if (m_imageAvailability == nullSemaphore)
         {
             m_imageAvailability.createSemaphore (device, callbacks).enforceSuccess;
         }
@@ -136,7 +137,7 @@ struct Swapchain
     public void clear (ref Device device, in VkAllocationCallbacks* callbacks = null) nothrow
     in
     {
-        assert (device != nullHandle!VkDevice);
+        assert (device != nullDevice);
     }
     body
     {
@@ -144,9 +145,9 @@ struct Swapchain
         m_imageAvailability.safelyDestroyVK (device.vkDestroySemaphore, device, m_imageAvailability, callbacks);
         m_imageViews.each!(v => v.safelyDestroyVK (device.vkDestroyImageView, device, v, callbacks));
         
-        m_currentView   = nullHandle!VkImageView;
-        m_surface       = nullHandle!VkSurfaceKHR;
-        m_gpu           = nullHandle!VkPhysicalDevice;
+        m_currentView   = nullImageView;
+        m_surface       = nullSurface;
+        m_gpu           = nullPhysDevice;
         m_imageViews.clear();
         m_formats.clear();
         m_modes.clear();

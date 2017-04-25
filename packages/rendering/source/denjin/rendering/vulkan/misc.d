@@ -16,6 +16,7 @@ import std.traits           : isBuiltinType, isFunctionPointer, isPointer, Unqua
 // Engine.
 import denjin.rendering.vulkan.device   : Device;
 import denjin.rendering.vulkan.logging  : logQueueFamilyProperties;
+import denjin.rendering.vulkan.nulls;
 
 // External.
 import erupted.functions :  vkGetPhysicalDeviceSurfaceSupportKHR, vkGetPhysicalDeviceQueueFamilyProperties;
@@ -85,8 +86,8 @@ uint32_t findSuitableQueueFamily (in ref Array!VkQueueFamilyProperties familyPro
 uint32_t findPresentableQueueFamily (in uint32_t queueFamilyCount, VkPhysicalDevice gpu, VkSurfaceKHR surface)
 in
 {
-    assert (gpu != nullHandle!VkPhysicalDevice);
-    assert (surface != nullHandle!VkSurfaceKHR);
+    assert (gpu != nullPhysDevice);
+    assert (surface != nullSurface);
 }
 body
 {
@@ -101,30 +102,6 @@ body
         }
     }
     return uint32_t.max;
-}
-
-/// Gets the correct null handle to use when checking if a VK handle is null.
-/// Params: T = The type to retrieve the null handle for.
-template nullHandle (T)
-    if (isBuiltinType!T || isPointer!T)
-{
-    import erupted.types : VK_NULL_HANDLE, VK_NULL_ND_HANDLE;
-
-    enum handle = T.init;
-    static if (__traits (compiles, handle == VK_NULL_HANDLE))
-    {
-        enum nullHandle = VK_NULL_HANDLE;
-    }
-
-    else static if (__traits (compiles, handle == VK_NULL_ND_HANDLE))
-    {
-        enum nullHandle = VK_NULL_ND_HANDLE;
-    }
-
-    else
-    {
-        static assert (false);
-    }
 }
 
 /// Checks if the given Vulkan handle needs destroying, if so then the given function pointer will be used to destroy

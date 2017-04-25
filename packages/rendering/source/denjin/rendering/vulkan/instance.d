@@ -23,7 +23,8 @@ import std.typecons             : No, Yes;
 
 // Engine.
 import denjin.rendering.vulkan.device       : Device;
-import denjin.rendering.vulkan.misc         : enforceSuccess, nullHandle, safelyDestroyVK;
+import denjin.rendering.vulkan.misc         : enforceSuccess, safelyDestroyVK;
+import denjin.rendering.vulkan.nulls;
 import denjin.rendering.vulkan.renderer     : RendererVulkan;
 import denjin.rendering.vulkan.swapchain    : Swapchain;
 
@@ -45,11 +46,11 @@ struct Instance
         alias Surfaces      = Array!VkSurfaceKHR;
 
         // Core members.
-        VkInstance          m_instance      = nullHandle!VkInstance;    /// A handle to a created vulkan instance.
-        debug DebugCallback m_debugCallback = nullHandle!DebugCallback; /// A handle to a debug reporting object.
-        Extensions          m_instanceExts;                             /// The extensions enabled for the instance.
-        Layers              m_layers;                                   /// The layers enabled for the instance.
-        Surfaces            m_surfaces;                                 /// The surfaces that have been used to create devices from this loader.
+        VkInstance          m_instance      = nullInstance; /// A handle to a created vulkan instance.
+        debug DebugCallback m_debugCallback = nullDebug;    /// A handle to a debug reporting object.
+        Extensions          m_instanceExts;                 /// The extensions enabled for the instance.
+        Layers              m_layers;                       /// The layers enabled for the instance.
+        Surfaces            m_surfaces;                     /// The surfaces that have been used to create devices from this loader.
 
         // Device creation cache.
         Extensions  m_deviceExts;   /// The extensions enabled for the device.
@@ -97,16 +98,16 @@ struct Instance
     ///
     /// Params: surface = The surface to display images to. The instance will take ownership of this.
     /// Returns: A renderer which will need to be initialised before being used for rendering.
-    public RendererVulkan createRenderer (VkSurfaceKHR surface = nullHandle!VkSurfaceKHR)
+    public RendererVulkan createRenderer (VkSurfaceKHR surface = nullSurface)
     in
     {
-        assert (m_instance != nullHandle!VkInstance);
-        assert (surface != nullHandle!VkSurfaceKHR);
+        assert (m_instance != nullInstance);
+        assert (surface != nullSurface);
     }
     body
     {
         // Take ownership of the surface.
-        if (surface != nullHandle!VkSurfaceKHR && !(canFind (m_surfaces[0..$], surface)))
+        if (surface != nullSurface && !(canFind (m_surfaces[0..$], surface)))
         {
             m_surfaces.insertBack (surface);
         }
@@ -129,7 +130,7 @@ struct Instance
     public @property inout(VkInstance) handle() inout pure nothrow @safe @nogc { return m_instance; }
 
     /// Checks if the vulkan instance has been initialised and is ready for use.
-    public @property bool isInitialised() const pure nothrow @safe @nogc { return m_instance != nullHandle!VkInstance; }
+    public @property bool isInitialised() const pure nothrow @safe @nogc { return m_instance != nullInstance; }
 
     /// Destroys stored instance and surfaces, etc.
     public void clear() nothrow
@@ -318,7 +319,7 @@ struct Instance
     debug private void createDebugCallback()    
     in
     {
-        assert (m_instance != nullHandle!VkInstance);
+        assert (m_instance != nullInstance);
         assert (vkCreateDebugReportCallbackEXT);
     }
     body
