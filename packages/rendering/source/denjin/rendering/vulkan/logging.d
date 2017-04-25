@@ -7,11 +7,12 @@
 module denjin.rendering.vulkan.logging;
 
 // Phobos.
-import std.conv         : to;
-import std.exception    : enforce;
-import std.stdio        : write, writeln;
-import std.string       : fromStringz;
-import std.traits       : isNumeric, Unqual;
+import std.conv             : to;
+import std.exception        : enforce;
+import std.range.primitives : ElementType, isInputRange, isRandomAccessRange;
+import std.stdio            : write, writeln;
+import std.string           : fromStringz;
+import std.traits           : isNumeric, Unqual;
 
 // Engine.
 import denjin.rendering.vulkan.misc : vulkanVersionString;
@@ -22,11 +23,11 @@ import erupted.types :  VkExtensionProperties, VkLayerProperties, VkPhysicalDevi
                         VK_QUEUE_SPARSE_BINDING_BIT, VK_QUEUE_TRANSFER_BIT;
 
 /// Iterates through a collection, printing the properties of each layer.
-void logLayerProperties (Container) (in ref Container layerProperties)
+void logLayerProperties (Range) (auto ref Range layerProperties)
+    if (isInputRange!Range && is (Unqual!(ElementType!Range) == VkLayerProperties))
 {
     foreach (ref layer; layerProperties)
     {
-        static assert (is (Unqual!(typeof (layer)) == VkLayerProperties));
         writeln ("Supported Layer: ");
         writeln ("\t", "Layer Name: ", layer.layerName.ptr.fromStringz);
         writeln ("\t", "Spec Version: ", layer.specVersion.vulkanVersionString);
@@ -38,11 +39,11 @@ void logLayerProperties (Container) (in ref Container layerProperties)
 
 /// Iterates through a collection, printing the properties of each extension.
 /// Params: type = "Instance" or "Device"
-void logExtensionProperties (Container) (string type, in ref Container extensionProperties)
+void logExtensionProperties(Range)(string type, auto ref Range extensionProperties)
+    if (isInputRange!Range && is (Unqual!(ElementType!Range) == VkExtensionProperties))
 {
     foreach (ref extension; extensionProperties)
     {
-        static assert (is (Unqual!(typeof (extension)) == VkExtensionProperties));
         writeln ("Supported ", type, " Extension: ");
         writeln ("\t", "Extension Name: ", extension.extensionName.ptr.fromStringz);
         writeln ("\t", "Spec Version: ", extension.specVersion.vulkanVersionString);
@@ -51,14 +52,14 @@ void logExtensionProperties (Container) (string type, in ref Container extension
 }
 
 /// Iterates through a collection, printing the properties of each physical device.
-void logPhysicalDeviceProperties(Container, Container2) 
-                                (in ref Container physicalDevicesProperties, in ref Container2 devExtProps)
+void logPhysicalDeviceProperties(Range, Range2)(auto ref Range physicalDevicesProperties, auto ref Range2 devExtProps)
+    if (isInputRange!Range && is (Unqual!(ElementType!Range) == VkPhysicalDeviceProperties) &&
+        isInputRange!Range2 && is (Unqual!(ElementType!(ElementType!Range2)) == VkExtensionProperties))
 {
-    enforce (physicalDevicesProperties.length == devExtProps.length);
     size_t i;
+    enforce (physicalDevicesProperties.length <= devExtProps.length);
     foreach (ref device; physicalDevicesProperties)
     {
-        static assert (is (Unqual!(typeof (device)) == VkPhysicalDeviceProperties));
         writeln ("Vulkan Device:");
         writeln ("\t", "API Version: ", device.apiVersion.vulkanVersionString);
         writeln ("\t", "Driver Version: ", device.driverVersion.vulkanVersionString);
@@ -83,17 +84,17 @@ void logPhysicalDeviceProperties(Container, Container2)
                 writeln ("\t\t", member, ": ", value);
             }
         }
-        logExtensionProperties ("Device", devExtProps[i]);
+        logExtensionProperties ("Device", devExtProps[i][]);
         ++i;
     }
 }
 
 /// Iterates through a collection, printing the properties of each queue family.
-void logQueueFamilyProperties (Container) (in ref Container queueFamilyProperties)
+void logQueueFamilyProperties (Range) (auto ref Range queueFamilyProperties)
+    if (isInputRange!Range && is (Unqual!(ElementType!Range) == VkQueueFamilyProperties))
 {
     foreach (ref queueFamily; queueFamilyProperties)
     {
-        static assert (is (Unqual!(typeof (queueFamily)) == VkQueueFamilyProperties));
         writeln ("Queue Family: ");
         writeln ("\t", "Supports Graphics: ", (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) > 0);
         writeln ("\t", "Supports Compute: ", (queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) > 0);

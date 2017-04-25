@@ -49,7 +49,7 @@ final class RendererVulkan : IRenderer
 
         // We need to build the resources required by the rendering before loading a scene.
         m_swapchain.create (m_device);
-        m_pools.createCommandPools (m_device);
+        m_pools.createCommandPools (m_device, m_swapchain.imageCount);
     }
 
     ~this() nothrow

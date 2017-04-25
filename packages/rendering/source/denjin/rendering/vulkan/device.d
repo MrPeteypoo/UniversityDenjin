@@ -224,9 +224,9 @@ struct Device
                                         VkSurfaceKHR surface)
     {
         // Next we can choose an appropriate queue family to use based on our requirements.
-        m_renderQueueFamily     = familyProperties.findSuitableQueueFamily (VkQueueFlagBits.VK_QUEUE_GRAPHICS_BIT);
-        m_computeQueueFamily    = familyProperties.findSuitableQueueFamily (VkQueueFlagBits.VK_QUEUE_COMPUTE_BIT);
-        m_transferQueueFamily   = familyProperties.findSuitableQueueFamily (VkQueueFlagBits.VK_QUEUE_TRANSFER_BIT);
+        m_renderQueueFamily     = findSuitableQueueFamily (familyProperties[], VkQueueFlagBits.VK_QUEUE_GRAPHICS_BIT);
+        m_computeQueueFamily    = findSuitableQueueFamily (familyProperties[], VkQueueFlagBits.VK_QUEUE_COMPUTE_BIT);
+        m_transferQueueFamily   = findSuitableQueueFamily (familyProperties[], VkQueueFlagBits.VK_QUEUE_TRANSFER_BIT);
 
         if (surface != nullSurface)
         {

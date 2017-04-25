@@ -184,7 +184,7 @@ struct Instance
         // Now retrieve them.
         m_info.instanceExtProperties.length = count;
         vkEnumerateInstanceExtensionProperties (null, &count, &m_info.instanceExtProperties.front()).enforceSuccess;
-        debug logExtensionProperties ("Instance", m_info.instanceExtProperties);
+        debug logExtensionProperties ("Instance", m_info.instanceExtProperties[]);
 
         // Reserve memory to speed up the process.
         enum requiredExtensions = Info.requiredInstanceExtensions!();
@@ -231,7 +231,7 @@ struct Instance
         // Now we can retrieve them.
         m_info.layerProperties.length = count;
         vkEnumerateInstanceLayerProperties (&count, &m_info.layerProperties.front()).enforceSuccess;
-        debug logLayerProperties (m_info.layerProperties);
+        debug logLayerProperties (m_info.layerProperties[]);
             
         // Next we must check for layers required by the loader based on the debug level. Also compile-time foreach ftw!
         enum requiredLayers = Info.requiredLayers!();
@@ -282,7 +282,7 @@ struct Instance
                                                     &m_info.deviceExtProperties[i].front()).enforceSuccess;
         }
             
-        debug logPhysicalDeviceProperties (m_info.physicalDeviceProperties, m_info.deviceExtProperties);
+        debug logPhysicalDeviceProperties (m_info.physicalDeviceProperties[], m_info.deviceExtProperties[]);
         enforce (!m_info.physicalDevices.empty);
 
         // Only check the first device atm.

@@ -7,10 +7,11 @@
 module denjin.rendering.vulkan.misc;
 
 // Phobos.
-import std.container.array  : Array;
 import core.stdc.string     : strcmp;
+import std.container.array  : Array;
 import std.conv             : to;
 import std.exception        : enforce;
+import std.range.primitives : isRandomAccessRange;
 import std.traits           : isBuiltinType, isFunctionPointer, isPointer, Unqual;
 
 // Engine.
@@ -40,7 +41,7 @@ Array!VkQueueFamilyProperties enumerateQueueFamilyProperties (VkPhysicalDevice g
     array.length = count;
     vkGetPhysicalDeviceQueueFamilyProperties (gpu, &count, &array.front());
 
-    array.logQueueFamilyProperties();
+    logQueueFamilyProperties (array[]);
     return array;
 }
 
@@ -52,7 +53,8 @@ Array!VkQueueFamilyProperties enumerateQueueFamilyProperties (VkPhysicalDevice g
 ///     familyProperties    = The family properties available to a physical device.
 ///     flags               = The requirements of the different family queues.
 /// Returns: An index value if successful, uint32_t.max if not.
-uint32_t findSuitableQueueFamily (in ref Array!VkQueueFamilyProperties familyProperties, in VkQueueFlags flags)
+uint32_t findSuitableQueueFamily (Range)(auto ref Range familyProperties, in VkQueueFlags flags)
+    if (isRandomAccessRange!Range && is (Unqual!(typeof (familyProperties[0])) == VkQueueFamilyProperties))
 {
     // We only need to keep track of the fallback as we can return early when we find a dedicate queue family.
     uint32_t fallback       = uint32_t.max;
@@ -139,8 +141,7 @@ auto safelyDestroyVK (Handle, Func, T...) (ref Handle handle, in Func destroyFun
 }
 
 /// Returns a string representation of a packed Vulkan version number. The string will be separated using full stops.
-pure nothrow
-string vulkanVersionString (in uint32_t versionNumber)
+string vulkanVersionString (in uint32_t versionNumber) pure nothrow
 {
     return  VK_VERSION_MAJOR (versionNumber).to!string ~ "." ~
             VK_VERSION_MINOR (versionNumber).to!string ~ "." ~

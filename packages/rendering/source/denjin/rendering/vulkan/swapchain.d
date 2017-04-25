@@ -80,6 +80,9 @@ struct Swapchain
     /// Gets the handle to the managed swapchain.
     public @property inout (VkSwapchainKHR) swapchain() inout pure nothrow @safe @nogc { return m_swapchain; }
 
+    /// Gets the number of images managed by the current swapchain.
+    public @property uint32_t imageCount() const pure nothrow @safe @nogc { return cast (uint32_t) m_images.length; }
+
     /// Creates/recreates the swapchain with the given display mode. This will invalidate handles to current swapchain
     /// images.
     public void create (ref Device device, in VSync desiredMode = VSync.TripleBuffering, 
