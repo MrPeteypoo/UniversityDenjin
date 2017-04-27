@@ -15,7 +15,8 @@ import std.traits : isBuiltinType, isPointer;
 
 // External.
 import erupted.types : VkDebugReportCallbackEXT, VkCommandBuffer, VkCommandPool, VkDevice, VkFence, VkImage, 
-                       VkImageView, VkInstance, VkPhysicalDevice, VkQueue, VkSemaphore, VkSurfaceKHR, VkSwapchainKHR;
+                       VkImageView, VkInstance, VkPhysicalDevice, VkQueue, VkRenderPass, VkSemaphore, VkSurfaceKHR, 
+                       VkSwapchainKHR;
 
 /// Gets the correct null handle to use when checking if a VK handle is null.
 /// Params: T = The type to retrieve the null handle for.
@@ -48,6 +49,7 @@ enum nullFence          = nullHandle!VkFence;
 enum nullImage          = nullHandle!VkImage;
 enum nullImageView      = nullHandle!VkImageView;
 enum nullInstance       = nullHandle!VkInstance;
+enum nullPass           = nullHandle!VkRenderPass;
 enum nullPhysDevice     = nullHandle!VkPhysicalDevice;
 enum nullPool           = nullHandle!VkCommandPool;
 enum nullQueue          = nullHandle!VkQueue;

@@ -46,6 +46,7 @@ struct Swapchain
         // Rarely accessed data.
         VkSurfaceKHR                m_surface   = nullSurface;      /// The handle to the surface which will display images.
         VkPhysicalDevice            m_gpu       = nullPhysDevice;   /// The handle of the GPU interfacing with the presentation engine.
+        VkSwapchainCreateInfoKHR    m_info;                         /// The creation information used to initialise the swapchain images.
         VkSurfaceCapabilitiesKHR    m_capabilities;                 /// The capabilities of the physical device + surface combination.
         SurfaceFormats              m_formats;                      /// Available colour formats for the current surface.
         PresentModes                m_modes;                        /// Single, double, triple buffering capabilities.
@@ -56,8 +57,8 @@ struct Swapchain
 
     /// The default timeout when acquiring the next image will halt the application until an image is ready in debug
     /// and will wait a second in release modes. This is to make debugging easier 
-    debug enum acquireImageTimeout  = uint64_t.max;
-    else enum acquireImageTimeout   = 1_000_000_000;
+    debug { enum acquireImageTimeout = uint64_t.max; }
+    else {  enum acquireImageTimeout = 1_000_000_000; }
 
     /// Retrieve the capabilities of the given device/surface combination to allow for the creation of a swapchain.
     public this (VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
@@ -80,6 +81,19 @@ struct Swapchain
 
         m_modes.length = count;
         vkGetPhysicalDeviceSurfacePresentModesKHR (m_gpu, m_surface, &count, &m_modes.front()).enforceSuccess;
+
+        // Set the initial values for the creation information.
+        m_info.sType                    = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        m_info.pNext                    = null;
+        m_info.flags                    = 0;
+        m_info.surface                  = m_surface;
+        m_info.imageArrayLayers         = 1;
+        m_info.imageUsage               = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        m_info.imageSharingMode         = VK_SHARING_MODE_EXCLUSIVE;
+        m_info.queueFamilyIndexCount    = 0;
+        m_info.pQueueFamilyIndices      = null;
+        m_info.compositeAlpha           = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        m_info.clipped                  = VK_TRUE;
     }
 
     /// Gets the handle to the managed swapchain.
@@ -97,6 +111,9 @@ struct Swapchain
     /// Gets the number of images managed by the current swapchain.
     public @property uint32_t imageCount() const pure nothrow @safe @nogc { return cast (uint32_t) m_images.length; }
 
+    /// Gets the information used to create the current swapchain.
+    public @property ref const(VkSwapchainCreateInfoKHR) info() const pure nothrow @safe @nogc { return m_info; }
+
     /// Creates/recreates the swapchain with the given display mode. This will invalidate handles to current swapchain
     /// images.
     public void create (ref Device device, in VSync desiredMode = VSync.TripleBuffering, 
@@ -113,33 +130,18 @@ struct Swapchain
         enforce ((m_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) > 0);
 
         // Compile the creation information.
-        VkSwapchainCreateInfoKHR info = 
-        {
-            sType:                  VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-            pNext:                  null,
-            flags:                  0,
-            surface:                m_surface,
-            imageExtent:            m_capabilities.currentExtent,
-            imageArrayLayers:       1,
-            imageUsage:             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-            imageSharingMode:       VK_SHARING_MODE_EXCLUSIVE,
-            queueFamilyIndexCount:  0,
-            pQueueFamilyIndices:    null,
-            preTransform:           m_capabilities.currentTransform,
-            compositeAlpha:         VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-            clipped:                VK_TRUE,
-            oldSwapchain:           m_handle
-        };
-
-        setPresentMode (info.minImageCount, info.presentMode, desiredMode);
-        setFormat (info.imageFormat, info.imageColorSpace);
+        m_info.imageExtent  = m_capabilities.currentExtent;
+        m_info.preTransform = m_capabilities.currentTransform;
+        m_info.oldSwapchain = m_handle;
+        setPresentMode (desiredMode);
+        setFormat();
 
         // Create the swapchain and destroy the old one!
-        device.vkCreateSwapchainKHR (&info, callbacks, &m_handle).enforceSuccess;
-        info.oldSwapchain.safelyDestroyVK (device.vkDestroySwapchainKHR, device, info.oldSwapchain, callbacks);
+        device.vkCreateSwapchainKHR (&m_info, callbacks, &m_handle).enforceSuccess;
+        m_info.oldSwapchain.safelyDestroyVK (device.vkDestroySwapchainKHR, device, info.oldSwapchain, callbacks);
         
         // Finally retrieve the swapchain images.
-        createImageViews (device, info.imageFormat, callbacks);
+        createImageViews (device, callbacks);
     }
 
     /// Destroys the currently managed swapchain. This will leave the object in an unusable/unitialised state and 
@@ -188,29 +190,29 @@ struct Swapchain
 
     /// Attempts to set the image count and presentation mode to be the same as the desired VSync mode. If the device
     /// supports the feature then it will be configured, otherwise the closest approximation will be chosen.
-    private void setPresentMode (ref uint32_t minImageCount, ref VkPresentModeKHR presentMode, in VSync desiredMode) const
+    private void setPresentMode (in VSync desiredMode)
     {
         const auto vsyncMode    = cast (VkPresentModeKHR) desiredMode;
         const auto imageCount   = desiredMode.requiredBuffers;
         if (!m_modes[0..$].canFind (vsyncMode) || m_capabilities.maxImageCount < imageCount)
         {
-            setPresentMode (minImageCount, presentMode, desiredMode.fallback);
+            setPresentMode (desiredMode.fallback);
         }
         else
         {
-            presentMode     = vsyncMode;
-            minImageCount   = imageCount.clamp (m_capabilities.minImageCount, m_capabilities.maxImageCount);
+            m_info.presentMode      = vsyncMode;
+            m_info.minImageCount    = imageCount.clamp (m_capabilities.minImageCount, m_capabilities.maxImageCount);
         }
     }
 
     /// Sets the given format variables to the most appropriate values.
-    private void setFormat (ref VkFormat imageFormat, ref VkColorSpaceKHR imageColorSpace) const
+    private void setFormat()
     {
         // There may be no preferred format.
         if (m_formats.length == 1 && m_formats.front().format == VK_FORMAT_UNDEFINED)
         {
-            imageFormat     = VK_FORMAT_R8G8B8A8_UNORM;
-            imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+            m_info.imageFormat      = VK_FORMAT_R8G8B8A8_UNORM;
+            m_info.imageColorSpace  = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
         }
         else
         {
@@ -218,19 +220,19 @@ struct Swapchain
             const auto result = find!"a.format == b"(m_formats[0..$], VK_FORMAT_R8G8B8A8_UNORM);
             if (result.empty)
             {
-                imageFormat     = m_formats.front.format;
-                imageColorSpace = m_formats.front.colorSpace;
+                m_info.imageFormat      = m_formats.front.format;
+                m_info.imageColorSpace  = m_formats.front.colorSpace;
             }
             else
             {
-                imageFormat     = result.front.format;
-                imageColorSpace = result.front.colorSpace;
+                m_info.imageFormat      = result.front.format;
+                m_info.imageColorSpace  = result.front.colorSpace;
             }
         }
     }
 
     /// Gets all images associated with the current swapchain and creates image views for each of them.
-    private void createImageViews (ref Device device, in VkFormat format, in VkAllocationCallbacks* callbacks)
+    private void createImageViews (ref Device device, in VkAllocationCallbacks* callbacks)
     {
         // Firstly ensure we don't leak data.
         m_views.each!(v => v.safelyDestroyVK (device.vkDestroyImageView, device, v, callbacks));
@@ -265,7 +267,7 @@ struct Swapchain
             pNext:              null,
             flags:              0,
             viewType:           VK_IMAGE_VIEW_TYPE_2D,
-            format:             format,
+            format:             m_info.imageFormat,
             components:         componentMapping,
             subresourceRange:   subresourceRange
         };

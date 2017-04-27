@@ -7,7 +7,8 @@
 module denjin.rendering.vulkan.objects;
 
 // Phobos.
-import std.range.primitives : isRandomAccessRange;
+import std.range.primitives : ElementType, isRandomAccessRange;
+import std.traits           : Unqual;
 import std.typecons         : Flag, Yes, No;
 
 // Engine.
@@ -77,6 +78,31 @@ body
     };
 
     return device.vkCreateFence (&info, callbacks, &fence);
+}
+
+/// Creates a render pass with the given parameters.
+VkResult createRenderPass (Range1, Range2, Range3) 
+                          (out VkRenderPass renderPass, ref Device device, auto ref Range1 attachmentDescriptions,
+                           auto ref Range2 subpassDescriptions, auto ref Range3 subpassDependencies,
+                           in VkAllocationCallbacks* callbacks = null)
+    if (isRandomAccessRange!Range1 && is (Unqual!(ElementType!Range1) == VkAttachmentDescription) &&
+        isRandomAccessRange!Range2 && is (Unqual!(ElementType!Range2) == VkSubpassDescription) &&
+        isRandomAccessRange!Range3 && is (Unqual!(ElementType!Range3) == VkSubpassDependency))
+{
+    VkRenderPassCreateInfo info =
+    {
+        sType:              VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+        pNext:              null,
+        flags:              0,
+        attachmentCount:    attachmentDescriptions.length,
+        pAttachments:       attachmentDescriptions.length > 0 ? &attachmentDescriptions[0] : null,
+        subpassCount:       subpassDescriptions.length,
+        pSubpasses:         subpassDescriptions.length > 0 ? &subpassDescriptions[0] : null,
+        dependencyCount:    subpassDependencies.length,
+        pDependencies:      subpassDependencies.length > 0 ? &subpassDependencies[0] : null
+    };
+
+    return device.vkCreateRenderPass (&info, callbacks, &renderPass);
 }
 
 /// Creates a semaphore with the given parameters.

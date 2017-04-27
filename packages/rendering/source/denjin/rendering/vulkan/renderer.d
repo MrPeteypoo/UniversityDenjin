@@ -15,7 +15,7 @@ import std.algorithm.mutation   : move;
 // Engine.
 import denjin.rendering.interfaces          : IRenderer;
 import denjin.rendering.vulkan.device       : Device;
-import denjin.rendering.vulkan.internals    : Commands, Syncs;
+import denjin.rendering.vulkan.internals    : Commands, RenderPasses, Syncs;
 import denjin.rendering.vulkan.misc         : safelyDestroyVK;
 import denjin.rendering.vulkan.nulls;
 import denjin.rendering.vulkan.objects      : createCommandPool;
@@ -30,11 +30,12 @@ final class RendererVulkan : IRenderer
 {
     private 
     {
-        size_t      m_frameCount;   /// Counts how many frames in total have been rendered.
-        Device      m_device;       /// The logical device containing device-level Functionality.
-        Swapchain   m_swapchain;    /// Manages the display mode and displayable images available to the renderer.
-        Commands    m_cmds;         /// The command pools and buffers required by the primary rendering thread.
-        Syncs       m_syncs;        /// The synchronization objects used to control the flow of generated commands.
+        size_t          m_frameCount;   /// Counts how many frames in total have been rendered.
+        Device          m_device;       /// The logical device containing device-level Functionality.
+        Swapchain       m_swapchain;    /// Manages the display mode and displayable images available to the renderer.
+        Commands        m_cmds;         /// The command pools and buffers required by the primary rendering thread.
+        Syncs           m_syncs;        /// The synchronization objects used to control the flow of generated commands.
+        RenderPasses    m_passes;       /// the handles required to perform different rendering passes.
     }
 
     /// Initialises the renderer, creating Vulkan objects that are required for loading and rendering a scene.
@@ -56,6 +57,7 @@ final class RendererVulkan : IRenderer
         // We need to build the resources required by the rendering before loading a scene.
         m_swapchain.create (m_device);
         m_cmds.create (m_device, m_swapchain.imageCount);
+        m_passes.create (m_device, m_swapchain.info.imageFormat);
         m_syncs.create (m_device);
     }
 
@@ -74,6 +76,7 @@ final class RendererVulkan : IRenderer
         {
             m_device.vkDeviceWaitIdle();
             m_syncs.clear (m_device);
+            m_passes.clear (m_device);
             m_cmds.clear (m_device);
             m_swapchain.clear (m_device);
             m_device.clear();
@@ -99,6 +102,8 @@ final class RendererVulkan : IRenderer
     }
     body
     {
+        // We must wait for command buffers to be consumed before recreating the swapchain.
+        m_syncs.waitForFences (m_device);
         m_swapchain.create (m_device);
     }
 
@@ -191,7 +196,7 @@ final class RendererVulkan : IRenderer
 
         // Prepare a clear colour value.
         VkClearColorValue colour = { float32: 0f };
-        colour.float32[m_swapchain.imageIndex%3] = 1f;
+        colour.float32[0] = 1f;
         
         // We need to inform the GPU where in the image we'll be clearing.
         auto subresourceRange = VkImageSubresourceRange (VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1);

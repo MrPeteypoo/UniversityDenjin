@@ -16,7 +16,7 @@ import denjin.rendering.vulkan.nulls    : nullDevice, nullFence, nullSemaphore;
 import denjin.rendering.vulkan.objects  : createFence, createSemaphore;
 
 // External.
-import erupted.types : VkAllocationCallbacks, VkFence, VkSemaphore, VK_FENCE_CREATE_SIGNALED_BIT;
+import erupted.types : uint64_t, VkAllocationCallbacks, VkFence, VkSemaphore, VK_FENCE_CREATE_SIGNALED_BIT, VK_TRUE;
 
 /// Contains semaphores and fences which are used to indicate that different stages of have been performed to prevent
 /// data races and undefined behaviour with the multi-threaded API.
@@ -27,6 +27,17 @@ struct Syncs
 
     size_t      fenceIndex;     /// The index to use when using a fence for a frame.   
     VkFence[]   renderFences;   /// Used to track the completion status of multiple previous frames.
+
+    /// Returns the fence which should be used to indicate whether render work has completed for a past frame.
+    public @property inout(VkFence) renderFence() inout pure nothrow @safe @nogc
+    in
+    {
+        assert (fenceIndex < renderFences.length);
+    }
+    body
+    {
+        return renderFences[fenceIndex];
+    }
 
     /// Initialises all semaphore and fence objects ready for use.
     public void create (ref Device device, in size_t fenceCount = 3, in VkAllocationCallbacks* callbacks = null)
@@ -61,6 +72,8 @@ struct Syncs
         immutable semaphoreFunc = device.vkDestroySemaphore;
         immutable fenceFunc     = device.vkDestroyFence;
 
+        // Ensure each fence has been signalled before we destroy them.
+        waitForFences (device);
         imageAvailable.safelyDestroyVK (semaphoreFunc, device, imageAvailable, callbacks);
         frameComplete.safelyDestroyVK (semaphoreFunc, device, frameComplete, callbacks);
         renderFences.each!((ref f) => f.safelyDestroyVK (fenceFunc, device, f, callbacks));
@@ -72,14 +85,17 @@ struct Syncs
         return fenceIndex = frameCount % renderFences.length;
     }
 
-    /// Returns the fence which should be used to indicate whether render work has completed for a past frame.
-    public @property inout(VkFence) renderFence() inout pure nothrow @safe @nogc
+    /// Attempts to wait for all stored fences to be signalled. The given timeout will be specified for each fence.
+    public void waitForFences (ref Device device, in uint64_t timeout = uint64_t.max) nothrow @nogc
     in
     {
-        assert (fenceIndex < renderFences.length);
+        assert (device != nullDevice);
     }
     body
     {
-        return renderFences[fenceIndex];
+        renderFences.each!((ref VkFence f)
+        {
+            if (f != nullFence) device.vkWaitForFences (1, &f, VK_TRUE, timeout);
+        });
     }
 }
