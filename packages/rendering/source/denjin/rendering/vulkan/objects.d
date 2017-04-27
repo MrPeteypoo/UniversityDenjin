@@ -94,11 +94,11 @@ VkResult createRenderPass (Range1, Range2, Range3)
         sType:              VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
         pNext:              null,
         flags:              0,
-        attachmentCount:    attachmentDescriptions.length,
+        attachmentCount:    cast (uint32_t) attachmentDescriptions.length,
         pAttachments:       attachmentDescriptions.length > 0 ? &attachmentDescriptions[0] : null,
-        subpassCount:       subpassDescriptions.length,
+        subpassCount:       cast (uint32_t) subpassDescriptions.length,
         pSubpasses:         subpassDescriptions.length > 0 ? &subpassDescriptions[0] : null,
-        dependencyCount:    subpassDependencies.length,
+        dependencyCount:    cast (uint32_t) subpassDependencies.length,
         pDependencies:      subpassDependencies.length > 0 ? &subpassDependencies[0] : null
     };
 

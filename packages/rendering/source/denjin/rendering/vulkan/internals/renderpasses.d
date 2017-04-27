@@ -18,8 +18,8 @@ import denjin.rendering.vulkan.objects      : createRenderPass;
 import denjin.rendering.vulkan.swapchain    : Swapchain;
 
 // External.
-import erupted.types : VkAllocationCallbacks, VkAttachmentDescription, VkAttachmentReference, VkFormat, VkRenderPass, 
-                       VkRenderPassCreateInfo, VkSubpassDependency, VkSubpassDescription,
+import erupted.types : uint32_t, VkAllocationCallbacks, VkAttachmentDescription, VkAttachmentReference, VkFormat, 
+                       VkRenderPass, VkRenderPassCreateInfo, VkSubpassDependency, VkSubpassDescription,
                        VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_LOAD_OP_LOAD, 
                        VK_ATTACHMENT_STORE_OP_STORE, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_FORMAT_D24_UNORM_S8_UINT,
                        VK_FORMAT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -107,7 +107,7 @@ struct ForwardRender (Flag!"loadColour" loadColour, Flag!"storeColour" storeColo
         VkAttachmentReference[attachmentDescriptions.length] references;
         foreach (i, ref r; references)
         {
-            r.attachment    = i;
+            r.attachment    = cast (uint32_t) i;
             r.layout        = attachmentDescriptions[i].initialLayout;
         }
     

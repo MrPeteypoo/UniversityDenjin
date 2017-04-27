@@ -138,7 +138,7 @@ struct Swapchain
 
         // Create the swapchain and destroy the old one!
         device.vkCreateSwapchainKHR (&m_info, callbacks, &m_handle).enforceSuccess;
-        m_info.oldSwapchain.safelyDestroyVK (device.vkDestroySwapchainKHR, device, info.oldSwapchain, callbacks);
+        m_info.oldSwapchain.safelyDestroyVK (device.vkDestroySwapchainKHR, device, m_info.oldSwapchain, callbacks);
         
         // Finally retrieve the swapchain images.
         createImageViews (device, callbacks);
