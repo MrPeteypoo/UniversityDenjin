@@ -106,6 +106,31 @@ body
     return uint32_t.max;
 }
 
+/// Attempts to find the index of the memory type in the given properties which matches the requirements given. 
+/// Params:
+///     typeBits            = This value will likely come from a call to vkGetImageMemoryRequirements.
+///     requiredProperties  = The visibility flags required for the resource.
+/// Returns: The index of the memory type meeting the given requirements. uint32_t.max if unsuccessful.
+uint32_t memoryTypeIndex (in ref VkPhysicalDeviceMemoryProperties properties, in uint32_t typeBits,
+                          in VkMemoryPropertyFlags requiredProperties) pure nothrow @safe @nogc
+{
+    foreach (i; 0..properties.memoryTypeCount)
+    {
+        // First we check if current memory type is a potential candidate.
+        if ((typeBits & (1 << i)) > 0)
+        {
+            // Now we must check if the memory type supports the required access properties.
+            if ((properties.memoryTypes[i].propertyFlags & requiredProperties) == requiredProperties)
+            {
+                return i;
+            }
+        }
+    }
+
+    // Indicate failure.
+    return uint32_t.max;
+}
+
 /// Checks if the given Vulkan handle needs destroying, if so then the given function pointer will be used to destroy
 /// the object. A check will be performed to see if the given function pointer is valid, if it isn't valid an assertion
 /// will occur.

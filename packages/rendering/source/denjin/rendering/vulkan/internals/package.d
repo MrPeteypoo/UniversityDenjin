@@ -7,5 +7,6 @@
 module denjin.rendering.vulkan.internals;
 
 public import denjin.rendering.vulkan.internals.commands;
+public import denjin.rendering.vulkan.internals.framebuffers;
 public import denjin.rendering.vulkan.internals.renderpasses;
 public import denjin.rendering.vulkan.internals.synchronization;

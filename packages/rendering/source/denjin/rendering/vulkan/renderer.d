@@ -15,7 +15,7 @@ import std.algorithm.mutation   : move;
 // Engine.
 import denjin.rendering.interfaces          : IRenderer;
 import denjin.rendering.vulkan.device       : Device;
-import denjin.rendering.vulkan.internals    : Commands, RenderPasses, Syncs;
+import denjin.rendering.vulkan.internals    : Commands, Framebuffers, RenderPasses, Syncs;
 import denjin.rendering.vulkan.misc         : safelyDestroyVK;
 import denjin.rendering.vulkan.nulls;
 import denjin.rendering.vulkan.objects      : createCommandPool;
@@ -30,19 +30,26 @@ final class RendererVulkan : IRenderer
 {
     private 
     {
+        alias Limits        = VkPhysicalDeviceLimits;
+        alias MemoryProps   = VkPhysicalDeviceMemoryProperties;
+
         size_t          m_frameCount;   /// Counts how many frames in total have been rendered.
         Device          m_device;       /// The logical device containing device-level Functionality.
         Swapchain       m_swapchain;    /// Manages the display mode and displayable images available to the renderer.
         Commands        m_cmds;         /// The command pools and buffers required by the primary rendering thread.
+        RenderPasses    m_passes;       /// The handles required to perform different rendering passes.
+        Framebuffers    m_fbs;          /// Contains framebuffer handles and data which can be used as render targets.
         Syncs           m_syncs;        /// The synchronization objects used to control the flow of generated commands.
-        RenderPasses    m_passes;       /// the handles required to perform different rendering passes.
+        Limits          m_limits;       /// The hardware limits of the physical device that the renderer must adhere to.
+        MemoryProps     m_memProps;     /// The properties of the physical devices memory, necessary to allocate resources.
     }
 
     /// Initialises the renderer, creating Vulkan objects that are required for loading and rendering a scene.
     /// Params:
     ///     device      = The device which the renderer should take ownership of and use to render with.
     ///     swapchain   = The swapchain where the renderer should acquire and present images to.
-    this (Device device, Swapchain swapchain)
+    this (Device device, Swapchain swapchain, 
+          VkPhysicalDeviceLimits limits, VkPhysicalDeviceMemoryProperties memoryProperties)
     out
     {
         assert (m_device != nullDevice);
@@ -53,11 +60,14 @@ final class RendererVulkan : IRenderer
         // Take ownership of the resources.
         m_device    = move (device);
         m_swapchain = move (swapchain);
+        m_limits    = move (limits);
+        m_memProps  = move (memoryProperties);
 
         // We need to build the resources required by the rendering before loading a scene.
         m_swapchain.create (m_device);
         m_cmds.create (m_device, m_swapchain.imageCount);
         m_passes.create (m_device, m_swapchain.info.imageFormat);
+        m_fbs.create (m_device, m_swapchain, m_memProps);
         m_syncs.create (m_device);
     }
 
@@ -76,6 +86,7 @@ final class RendererVulkan : IRenderer
         {
             m_device.vkDeviceWaitIdle();
             m_syncs.clear (m_device);
+            m_fbs.clear (m_device);
             m_passes.clear (m_device);
             m_cmds.clear (m_device);
             m_swapchain.clear (m_device);

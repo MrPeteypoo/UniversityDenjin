@@ -91,6 +91,12 @@ struct Instance
         clear();
     }
 
+    /// Gets the handle being managed by the Instance struct.
+    public @property inout(VkInstance) handle() inout pure nothrow @safe @nogc { return m_instance; }
+
+    /// Checks if the vulkan instance has been initialised and is ready for use.
+    public @property bool isInitialised() const pure nothrow @safe @nogc { return m_instance != nullInstance; }
+
     /// Constructs a renderer which is derived from the current instance. This will evaluate physical devices available
     /// to the system, check their capabilities and create a logical device which will be given to the constructed
     /// renderer. The given surface will also be used to initialise a swapchain which will also be given to the 
@@ -123,14 +129,10 @@ struct Instance
         // Construct the renderer!
         auto device     = Device (gpu, m_info.device, surface, null);
         auto swapchain  = Swapchain (gpu, surface);
-        return new RendererVulkan (move (device), move (swapchain));
+        auto limits     = m_info.physicalDeviceProperties[gpuIndex].limits;
+        auto memProps   = m_info.physicalDeviceMemoryProperties[gpuIndex];
+        return new RendererVulkan (move (device), move (swapchain), move (limits), move (memProps));
     }
-
-    /// Gets the handle being managed by the Instance struct.
-    public @property inout(VkInstance) handle() inout pure nothrow @safe @nogc { return m_instance; }
-
-    /// Checks if the vulkan instance has been initialised and is ready for use.
-    public @property bool isInitialised() const pure nothrow @safe @nogc { return m_instance != nullInstance; }
 
     /// Destroys stored instance and surfaces, etc.
     public void clear() nothrow
@@ -264,15 +266,17 @@ struct Instance
         vkEnumeratePhysicalDevices (m_instance, &count, null).enforceSuccess;
 
         // Retrieve the handles and properties of each device.
-        m_info.physicalDevices.length           = count;
-        m_info.physicalDeviceProperties.length  = count;
-        m_info.deviceExtProperties.length       = count;
+        m_info.physicalDevices.length                   = count;
+        m_info.physicalDeviceProperties.length          = count;
+        m_info.physicalDeviceMemoryProperties.length    = count;
+        m_info.deviceExtProperties.length               = count;
         vkEnumeratePhysicalDevices (m_instance, &count, &m_info.physicalDevices.front()).enforceSuccess;
 
         foreach (i; 0..count)
         {
             auto device = m_info.physicalDevices[i];
             vkGetPhysicalDeviceProperties (device, &m_info.physicalDeviceProperties[i]);
+            vkGetPhysicalDeviceMemoryProperties (device, &m_info.physicalDeviceMemoryProperties[i]);
 
             uint32_t extCount = void;
             vkEnumerateDeviceExtensionProperties (device, null, &extCount, null).enforceSuccess;
@@ -399,11 +403,12 @@ VkBool32 logVulkanError (VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT
 /// for debugging purposes.
 private struct Info
 {
-    Array!VkExtensionProperties         instanceExtProperties;      /// The details of what extensions are available to the instance.
-    Array!VkLayerProperties             layerProperties;            /// The details of what layers are available to the instance.
-    Array!VkPhysicalDevice              physicalDevices;            /// The available physical devices.
-    Array!VkPhysicalDeviceProperties    physicalDeviceProperties;   /// The description and capabilities of each device.
-    Array!(Array!VkExtensionProperties) deviceExtProperties;        /// A collection of extension properties for every device.
+    Array!VkExtensionProperties             instanceExtProperties;          /// The details of what extensions are available to the instance.
+    Array!VkLayerProperties                 layerProperties;                /// The details of what layers are available to the instance.
+    Array!VkPhysicalDevice                  physicalDevices;                /// The available physical devices.
+    Array!VkPhysicalDeviceProperties        physicalDeviceProperties;       /// The description and capabilities of each device.
+    Array!VkPhysicalDeviceMemoryProperties  physicalDeviceMemoryProperties; /// The memory properties of each enumerated physical device.
+    Array!(Array!VkExtensionProperties)     deviceExtProperties;            /// A collection of extension properties for every device.
 
     /// Contains application-specific information required to create a Vulkan instance, hard-coded for now.
     VkApplicationInfo app = 
