@@ -38,7 +38,11 @@ struct Engine
         {
             window.update (0f);
             renderer.update (0f);
-            renderer.render();
+
+            if (window.isVisible)
+            {
+                renderer.render();
+            }
         }
     }
 }

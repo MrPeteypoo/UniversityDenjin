@@ -182,10 +182,8 @@ struct Framebuffers
         framebuffers.length = swapchain.imageCount;
         foreach (i, ref fb; framebuffers)
         {
-            VkImageView[2] attachments;
-            attachments[0]      = swapchain.getImageView (i);
-            attachments[1]      = depthView;
-            info.pAttachments   = attachments.ptr;
+            const VkImageView[2] attachments = [swapchain.getImageView (i), depthView];
+            info.pAttachments = attachments.ptr;
 
             device.vkCreateFramebuffer (&info, callbacks, &fb).enforceSuccess;
         }

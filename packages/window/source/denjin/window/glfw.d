@@ -32,11 +32,13 @@ final class WindowGLFW : IWindow
 {
     private
     {
-        int         m_width;    /// How many pixels wide the window currently is.
-        int         m_height;   /// How many pixels tall the window currently is.
-        string      m_title;    /// The title of the window, as it is displayed to the user.
-        GLFWwindow* m_window;   /// A pointer to a GLFW window handle.
-        IRenderer   m_renderer; /// The renderer managed by the window system. GLFW supports OpenGL and Vulkan but only Vulkan is implemented right now.
+        bool        m_shouldClose;  /// Tracks whether the application should close, the user may have clicked the close button.
+        bool        m_isVisible;    /// Tracks whether the window is currently visible or not.
+        int         m_width;        /// How many pixels wide the window currently is.
+        int         m_height;       /// How many pixels tall the window currently is.
+        string      m_title;        /// The title of the window, as it is displayed to the user.
+        GLFWwindow* m_window;       /// A pointer to a GLFW window handle.
+        IRenderer   m_renderer;     /// The renderer managed by the window system. GLFW supports OpenGL and Vulkan but only Vulkan is implemented right now.
 
         /// The application-wide Vulkan instance from which devices and renderers can be created from. Realistically this
         /// should not be managed here because it means we can't have two GLFW windows in use at the same time. Not a
@@ -131,35 +133,31 @@ final class WindowGLFW : IWindow
         // Ensure the window never stops being responsive.
         glfwPollEvents();
 
+        // Check whether the user wants the application to close.
+        m_shouldClose = glfwWindowShouldClose (m_window) == GLFW_TRUE;
+
         // Check whether the window size has changed in case we need to inform the renderer.
         int width = void, height = void;
         glfwGetWindowSize (m_window, &width, &height);
-        assert (width != 0);
-        assert (height != 0);
 
-        if (width != m_width || height != m_height)
+        // Don't waste time resetting the renderer if the window isn't visible.
+        m_isVisible = width != 0 && height != 0;
+        if (m_isVisible && (width != m_width || height != m_height))
         {
             m_renderer.reset (cast (uint) width, cast (uint) height);
+
+            // Only update the dimensions if the latest visible dimensions are different.
+            m_width     = width;
+            m_height    = height;
         }
-
-        m_width     = width;
-        m_height    = height;
     }
 
-    public @property inout(IRenderer) renderer() inout pure nothrow @safe @nogc { return m_renderer; }
-    public @property override bool shouldClose() nothrow
-    in
-    {
-        assert (m_window);
-    }
-    body
-    {
-        return glfwWindowShouldClose (m_window) == GLFW_TRUE;
-    }
-
-    public override @property uint width() const nothrow { return cast(uint) m_width; }
-    public override @property uint height() const nothrow { return cast(uint) m_height; }
-    public override @property string title() const nothrow { return m_title; }
+    public override @property inout(IRenderer) renderer() inout pure nothrow @safe @nogc { return m_renderer; }
+    public override @property bool shouldClose() const nothrow pure @safe @nogc { return m_shouldClose; }
+    public override @property bool isVisible() const nothrow pure @safe @nogc { return m_isVisible; }
+    public override @property uint width() const nothrow pure @safe @nogc { return cast(uint) m_width; }
+    public override @property uint height() const nothrow pure @safe @nogc { return cast(uint) m_height; }
+    public override @property string title() const nothrow pure @safe @nogc { return m_title; }
     public override @property void title (string text) nothrow
     in
     {

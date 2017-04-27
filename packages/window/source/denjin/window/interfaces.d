@@ -23,7 +23,10 @@ interface IWindow
     @property inout(IRenderer) renderer() inout pure nothrow @safe @nogc;
 
     /// Checks if the window has been told to close by the user.
-    @property bool shouldClose() nothrow;
+    @property bool shouldClose() const nothrow;
+
+    /// Checks whether the window is currently visible on the users screen.
+    @property bool isVisible() const nothrow;
 
     /// Gets how many pixels wide the window is.
     @property uint width() const nothrow;
