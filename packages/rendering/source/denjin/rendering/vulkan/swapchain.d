@@ -105,6 +105,17 @@ struct Swapchain
     /// Gets the handle to the image view for the currently acquired image.
     public @property inout(VkImageView) imageView() inout pure nothrow @safe @nogc { return m_currentView; }
 
+    /// Gets the handle to the image view for the given image index.
+    public inout(VkImageView) getImageView (in size_t index) inout pure nothrow @safe
+    in
+    {
+        assert (index < m_views.length);
+    }
+    body
+    {
+        return m_views[index];
+    }
+
     /// Gets the index of the currently acquired swapchain image.
     public @property uint32_t imageIndex() inout pure nothrow @safe @nogc { return m_currentIndex; }
 

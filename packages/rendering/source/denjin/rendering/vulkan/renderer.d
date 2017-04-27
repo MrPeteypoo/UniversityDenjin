@@ -67,7 +67,7 @@ final class RendererVulkan : IRenderer
         m_swapchain.create (m_device);
         m_cmds.create (m_device, m_swapchain.imageCount);
         m_passes.create (m_device, m_swapchain.info.imageFormat);
-        m_fbs.create (m_device, m_swapchain, m_memProps);
+        m_fbs.create (m_device, m_swapchain, m_passes, m_memProps);
         m_syncs.create (m_device);
     }
 
@@ -116,6 +116,8 @@ final class RendererVulkan : IRenderer
         // We must wait for command buffers to be consumed before recreating the swapchain.
         m_syncs.waitForFences (m_device);
         m_swapchain.create (m_device);
+        m_fbs.clear (m_device);
+        m_fbs.create (m_device, m_swapchain, m_passes, m_memProps);
     }
 
     /// Does absolutely nothing right now. Likely will be used to track and update time.
