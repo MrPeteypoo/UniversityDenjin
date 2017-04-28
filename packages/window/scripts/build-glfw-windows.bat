@@ -25,18 +25,18 @@ if %arch% == x86 (
     call :exit_script
 )
 
+REM cd %batchDir%
+
+if not exist %glfw%\CMakeLists.txt (
+    echo:Couldn't find external\glfw\CMakeLists.txt, GLFW will not be built.
+    exit 0
+)
+
 echo: 
 echo:=================================
 echo:Starting %batchFileName%...
 echo:=================================
 echo: 
-
-REM cd %batchDir%
-
-if not exist %glfw%\CMakeLists.txt (
-    echo:Couldn't find external\glfw\CMakeLists.txt, makes sure you run 'git submodule update --init --recursive'
-    call :exit_script
-)
 
 if not exist .temp mkdir .temp
 if not exist .temp\%folder% mkdir .temp\%folder%

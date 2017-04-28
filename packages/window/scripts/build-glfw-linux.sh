@@ -28,12 +28,6 @@ exit_script ()
     exit 0
 }
 
-echo ""
-echo "================================="
-echo "Starting $shFileName..."
-echo "================================="
-echo ""
-
 #cd $shDir
 
 if [ "$arch" == "x86" ]; then
@@ -44,9 +38,15 @@ elif [ "$arch" != "x86_64" ]; then
 fi;
 
 if [ ! -e "$glfw/CMakeLists.txt" ]; then
-    echo "Couldn't find external/glfw/CMakeLists.txt, makes sure you run 'git submodule update --init --recursive'"
-    exit_script
+    echo "Couldn't find external/glfw/CMakeLists.txt, GLFW will not be built."
+    exit 0
 fi;
+
+echo ""
+echo "================================="
+echo "Starting $shFileName..."
+echo "================================="
+echo ""
 
 mkdir -p $output
 mkdir -p $shDir../$output
