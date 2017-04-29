@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # Check to see if we can even compile the shaders.
 hash glslangValidator 2>/dev/null || exit 0
 
