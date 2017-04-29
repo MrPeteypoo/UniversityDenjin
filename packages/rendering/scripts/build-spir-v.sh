@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Check to see if we can even compile the shaders.
-command -v glslangValidator >/dev/null 2>&1 || exit 0
+hash glslangValidator 2>/dev/null || exit 0
 
 # Unfortunately dub doesn't always run the script from the correct working directory, as such we need to cd to the
 # current script directory and return to the previous upon exit.
