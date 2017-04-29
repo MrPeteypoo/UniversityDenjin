@@ -15,7 +15,7 @@ import std.algorithm.mutation   : move;
 // Engine.
 import denjin.rendering.interfaces          : IRenderer;
 import denjin.rendering.vulkan.device       : Device;
-import denjin.rendering.vulkan.internals    : Commands, Framebuffers, RenderPasses, Syncs;
+import denjin.rendering.vulkan.internals    : Commands, Framebuffers, RenderPasses, Shaders, Syncs;
 import denjin.rendering.vulkan.misc         : safelyDestroyVK;
 import denjin.rendering.vulkan.nulls;
 import denjin.rendering.vulkan.objects      : createCommandPool;
@@ -40,6 +40,7 @@ final class RendererVulkan : IRenderer
         RenderPasses    m_passes;       /// The handles required to perform different rendering passes.
         Framebuffers    m_fbs;          /// Contains framebuffer handles and data which can be used as render targets.
         Syncs           m_syncs;        /// The synchronization objects used to control the flow of generated commands.
+        Shaders         m_shaders;      /// Contains compiled SPIR-V shaders, for use in creating pipelines.
         Limits          m_limits;       /// The hardware limits of the physical device that the renderer must adhere to.
         MemoryProps     m_memProps;     /// The properties of the physical devices memory, necessary to allocate resources.
     }
@@ -64,10 +65,12 @@ final class RendererVulkan : IRenderer
         m_memProps  = move (memoryProperties);
 
         // We need to build the resources required by the rendering before loading a scene.
+        scope (failure) clear();
         m_swapchain.create (m_device);
         m_cmds.create (m_device, m_swapchain.imageCount);
         m_passes.create (m_device, m_swapchain.info.imageFormat);
         m_fbs.create (m_device, m_swapchain, m_passes, m_memProps);
+        m_shaders.create (m_device);
         m_syncs.create (m_device);
     }
 
@@ -86,6 +89,7 @@ final class RendererVulkan : IRenderer
         {
             m_device.vkDeviceWaitIdle();
             m_syncs.clear (m_device);
+            m_shaders.clear (m_device);
             m_fbs.clear (m_device);
             m_passes.clear (m_device);
             m_cmds.clear (m_device);

@@ -17,7 +17,10 @@ struct Engine
     public void clear() nothrow
     {
         // Window system "own" rendering systems so we can ignore that.
-        window.clear();
+        if (window)
+        {
+            window.clear();
+        }
     }
 
     /// Construct each required system and prepare for running.

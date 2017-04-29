@@ -7,6 +7,7 @@
 module denjin.rendering.vulkan.objects;
 
 // Phobos.
+import std.file             : exists, isFile, read;
 import std.range.primitives : ElementType, isRandomAccessRange;
 import std.traits           : Unqual;
 import std.typecons         : Flag, Yes, No;
@@ -123,4 +124,45 @@ body
     };
 
     return device.vkCreateSemaphore (&info, callbacks, &semaphore);
+}
+
+/// Creates a shader module from the file at the given location.
+VkResult createShaderModule (out VkShaderModule shader, ref Device device, in string fileLocation,
+                             in VkAllocationCallbacks* callbacks = null) nothrow
+in
+{
+    assert (device != nullDevice);
+    assert (fileLocation.exists);
+    assert (fileLocation.isFile);
+}
+body
+{
+    try
+    {
+        if (fileLocation.exists && fileLocation.isFile)
+        {
+            // Firstly we must read the file.
+            const auto spirv = read (fileLocation);
+        
+            // Secondly, the size of the data must be a multiple of four.
+            if (spirv.length % 4 == 0)
+            {
+                VkShaderModuleCreateInfo info =
+                {
+                    sType:      VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+                    pNext:      null,
+                    flags:      0,
+                    codeSize:   spirv.length,
+                    pCode:      cast (const(uint32_t*)) spirv.ptr
+                };
+
+                return device.vkCreateShaderModule (&info, callbacks, &shader);
+            }
+        }
+    }
+    catch (Throwable)
+    {
+    }
+
+    return VK_ERROR_INITIALIZATION_FAILED;
 }

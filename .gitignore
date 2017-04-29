@@ -34,3 +34,4 @@ builds/
 *.sln
 *.spv
 *.log
+*.VC.db
