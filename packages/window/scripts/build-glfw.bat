@@ -5,9 +5,9 @@ set currentDir=%cd%
 set batchDir=%~dp0
 set batchFileName=%~n0
 
-set arch=%1
+set arch=%DUB_ARCH%
 set folder=win-%arch%
-set glfw=external\glfw
+set glfw=%batchDir%..\..\..\external\glfw
 set output=content\%folder%
 set outputFile=%output%%glfw3.dll%
 set generator=""
@@ -29,6 +29,7 @@ REM cd %batchDir%
 
 if not exist %glfw%\CMakeLists.txt (
     echo:Couldn't find external\glfw\CMakeLists.txt, GLFW will not be built.
+    echo:%glfw%
     exit 0
 )
 
@@ -45,7 +46,7 @@ if not exist %output% mkdir %output%
 cd .temp\%folder%
 
 echo:Running CMake on GLFW with generator: %generator%...
-cmake ..\..\%glfw% -DBUILD_SHARED_LIBS=ON -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF -G %generator% > nul
+cmake %glfw% -DBUILD_SHARED_LIBS=ON -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF -G %generator% > nul
 echo: 
 
 echo:Attempting to build GLFW...

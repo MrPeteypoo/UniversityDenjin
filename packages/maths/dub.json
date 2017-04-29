@@ -2,31 +2,13 @@
 	"name": "maths",
 	"description": "Mathematics library for Denjin.",
 
-	"targetType": "library",
 	"targetName": "denjin-maths",
-	"targetPath": "builds/unsupported",
+	"targetType": "library",
+	"targetPath": "builds",
 
 	"dependencies": {
 		"denjin:misc": "*"
 	},
-
-	"configurations": [
-		{
-			"name": "windows",
-			"platforms": ["windows"],
-			"targetPath": "builds/windows"
-		},
-		{
-			"name": "osx",
-			"platforms": ["osx"],
-			"targetPath": "builds/osx"
-		},
-		{
-			"name": "linux",
-			"platforms": ["linux"],
-			"targetPath": "builds/linux"
-		}
-	],
 
 	"buildRequirements": [
 		"allowWarnings",

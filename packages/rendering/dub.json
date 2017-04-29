@@ -2,26 +2,16 @@
 	"name": "rendering",
 	"description": "Rendering systems for Denjin.",
 
-	"targetType": "library",
 	"targetName": "denjin-rendering",
-	"targetPath": "builds/unsupported",
+	"targetType": "library",
+	"targetPath": "builds",
 
 	"dependencies": {
 		"erupted": "~>1.5.2"
 	},
 
-	"configurations": [
-		{
-			"name": "windows",
-			"platforms": ["windows"],
-			"targetPath": "builds/windows"
-		},
-		{
-			"name": "linux",
-			"platforms": ["linux"],
-			"targetPath": "builds/linux"
-		}
-	],
+	"preGenerateCommands-linux": ["$PACKAGE_DIR/scripts/build-spir-v.sh"],
+	"preGenerateCommands-windows": ["$PACKAGE_DIR\\scripts\\build-spir-v.bat"],
 
 	"buildRequirements": [
 		"allowWarnings",

@@ -8,10 +8,9 @@
 
 	"homepage": "https://github.com/storm20200/Denjin",
 
-	"targetType": "executable",
 	"targetName": "denjin",
-	"targetPath": "builds/unsupported",
-	"mainSourceFile": "source/main.d",
+	"targetType": "library",
+	"targetPath": "builds",
 
 	"subPackages": [
 		"./packages/maths/",
@@ -26,23 +25,6 @@
 		"denjin:rendering": "*",
 		"denjin:window": "*"
 	},
-
-	"importPaths": [
-		"source"
-	],
-
-	"configurations": [
-		{
-			"name": "windows",
-			"platforms": ["windows"],
-			"targetPath": "builds/windows"
-		},
-		{
-			"name": "linux",
-			"platforms": ["linux"],
-			"targetPath": "builds/linux"
-		}
-	],
 
 	"buildRequirements": [
 		"allowWarnings",
@@ -63,11 +45,5 @@
 		"release": {
 			"buildOptions": ["releaseMode", "optimize", "inline", "noBoundsCheck"]
 		}
-	},
-
-	"copyFiles": ["content/all/*"],
-	"copyFiles-windows-x86": ["content/win-x86/*"],
-	"copyFiles-windows-x86_64": ["content/win-x86_64/*"],
-	"copyFiles-linux-x86": ["content/linux-x86/*"],
-	"copyFiles-linux-x86_64": ["content/linux-x86_64/*"]
+	}
 }

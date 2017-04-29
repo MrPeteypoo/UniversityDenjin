@@ -2,27 +2,9 @@
 	"name": "misc",
 	"description": "A collection of miscellaneous functionality used by Denjin.",
 
-	"targetType": "library",
 	"targetName": "denjin-misc",
-	"targetPath": "builds/unsupported",
-
-	"configurations": [
-		{
-			"name": "windows",
-			"platforms": ["windows"],
-			"targetPath": "builds/windows"
-		},
-		{
-			"name": "osx",
-			"platforms": ["osx"],
-			"targetPath": "builds/osx"
-		},
-		{
-			"name": "linux",
-			"platforms": ["linux"],
-			"targetPath": "builds/linux"
-		}
-	],
+	"targetType": "library",
+	"targetPath": "builds",
 
 	"buildRequirements": [
 		"allowWarnings",

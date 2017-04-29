@@ -6,9 +6,9 @@ currentDir=`pwd`
 shDir="${0%/*}/"
 shFileName="${0##*/}"
 
-arch="$1"
+arch="$DUB_ARCH"
 folder="linux-$arch"
-glfw="external/glfw"
+glfw="$shDir/../../../external/glfw"
 output="content/$folder"
 outputFile="$output/libglfw3.so"
 extraCMakeFlags=""
@@ -54,7 +54,7 @@ mkdir -p .temp/$folder
 cd .temp/$folder
 
 echo "Running CMake on GLFW..."
-cmake ../../$glfw -DBUILD_SHARED_LIBS=ON -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF -DCMAKE_BUILD_TYPE=Release $extraCMakeFlags > /dev/null
+cmake $glfw -DBUILD_SHARED_LIBS=ON -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF -DCMAKE_BUILD_TYPE=Release $extraCMakeFlags > /dev/null
 echo ""
 
 echo "Attempting to build GLFW..."
