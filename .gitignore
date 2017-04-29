@@ -32,3 +32,5 @@ builds/
 .directory
 .vs/
 *.sln
+*.spv
+*.log
