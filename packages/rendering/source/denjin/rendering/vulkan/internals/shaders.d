@@ -34,7 +34,7 @@ struct Shaders
         pNext:                  null,
         flags:                  0,
         stage:                  VK_SHADER_STAGE_ALL,    // Must be changed.
-        _module:                null,                   // Must be changed.
+        _module:                nullShader,             // Must be changed.
         pName:                  "main",
         pSpecializationInfo:    null
     };
