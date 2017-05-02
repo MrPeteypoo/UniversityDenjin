@@ -88,7 +88,7 @@ struct Swapchain
         m_info.flags                    = 0;
         m_info.surface                  = m_surface;
         m_info.imageArrayLayers         = 1;
-        m_info.imageUsage               = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        m_info.imageUsage               = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         m_info.imageSharingMode         = VK_SHARING_MODE_EXCLUSIVE;
         m_info.queueFamilyIndexCount    = 0;
         m_info.pQueueFamilyIndices      = null;

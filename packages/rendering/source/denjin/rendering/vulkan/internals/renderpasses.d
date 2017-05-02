@@ -18,13 +18,14 @@ import denjin.rendering.vulkan.objects      : createRenderPass;
 import denjin.rendering.vulkan.swapchain    : Swapchain;
 
 // External.
-import erupted.types : uint32_t, VkAllocationCallbacks, VkAttachmentDescription, VkAttachmentReference, VkFormat, 
-                       VkRenderPass, VkRenderPassCreateInfo, VkSubpassDependency, VkSubpassDescription,
+import erupted.types : uint32_t, VkAllocationCallbacks, VkAttachmentDescription, VkAttachmentLoadOp, 
+                       VkAttachmentReference, VkAttachmentStoreOp, VkFormat, VkRenderPass, VkRenderPassCreateInfo, 
+                       VkSubpassDependency, VkSubpassDescription,
                        VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_LOAD_OP_LOAD, 
                        VK_ATTACHMENT_STORE_OP_STORE, VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_FORMAT_D24_UNORM_S8_UINT,
                        VK_FORMAT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 
-                       VK_PIPELINE_BIND_POINT_GRAPHICS, VK_SAMPLE_COUNT_1_BIT;
+                       VK_IMAGE_LAYOUT_UNDEFINED, VK_PIPELINE_BIND_POINT_GRAPHICS, VK_SAMPLE_COUNT_1_BIT;
 
 /// Initially contains a description of how a forward rendering pass works in the renderer, future enhancements would
 /// enable support for deferred shading and deferred lighting.
@@ -62,9 +63,24 @@ struct RenderPasses
     }
 }
 
+/// Indicates how to handle the loading of data from framebuffer attachments.
+private enum LoadOp : VkAttachmentLoadOp 
+{
+    Load        = VK_ATTACHMENT_LOAD_OP_LOAD,
+    Clear       = VK_ATTACHMENT_LOAD_OP_CLEAR,
+    DontCare    = VK_ATTACHMENT_LOAD_OP_DONT_CARE
+}
+
+/// Indicates how to handle the saving of data from framebuffer attachments.
+private enum StoreOp : VkAttachmentStoreOp
+{
+    Store       = VK_ATTACHMENT_STORE_OP_STORE,
+    DontCare    = VK_ATTACHMENT_STORE_OP_DONT_CARE
+}
+
 /// Contains necessary attachment descriptions to build a forward rendering pass.
-struct ForwardRender (Flag!"loadColour" loadColour, Flag!"storeColour" storeColour,
-                      Flag!"loadDepth" loadDepth, Flag!"storeDepth" storeDepth,
+struct ForwardRender (LoadOp colourLoad, StoreOp colourStore, 
+                      LoadOp depthLoad, StoreOp depthStore, 
                       Flag!"presentAfterUse" presentAfterUse)
 {
     public enum VkAttachmentDescription colour = 
@@ -72,12 +88,11 @@ struct ForwardRender (Flag!"loadColour" loadColour, Flag!"storeColour" storeColo
         flags:          0,
         format:         VK_FORMAT_UNDEFINED,
         samples:        VK_SAMPLE_COUNT_1_BIT,
-        loadOp:         loadColour ? VK_ATTACHMENT_LOAD_OP_LOAD : 
-                        storeColour ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        storeOp:        storeColour ? VK_ATTACHMENT_STORE_OP_STORE : VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        loadOp:         colourLoad,
+        storeOp:        colourStore,
         stencilLoadOp:  VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         stencilStoreOp: VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        initialLayout:  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        initialLayout:  colourLoad == LoadOp.Load ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED,
         finalLayout:    presentAfterUse ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
     };
 
@@ -86,12 +101,11 @@ struct ForwardRender (Flag!"loadColour" loadColour, Flag!"storeColour" storeColo
         flags:          0,
         format:         VK_FORMAT_D24_UNORM_S8_UINT,
         samples:        VK_SAMPLE_COUNT_1_BIT,
-        loadOp:         loadDepth ? VK_ATTACHMENT_LOAD_OP_LOAD : 
-                        storeDepth ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        storeOp:        storeDepth ? VK_ATTACHMENT_STORE_OP_STORE : VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        loadOp:         depthLoad,
+        storeOp:        depthStore,
         stencilLoadOp:  VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         stencilStoreOp: VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        initialLayout:  VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        initialLayout:  depthLoad == LoadOp.Load ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED,
         finalLayout:    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
     };
 
@@ -117,13 +131,27 @@ struct ForwardRender (Flag!"loadColour" loadColour, Flag!"storeColour" storeColo
             pipelineBindPoint:          VK_PIPELINE_BIND_POINT_GRAPHICS,
             inputAttachmentCount:       0,
             pInputAttachments:          null,
-            colorAttachmentCount:       loadColour || storeColour ? 1 : 0,
-            pColorAttachments:          loadColour || storeColour ? &references[0] : null,
+            colorAttachmentCount:       0,
+            pColorAttachments:          null,
             pResolveAttachments:        null,
-            pDepthStencilAttachment:    loadDepth || storeDepth ? &references[1] : null,
+            pDepthStencilAttachment:    null,
             preserveAttachmentCount:    0,
             pPreserveAttachments:       null
         };
+
+        static if (colourLoad != LoadOp.DontCare || colourStore != StoreOp.DontCare)
+        {
+            immutable colourRef = VkAttachmentReference (0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            subpasses[0].colorAttachmentCount   = 1;
+            subpasses[0].pColorAttachments      = &colourRef;
+        }
+
+        static if (depthLoad != LoadOp.DontCare || depthStore != StoreOp.DontCare)
+        {
+            immutable depthRef = VkAttachmentReference (1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+            subpasses[0].pDepthStencilAttachment = &depthRef;
+        }
+
         VkSubpassDependency[0] dependencies;
         VkRenderPass handle = void;
         handle.createRenderPass (device, attachmentDescriptions[], subpasses[], dependencies[], callbacks).enforceSuccess;
@@ -133,8 +161,12 @@ struct ForwardRender (Flag!"loadColour" loadColour, Flag!"storeColour" storeColo
 
 /// This forward render pass will have the driver automatically transition the colour attachment so it can be displayed
 /// by the presentation engine when the rendering pass ends.
-alias DedicatedForwardRender = ForwardRender!(No.loadColour, Yes.storeColour, No.loadDepth, No.storeDepth, Yes.presentAfterUse);
+alias DedicatedForwardRender = ForwardRender!(LoadOp.Clear, StoreOp.Store,
+                                              LoadOp.Clear, StoreOp.DontCare,
+                                              Yes.presentAfterUse);
 
 /// This forward render pass can be used to perform shadow mapping as no data is loaded but the depth value will be
 /// stored.
-alias DepthPass = ForwardRender!(No.loadColour, No.storeColour, No.loadDepth, Yes.storeDepth, No.presentAfterUse);
+alias DepthPass = ForwardRender!(LoadOp.DontCare, StoreOp.DontCare,
+                                 LoadOp.Clear, StoreOp.Store,
+                                 No.presentAfterUse);
