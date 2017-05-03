@@ -7,13 +7,6 @@
 */
 module denjin.rendering.scene;
 
-// Phobos.
-import std.range    : ElementType, isInputRange;
-import std.traits   : hasMember, isImplicitlyConvertible;
-
-// Engine.
-import denjin.rendering.ids;
-
 /// Renderers require a scene to know what objects must be rendered in a frame. This will be frequently accessed and
 /// the cost of having a class interface with countless virtual functions would be very high. To allow the renderer to
 /// work at maximum capacity a static interface will be used. Any scene "type" given to the renderer must meet the 
@@ -39,6 +32,7 @@ template isScene (T)
 {
     import std.range    : ElementType, isInputRange, ReturnType;
     import std.traits   : hasMember, isImplicitlyConvertible, isArray;
+    import denjin.rendering.ids;
 
     // These members must exist, most can be either variables or functions.
     static assert (hasMember!(T, "upDirection"));
@@ -98,6 +92,8 @@ template isScene (T)
 ///
 pure nothrow @safe @nogc unittest
 {
+    import denjin.rendering.ids;
+
     struct Camera
     {
         float[3] position;
@@ -230,6 +226,7 @@ pure nothrow @safe @nogc unittest
 template isInstance (T)
 {
     import std.traits : hasMember, isImplicitlyConvertible;
+    import denjin.rendering.ids;
 
     // The following members must exist.
     static assert (hasMember!(T, "id"));
@@ -265,6 +262,8 @@ template isInstance (T)
 ///
 pure nothrow @safe @nogc unittest
 {
+    import denjin.rendering.ids;
+
     struct Instance
     {
         InstanceID id;
@@ -290,6 +289,7 @@ pure nothrow @safe @nogc unittest
 template isDirectionalLight (T)
 {
     import std.traits : hasMember, isImplicitlyConvertible;
+    import denjin.rendering.ids;
 
     // The following members must exist.
     static assert (hasMember!(T, "id"));
@@ -327,6 +327,8 @@ template isDirectionalLight (T)
 ///
 pure nothrow @safe @nogc unittest
 {
+    import denjin.rendering.ids;
+
     struct DirectionalLight
     {
         LightID id;
@@ -354,6 +356,7 @@ pure nothrow @safe @nogc unittest
 template isPointLight (T)
 {
     import std.traits : hasMember, isImplicitlyConvertible;
+    import denjin.rendering.ids;
 
     // The following members must exist.
     static assert (hasMember!(T, "id"));
@@ -401,6 +404,8 @@ template isPointLight (T)
 ///
 pure nothrow @safe @nogc unittest
 {
+    import denjin.rendering.ids;
+
     struct PointLight
     {
         enum LightID id = 0;
@@ -432,6 +437,7 @@ pure nothrow @safe @nogc unittest
 template isSpotlight (T)
 {
     import std.traits : hasMember, isImplicitlyConvertible;
+    import denjin.rendering.ids;
 
     // The following members must exist.
     static assert (hasMember!(T, "id"));
@@ -489,6 +495,8 @@ template isSpotlight (T)
 ///
 pure nothrow @safe @nogc unittest
 {
+    import denjin.rendering.ids;
+
     struct DirectionalLight
     {
         LightID id;
