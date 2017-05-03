@@ -37,13 +37,9 @@
 			"version": [ "optimized" ]
 		},
 
-		"optimized-unittest": {
+		"unittest-optimized": {
 			"buildOptions": ["debugMode", "optimize", "inline", "debugInfo", "unittests"],
 			"version": [ "optimized" ]
-		},
-
-		"release": {
-			"buildOptions": ["releaseMode", "optimize", "inline", "noBoundsCheck"]
 		}
 	}
 }

@@ -95,5 +95,6 @@ test_script:
  - ./build.bat build debug %Darch% %DC%
  - ./build.bat build optimized %Darch% %DC%
  - ./build.bat build release %Darch% %DC%
+ - ./build.bat build release-nobounds %Darch% %DC%
  - ./build.bat test unittest-cov %Darch% %DC%
- - ./build.bat test optimized-unittest %Darch% %DC%
+ - ./build.bat test unittest-optimized %Darch% %DC%

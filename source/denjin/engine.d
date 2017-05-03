@@ -4,8 +4,15 @@ module denjin.engine;
 import std.typecons : Flag, No, Yes;
 
 // Engine.
-import denjin.window    : IWindow, WindowGLFW;
-import denjin.rendering : IRenderer;
+version (unittest)
+{
+    import denjin;
+}
+else
+{
+    import denjin.window    : IWindow, WindowGLFW;
+    import denjin.rendering : IRenderer;
+}
 
 /// An incredibly basic "Engine" structure, this holds the different game systems and manages initialisation/shutdown.
 struct Engine

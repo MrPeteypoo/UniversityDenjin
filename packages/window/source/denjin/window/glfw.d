@@ -52,18 +52,9 @@ final class WindowGLFW : IWindow
         DerelictGLFW3.load();
         DerelictGLFW3_loadVulkan();
 
+        // We may be running in on a headless CI system so don't enforce a successful GLFW initialisation.
         glfwSetErrorCallback (&logGLFWError);
-
-        // We may be running in on a headless CI system so don't enforce a successful GLFW initialisation when testing.
-        version (unittest)
-        {
-            enum shouldEnforce = false;
-        }
-        else
-        {
-            enum shouldEnforce = true;
-        }
-        enforce (glfwInit() == GLFW_TRUE || !shouldEnforce, "Failed to initialise GLFW");
+        glfwInit();
     }
 
     /// Ensures that GLFW is terminated.

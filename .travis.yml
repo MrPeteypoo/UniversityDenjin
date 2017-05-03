@@ -96,8 +96,9 @@ script:
   - ./build.sh build debug $ARCH
   - ./build.sh build optimized $ARCH
   - ./build.sh build release $ARCH
+  - ./build.sh build release-nobounds $ARCH
   - ./build.sh test unittest-cov $ARCH
-  - ./build.sh test optimized-unittest $ARCH
+  - ./build.sh test unittest-optimized $ARCH
 
 after_script:
   - dub run doveralls

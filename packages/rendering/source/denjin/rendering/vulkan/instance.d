@@ -4,7 +4,7 @@
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
     Copyright: MIT
 */
-module denjin.rendering.vulkan.loader;
+module denjin.rendering.vulkan.instance;
 
 // Phobos.
 import core.stdc.string         : strcmp;

@@ -7,7 +7,10 @@
 module denjin.rendering.vulkan;
 
 public import denjin.rendering.vulkan.device;
-public import denjin.rendering.vulkan.loader;
+public import denjin.rendering.vulkan.instance;
 public import denjin.rendering.vulkan.logging;
 public import denjin.rendering.vulkan.misc;
+public import denjin.rendering.vulkan.nulls;
+public import denjin.rendering.vulkan.objects;
 public import denjin.rendering.vulkan.renderer;
+public import denjin.rendering.vulkan.swapchain;
