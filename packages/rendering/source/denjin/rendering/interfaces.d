@@ -1,10 +1,17 @@
 /**
-    Contains implementation-agnostic interfaces for rendering systems.
+    Contains implementation-agnostic dynamic interfaces for rendering systems.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
     Copyright: MIT
 */
 module denjin.rendering.interfaces;
+
+/// An interface to assets management systems which contain models and textures that the rendering needs to load in
+/// order to represent a scene.
+interface IAssets
+{
+
+}
 
 /// An interface to rendering systems.
 interface IRenderer
