@@ -92,7 +92,7 @@ install:
   - dub build doveralls
 
 script:
-  - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.:./builds/linux
+  - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.:./builds
   - ./build.sh test debug $ARCH
   - ./build.sh test unittest-cov $ARCH
   - ./build.sh test optimized $ARCH
