@@ -19,7 +19,7 @@ import denjin.rendering.vulkan.objects  : allocateCommandBuffers, createCommandP
 
 // External.
 import erupted.types : uint32_t, VkCommandBuffer, VkCommandPool, VkCommandPoolCreateFlags, 
-                       VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, VK_SUCCESS;
+                       VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT, VK_SUCCESS;
 
 /// Maintains the command pools and buffers available to the primary renderer thread.
 struct Commands
@@ -51,7 +51,7 @@ struct Commands
     body
     {
         // Create the pools.
-        enum flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        enum flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
         if (renderPool.createCommandPool (device, device.renderQueueFamily, flags) != VK_SUCCESS)
         {
             assert (false, "Uh oh, the renderer isn't flexible enough for this yet!");
