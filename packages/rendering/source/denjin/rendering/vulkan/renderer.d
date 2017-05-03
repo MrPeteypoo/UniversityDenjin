@@ -26,7 +26,7 @@ import erupted.types;
 
 /// A basic 3D renderer implemented using Vulkan. A Vulkan instance must be created and loaded before using the
 /// renderer. The current implementation also requires a logical device and swapchain be generated externally.
-final class RendererVulkan : IRenderer
+final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
 {
     private 
     {
@@ -104,7 +104,7 @@ final class RendererVulkan : IRenderer
         }
     }
 
-    public override void load()
+    public override void load (in ref Assets assets, in ref Scene scene)
     in
     {
         assert (m_device != nullDevice);
@@ -147,7 +147,7 @@ final class RendererVulkan : IRenderer
     }
 
     /// Renders and displays a frame to the display.
-    public override void render() nothrow
+    public override void render (in ref Scene scene) nothrow
     in
     {
         assert (m_device != nullDevice);

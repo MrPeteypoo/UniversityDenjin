@@ -17,8 +17,12 @@ else
 /// An incredibly basic "Engine" structure, this holds the different game systems and manages initialisation/shutdown.
 struct Engine
 {
-    IWindow     window;     /// A reference to a window management system, hard coded to GLFW right now.
-    IRenderer   renderer;   /// A reference to a rendering system, this is created by the window system.
+    struct TempA { }
+    alias Window    = IWindow!(TempA, TempA);
+    alias Renderer  = Window.Renderer;
+
+    Window      window;     /// A reference to a window management system, hard coded to GLFW right now.
+    Renderer    renderer;   /// A reference to a rendering system, this is created by the window system.
 
     /// Ensure we graciously shut down.
     public void clear() nothrow
@@ -34,11 +38,12 @@ struct Engine
     void initialise()
     {
         // Create/retrieve the systems.
-        window      = new WindowGLFW (1280, 720, No.isFullscreen, "Denjin");
+        window      = new WindowGLFW!(TempA, TempA)(1280, 720, No.isFullscreen, "Denjin");
         renderer    = window.renderer;
 
         // Extra initialisationa as required.
-        renderer.load();
+        auto temp = TempA();
+        renderer.load (temp, temp);
     }
 
     /// Starts the game loop.
@@ -51,7 +56,8 @@ struct Engine
 
             if (window.isVisible)
             {
-                renderer.render();
+                auto temp = TempA();
+                renderer.render (temp);
             }
         }
     }

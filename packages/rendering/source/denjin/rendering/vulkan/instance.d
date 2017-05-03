@@ -102,9 +102,12 @@ struct Instance
     /// renderer. The given surface will also be used to initialise a swapchain which will also be given to the 
     /// constructed renderer.
     ///
-    /// Params: surface = The surface to display images to. The instance will take ownership of this.
+    /// Params: 
+    ///     Assets  = The asset management system type which the renderer will use.
+    ///     Scene   = The scene management system type which the renderer will use.
+    ///     surface = The surface to display images to. The instance will take ownership of this.
     /// Returns: A renderer which will need to be initialised before being used for rendering.
-    public RendererVulkan createRenderer (VkSurfaceKHR surface = nullSurface)
+    public auto createRenderer(Assets, Scene)(VkSurfaceKHR surface = nullSurface)
     in
     {
         assert (m_instance != nullInstance);
@@ -131,7 +134,7 @@ struct Instance
         auto swapchain  = Swapchain (gpu, surface);
         auto limits     = m_info.physicalDeviceProperties[gpuIndex].limits;
         auto memProps   = m_info.physicalDeviceMemoryProperties[gpuIndex];
-        return new RendererVulkan (move (device), move (swapchain), move (limits), move (memProps));
+        return new RendererVulkan!(Assets, Scene)(move (device), move (swapchain), move (limits), move (memProps));
     }
 
     /// Destroys stored instance and surfaces, etc.

@@ -28,7 +28,7 @@ import erupted;
 mixin DerelictGLFW3_VulkanBind;
 
 /// A window management system which encapsulates GLFW.
-final class WindowGLFW : IWindow
+final class WindowGLFW (Assets, Scene) : IWindow!(Assets, Scene)
 {
     private
     {
@@ -38,7 +38,7 @@ final class WindowGLFW : IWindow
         int         m_height;       /// How many pixels tall the window currently is.
         string      m_title;        /// The title of the window, as it is displayed to the user.
         GLFWwindow* m_window;       /// A pointer to a GLFW window handle.
-        IRenderer   m_renderer;     /// The renderer managed by the window system. GLFW supports OpenGL and Vulkan but only Vulkan is implemented right now.
+        Renderer    m_renderer;     /// The renderer managed by the window system. GLFW supports OpenGL and Vulkan but only Vulkan is implemented right now.
 
         /// The application-wide Vulkan instance from which devices and renderers can be created from. Realistically this
         /// should not be managed here because it means we can't have two GLFW windows in use at the same time. Not a
@@ -102,7 +102,7 @@ final class WindowGLFW : IWindow
         glfwCreateWindowSurface (m_vulkan, m_window, null, &surface).enforceSuccess;
 
         // Finally we can initialise a Vulkan renderer!
-        m_renderer = m_vulkan.createRenderer (surface);
+        m_renderer = m_vulkan.createRenderer!(Assets, Scene)(surface);
 
         // And finally store the attributes of the window.
         glfwGetWindowSize (m_window, &m_width, &m_height);
@@ -153,7 +153,7 @@ final class WindowGLFW : IWindow
         }
     }
 
-    public override @property inout(IRenderer) renderer() inout pure nothrow @safe @nogc { return m_renderer; }
+    public override @property inout(Renderer) renderer() inout pure nothrow @safe @nogc { return m_renderer; }
     public override @property bool shouldClose() const nothrow pure @safe @nogc { return m_shouldClose; }
     public override @property bool isVisible() const nothrow pure @safe @nogc { return m_isVisible; }
     public override @property uint width() const nothrow pure @safe @nogc { return cast(uint) m_width; }

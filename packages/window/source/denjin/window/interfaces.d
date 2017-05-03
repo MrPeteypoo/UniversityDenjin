@@ -10,8 +10,11 @@ module denjin.window.interfaces;
 import denjin.rendering.interfaces : IRenderer;
 
 /// An interface to be implemented by window management systems.
-interface IWindow
+interface IWindow (Assets, Scene)
 {
+    /// The asset and scene management systems are used to specify the renderer interface.
+    alias Renderer = IRenderer!(Assets, Scene);
+
     /// Requests that the window get rid of every resource it owns and close if necessary.
     void clear() nothrow;
 
@@ -20,7 +23,7 @@ interface IWindow
     void update (float deltaTime);
 
     /// Gets a reference to the currently owned renderer.
-    @property inout(IRenderer) renderer() inout pure nothrow @safe @nogc;
+    @property inout(Renderer) renderer() inout pure nothrow @safe @nogc;
 
     /// Checks if the window has been told to close by the user.
     @property bool shouldClose() const nothrow;
