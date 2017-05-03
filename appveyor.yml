@@ -92,8 +92,8 @@ test_script:
  - echo %DC%
  - echo %PATH%
  - '%DC% --version'
- - ./build.bat build debug %Darch% %DC%
- - ./build.bat build unittest-cov %Darch% %DC%
- - ./build.bat build optimized %Darch% %DC%
- - ./build.bat build optimized-unittest %Darch% %DC%
- - ./build.bat build release %Darch% %DC%
+ - ./build.bat test debug %Darch% %DC%
+ - ./build.bat test unittest-cov %Darch% %DC%
+ - ./build.bat test optimized %Darch% %DC%
+ - ./build.bat test optimized-unittest %Darch% %DC%
+ - ./build.bat test release %Darch% %DC%

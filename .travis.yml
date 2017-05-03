@@ -93,11 +93,11 @@ install:
 
 script:
   - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.:./builds/linux
-  - ./build.sh build debug $ARCH
-  - ./build.sh build unittest-cov $ARCH
-  - ./build.sh build optimized $ARCH
-  - ./build.sh build optimized-unittest $ARCH
-  - ./build.sh build release $ARCH
+  - ./build.sh test debug $ARCH
+  - ./build.sh test unittest-cov $ARCH
+  - ./build.sh test optimized $ARCH
+  - ./build.sh test optimized-unittest $ARCH
+  - ./build.sh test release $ARCH
 
 after_script:
   - dub run doveralls
