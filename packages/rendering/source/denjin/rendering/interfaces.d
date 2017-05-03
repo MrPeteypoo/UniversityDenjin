@@ -86,9 +86,6 @@ pure nothrow @safe @nogc unittest
 {
     import denjin.rendering.scene : isScene;
 
-    alias Scene = IScene!(float[3], Camera, Instance, DirectionalLight, PointLight, Spotlight);
-    static assert (isScene!Scene);
-
     struct Camera
     {
         float[3] position;
@@ -132,4 +129,7 @@ pure nothrow @safe @nogc unittest
         float[3] position;
         int[3] attenuation;
     }
+
+    alias Scene = IScene!(float[3], Camera, Instance, DirectionalLight, PointLight, Spotlight);
+    static assert (isScene!Scene);
 }
