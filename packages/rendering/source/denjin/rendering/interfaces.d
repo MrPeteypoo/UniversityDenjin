@@ -84,6 +84,7 @@ interface IScene (Vec3F, Camera, Instance, DirectionalLight, PointLight, Spotlig
 ///
 pure nothrow @safe @nogc unittest
 {
+    import denjin.rendering.ids;
     import denjin.rendering.scene : isScene;
 
     struct Camera
