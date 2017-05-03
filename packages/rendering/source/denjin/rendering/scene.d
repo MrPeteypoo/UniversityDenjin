@@ -54,7 +54,7 @@ template isScene (T)
     static assert (hasMember!(T, "spotlights"));
 
     // The return types of each member must meet the requirements specified below.
-    void testType (T scene)
+    void testType (in T scene)
     {
         enum isInputRangeOrArray(U) = isInputRange!U || isArray!U;
 
@@ -105,22 +105,22 @@ pure nothrow @safe @nogc unittest
     {
         float[3] position;
         float[3] direction;
-        float fieldOfView() @property { return 75f; }
-        float nearPlaneDistance() @property { return .3f; }
-        float farPlaneDistance() { return 300f; }
+        float fieldOfView() const @property { return 75f; }
+        float nearPlaneDistance() const @property { return .3f; }
+        float farPlaneDistance() const { return 300f; }
     }
     struct Instance
     {
         InstanceID id;
-        MeshID meshID() { return MeshID.init; }
-        MaterialID materialID() @property { return MaterialID.init; }
+        MeshID meshID() const { return MeshID.init; }
+        MaterialID materialID() const @property { return MaterialID.init; }
         bool isStatic;
         float[4][3] transformationMatrix;
     }
     struct DirectionalLight
     {
         LightID id;
-        bool isStatic() { return true; }
+        bool isStatic() const { return true; }
         immutable(bool) isShadowCaster() const { return false; }
         float[3] direction;
         immutable float[3] intensity;
@@ -133,7 +133,7 @@ pure nothrow @safe @nogc unittest
         float radius;
         float[3] position;
         immutable(float[3]) intensity;
-        immutable(float[3]) attenuation() { return [0,0,0]; }
+        immutable(float[3]) attenuation() const { return [0,0,0]; }
     }
     struct Spotlight
     {
@@ -148,12 +148,12 @@ pure nothrow @safe @nogc unittest
     {   
         float[3] upDirection;
         float[3] ambientLightIntensity;
-        Camera camera() { return Camera.init; }
+        Camera camera() const { return Camera.init; }
         Instance[5] instances;
-        Instance[] instancesByMesh(MeshID) { return instances[]; }
-        DirectionalLight[] directionalLights() @property { return []; }
+        const(Instance[]) instancesByMesh(MeshID) const { return instances[]; }
+        DirectionalLight[] directionalLights() const @property { return []; }
         PointLight[10] pointLights;
-        Spotlight[] spotlights() { return [Spotlight.init]; }
+        Spotlight[] spotlights() const { return [Spotlight.init]; }
     }
     static assert (isScene!SceneTest);
 }
@@ -181,7 +181,7 @@ template isCamera (T)
     static assert (hasMember!(T, "farPlaneDistance"));
 
     // And the return values must meet the following requirements.
-    void testType (T camera)
+    void testType (in T camera)
     {
         auto position = camera.position;
         alias PosType = typeof (position);
@@ -213,9 +213,9 @@ pure nothrow @safe @nogc unittest
     {
         float[4] position;
         float[3] direction;
-        float fieldOfView() @property { return 75f; }
-        float nearPlaneDistance() @property { return .3f; }
-        float farPlaneDistance() { return 300f; }
+        float fieldOfView() const @property { return 75f; }
+        float nearPlaneDistance() const @property { return .3f; }
+        float farPlaneDistance() const { return 300f; }
     }
     static assert (isCamera!Camera);
 }
@@ -242,7 +242,7 @@ template isInstance (T)
     static assert (hasMember!(T, "transformationMatrix"));
 
     // The members must meet the following requirements.
-    void testType (T instance)
+    void testType (in T instance)
     {
         auto id         = instance.id;
         alias ID1Type   = typeof (id);
@@ -271,8 +271,8 @@ pure nothrow @safe @nogc unittest
     struct Instance
     {
         InstanceID id;
-        MeshID meshID() { return MeshID.init; }
-        MaterialID materialID() @property { return MaterialID.init; }
+        MeshID meshID() const { return MeshID.init; }
+        MaterialID materialID() const @property { return MaterialID.init; }
         bool isStatic;
         float[4][3] transformationMatrix;
     }
@@ -302,7 +302,7 @@ template isDirectionalLight (T)
     static assert (hasMember!(T, "intensity"));
 
     // The members must meet the following requirements.
-    void testType (T light)
+    void testType (in T light)
     {
         auto id         = light.id;
         alias IDType    = typeof (id);
@@ -333,7 +333,7 @@ pure nothrow @safe @nogc unittest
     struct DirectionalLight
     {
         LightID id;
-        bool isStatic() { return true; }
+        bool isStatic() const { return true; }
         immutable(bool) isShadowCaster() const { return false; }
         float[3] direction;
         immutable float[3] intensity;
@@ -368,7 +368,7 @@ template isPointLight (T)
     static assert (hasMember!(T, "attenuation"));
 
     // The members must meet the following requirements.
-    void testType (T light)
+    void testType (in T light)
     {
         auto id         = light.id;
         alias IDType    = typeof (id);
@@ -412,7 +412,7 @@ pure nothrow @safe @nogc unittest
         float radius;
         float[3] position;
         immutable(float[3]) intensity;
-        immutable(float[3]) attenuation() { return [0,0,0]; }
+        immutable(float[3]) attenuation() const { return [0,0,0]; }
     }
     static assert (isPointLight!PointLight);
 }
@@ -448,7 +448,7 @@ template isSpotlight (T)
     static assert (hasMember!(T, "attenuation"));
 
     // The members must meet the following requirements.
-    void testType (T light)
+    void testType (in T light)
     {
         auto id         = light.id;
         alias IDType    = typeof (id);
@@ -495,7 +495,7 @@ pure nothrow @safe @nogc unittest
     struct DirectionalLight
     {
         LightID id;
-        bool isStatic() { return true; }
+        bool isStatic() const { return true; }
         immutable(bool) isShadowCaster() const { return false; }
         float[3] direction;
         immutable float[3] intensity;
