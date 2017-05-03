@@ -11,11 +11,8 @@ module denjin.rendering.scene;
 import std.range    : ElementType, isInputRange;
 import std.traits   : hasMember, isImplicitlyConvertible;
 
-// Aliases.
-alias InstanceID = size_t;
-alias LightID = size_t;
-alias MeshID = size_t;
-alias MaterialID = size_t;
+// Engine.
+import denjin.rendering.ids;
 
 /// Renderers require a scene to know what objects must be rendered in a frame. This will be frequently accessed and
 /// the cost of having a class interface with countless virtual functions would be very high. To allow the renderer to
