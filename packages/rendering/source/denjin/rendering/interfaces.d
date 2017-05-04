@@ -8,12 +8,14 @@ module denjin.rendering.interfaces;
 
 // Engine.
 import denjin.rendering.ids     : MeshID;
-import denjin.rendering.traits  : isAssets, isCamera, isDirectionalLight, isMesh, isInstance, isPointLight, isScene,
-                                  isSpotlight, isVector3F;
+import denjin.rendering.traits  : isAssets, isCamera, isDirectionalLight, isInstance, isMaterial, isMesh, isPointLight, 
+                                  isScene, isSpotlight, isVector3F;
 
 /// An interface to assets management systems which contain models and textures that the rendering needs to load in
 /// order to represent a scene.
-interface IAssets ()
+interface IAssets (Material, Mesh)
+    if (isMaterial!Material &&
+        isMesh!Mesh)
 {
 
 }

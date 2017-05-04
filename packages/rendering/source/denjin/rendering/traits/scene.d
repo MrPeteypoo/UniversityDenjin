@@ -30,10 +30,10 @@ module denjin.rendering.traits.scene;
 ///     isCamera, std.range.isInputRange, isInstance, isVector3F, MeshID
 template isScene (T)
 {
-    import std.range    : ElementType, isInputRange, ReturnType;
-    import std.traits   : hasMember, isImplicitlyConvertible, isArray;
-    import denjin.rendering.ids;
-    import denjin.rendering.traits : isVector3F;
+    import std.range                : ElementType, isInputRange, ReturnType;
+    import std.traits               : hasMember, isArray, isImplicitlyConvertible;
+    import denjin.rendering.ids     : MeshID;
+    import denjin.rendering.traits  : isVector3F;
 
     // These members must exist, most can be either variables or functions.
     static assert (hasMember!(T, "upDirection"));
@@ -165,8 +165,8 @@ pure nothrow @safe @nogc unittest
 ///     isVector3F
 template isCamera (T)
 {
-    import std.traits : hasMember, isImplicitlyConvertible;
-    import denjin.rendering.traits : isVector3F;
+    import std.traits               : hasMember, isImplicitlyConvertible;
+    import denjin.rendering.traits  : isVector3F;
 
     // The type must contain these members, either as functions or variables.
     static assert (hasMember!(T, "position"));
@@ -227,8 +227,8 @@ pure nothrow @safe @nogc unittest
 ///     InstanceID, MeshID, MaterialID
 template isInstance (T)
 {
-    import std.traits : hasMember, isImplicitlyConvertible;
-    import denjin.rendering.ids;
+    import std.traits           : hasMember, isImplicitlyConvertible;
+    import denjin.rendering.ids : InstanceID, MaterialID, MeshID;
 
     // The following members must exist.
     static assert (hasMember!(T, "id"));
@@ -290,9 +290,9 @@ pure nothrow @safe @nogc unittest
 ///     isVector3F, LightID
 template isDirectionalLight (T)
 {
-    import std.traits : hasMember, isImplicitlyConvertible;
-    import denjin.rendering.ids;
-    import denjin.rendering.traits : isVector3F;
+    import std.traits               : hasMember, isImplicitlyConvertible;
+    import denjin.rendering.ids     : LightID;
+    import denjin.rendering.traits  : isVector3F;
 
     // The following members must exist.
     static assert (hasMember!(T, "id"));
@@ -358,9 +358,9 @@ pure nothrow @safe @nogc unittest
 ///     isVector3F, LightID
 template isPointLight (T)
 {
-    import std.traits : hasMember, isImplicitlyConvertible;
-    import denjin.rendering.ids;
-    import denjin.rendering.traits : isVector3F;
+    import std.traits               : hasMember, isImplicitlyConvertible;
+    import denjin.rendering.ids     : LightID;
+    import denjin.rendering.traits  : isVector3F;
 
     // The following members must exist.
     static assert (hasMember!(T, "id"));
@@ -440,9 +440,9 @@ pure nothrow @safe @nogc unittest
 ///     isVector3F, LightID
 template isSpotlight (T)
 {
-    import std.traits : hasMember, isImplicitlyConvertible;
-    import denjin.rendering.ids;
-    import denjin.rendering.traits : isVector3F;
+    import std.traits               : hasMember, isImplicitlyConvertible;
+    import denjin.rendering.ids     : LightID;
+    import denjin.rendering.traits  : isVector3F;
 
     // The following members must exist.
     static assert (hasMember!(T, "id"));
