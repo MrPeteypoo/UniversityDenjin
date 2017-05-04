@@ -142,11 +142,6 @@ template isMaterial (T)
 
     enum isMaterial = true;
 }
-///
-pure nothrow @safe @nogc unittest
-{
-    static assert (isMaterial!TestMaterial);
-}
 
 /// Checks if the given type is suitable for representing a Mesh object which can be drawn by a renderer.
 ///
@@ -212,25 +207,10 @@ template isMesh (T)
 
     enum isMesh = true;
 }
-///
-pure nothrow @safe @nogc unittest
-{
-    static assert (isMesh!TestMesh);
-}
 
 version (unittest)
 {
     import denjin.rendering.ids : MaterialID, MeshID;
-
-    private struct TestMesh
-    {
-        immutable MeshID id = 0;
-        float[3][] positions;
-        enum float[3][] normals = [[0f,0f,0f]];
-        float[3][] tangents() const @property { return [[0f,0f,0f],[0f,0f,0f]]; }
-        float[2][2] textureCoordinates;
-        short[] elements;
-    }
     
     private struct TestMaterial
     {
@@ -242,5 +222,24 @@ version (unittest)
         string physicsMap;
         string albedoMap() const { return ""; }
         enum normalMap = "";
+    }
+    ///
+    pure nothrow @safe @nogc unittest
+    {
+        static assert (isMaterial!TestMaterial);
+    }
+    private struct TestMesh
+    {
+        immutable MeshID id = 0;
+        float[3][] positions;
+        enum float[3][] normals = [[0f,0f,0f]];
+        float[3][] tangents() const @property { return [[0f,0f,0f],[0f,0f,0f]]; }
+        float[2][2] textureCoordinates;
+        short[] elements;
+    }
+    ///
+    pure nothrow @safe @nogc unittest
+    {
+        static assert (isMesh!TestMesh);
     }
 }

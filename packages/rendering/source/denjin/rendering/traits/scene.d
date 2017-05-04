@@ -158,11 +158,6 @@ template isCamera (T)
 
     enum isCamera = true;
 }
-///
-pure nothrow @safe @nogc unittest
-{
-    static assert (isCamera!TestCamera);
-}
 
 /// Checks to see if the given type meets the requirements for representing a renderable instance.
 ///
@@ -209,11 +204,6 @@ template isInstance (T)
     }
 
     enum isInstance = true;
-}
-///
-pure nothrow @safe @nogc unittest
-{
-    static assert (isInstance!TestInstance);
 }
 
 /// Checks if a type meets the requirements of representing a directional light in a scene.
@@ -265,11 +255,6 @@ template isDirectionalLight (T)
     }
 
     enum isDirectionalLight = true;
-}
-///
-pure nothrow @safe @nogc unittest
-{
-    static assert (isDirectionalLight!TestDirectionalLight);
 }
 
 /// Checks if a type meets the requirements of representing a point light in a scene.
@@ -333,11 +318,6 @@ template isPointLight (T)
     }
 
     enum isPointLight = true;
-}
-///
-pure nothrow @safe @nogc unittest
-{
-    static assert (isPointLight!TestPointLight);
 }
 
 /// Checks if a type meets the requirements of representing a spotlight in a scene.
@@ -414,11 +394,6 @@ template isSpotlight (T)
 
     enum isSpotlight = true;
 }
-///
-pure nothrow @safe @nogc unittest
-{
-    static assert (isSpotlight!TestSpotlight);
-}
 
 version (unittest)
 {
@@ -431,6 +406,11 @@ version (unittest)
         float nearPlaneDistance() const @property { return .3f; }
         float farPlaneDistance() const { return 300f; }
     }
+    ///
+    pure nothrow @safe @nogc unittest
+    {
+        static assert (isCamera!TestCamera);
+    }
     private struct TestInstance
     {
         InstanceID id;
@@ -439,6 +419,11 @@ version (unittest)
         bool isStatic;
         float[4][3] transformationMatrix;
     }
+    ///
+    pure nothrow @safe @nogc unittest
+    {
+        static assert (isInstance!TestInstance);
+    }
     private struct TestDirectionalLight
     {
         LightID id;
@@ -446,6 +431,11 @@ version (unittest)
         immutable(bool) isShadowCaster() const { return false; }
         float[3] direction;
         immutable float[3] intensity;
+    }
+    ///
+    pure nothrow @safe @nogc unittest
+    {
+        static assert (isDirectionalLight!TestDirectionalLight);
     }
     private struct TestPointLight
     {
@@ -457,6 +447,11 @@ version (unittest)
         immutable(float[3]) intensity;
         immutable(float[3]) attenuation() const { return [0,0,0]; }
     }
+    ///
+    pure nothrow @safe @nogc unittest
+    {
+        static assert (isPointLight!TestPointLight);
+    }
     private struct TestSpotlight
     {
         TestDirectionalLight dLight;
@@ -465,5 +460,10 @@ version (unittest)
         float coneAngle;
         float[3] position;
         int[3] attenuation;
+    }
+    ///
+    pure nothrow @safe @nogc unittest
+    {
+        static assert (isSpotlight!TestSpotlight);
     }
 }
