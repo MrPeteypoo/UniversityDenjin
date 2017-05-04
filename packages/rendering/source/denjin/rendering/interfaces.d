@@ -7,7 +7,7 @@
 module denjin.rendering.interfaces;
 
 // Engine.
-import denjin.rendering.ids     : MeshID;
+import denjin.rendering.ids     : MaterialID, MeshID;
 import denjin.rendering.traits  : isAssets, isCamera, isDirectionalLight, isInstance, isMaterial, isMesh, isPointLight, 
                                   isScene, isSpotlight, isVector3F;
 
@@ -17,7 +17,25 @@ interface IAssets (Material, Mesh)
     if (isMaterial!Material &&
         isMesh!Mesh)
 {
+    /// Retrieves data for every material that needs to be loaded.
+    inout(Material[]) materials() inout @property;
 
+    /// Retrieves data for every mesh that needs to be loaded.
+    inout(Mesh[]) meshes() inout @property;
+
+    /// Retrieve the data for a unique material which corresponds to the given ID.
+    ref inout(Material) material (in MaterialID id) inout;
+
+    /// Retrieve the data for a unique mesh which corresponds to the given ID.
+    ref inout(Mesh) mesh (in MeshID id) inout;
+}
+///
+pure nothrow @safe @nogc unittest
+{
+    import denjin.rendering.traits.assets : TestMaterial, TestMesh;
+
+    alias Assets = IAssets!(TestMaterial, TestMesh);
+    static assert (isAssets!Assets);
 }
 
 /// An interface to rendering systems. Construction should be performed by derived classes in their constructor.
@@ -90,52 +108,8 @@ interface IScene (Vec3F, Camera, Instance, DirectionalLight, PointLight, Spotlig
 ///
 pure nothrow @safe @nogc unittest
 {
-    import denjin.rendering.ids;
+    import denjin.rendering.traits.scene : TestCamera, TestDirectionalLight, TestInstance, TestPointLight, TestSpotlight;
 
-    struct Camera
-    {
-        float[3] position;
-        float[3] direction;
-        float fieldOfView() const @property { return 75f; }
-        float nearPlaneDistance() const @property { return .3f; }
-        float farPlaneDistance() const { return 300f; }
-    }
-    struct Instance
-    {
-        InstanceID id;
-        MeshID meshID() const { return MeshID.init; }
-        MaterialID materialID() const @property { return MaterialID.init; }
-        bool isStatic;
-        float[4][3] transformationMatrix;
-    }
-    struct DirectionalLight
-    {
-        LightID id;
-        bool isStatic() const { return true; }
-        immutable(bool) isShadowCaster() const { return false; }
-        float[3] direction;
-        immutable float[3] intensity;
-    }
-    struct PointLight
-    {
-        enum LightID id = 0;
-        bool isStatic;
-        bool isShadowCaster;
-        float radius;
-        float[3] position;
-        immutable(float[3]) intensity;
-        immutable(float[3]) attenuation() const { return [0,0,0]; }
-    }
-    struct Spotlight
-    {
-        DirectionalLight dLight;
-        alias dLight this;
-        float range;
-        float coneAngle;
-        float[3] position;
-        int[3] attenuation;
-    }
-
-    alias Scene = IScene!(float[3], Camera, Instance, DirectionalLight, PointLight, Spotlight);
+    alias Scene = IScene!(float[3], TestCamera, TestInstance, TestDirectionalLight, TestPointLight, TestSpotlight);
     static assert (isScene!Scene);
 }

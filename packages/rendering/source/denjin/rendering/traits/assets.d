@@ -55,22 +55,6 @@ template isAssets (T)
 
     enum isAssets = true;
 }
-///
-pure nothrow @safe @nogc unittest
-{
-    import denjin.rendering.ids : MaterialID, MeshID;
-
-    interface IAssets
-    {
-        inout(TestMaterial[]) materials() inout @property;
-        inout(TestMesh[]) meshes() inout @property;
-
-        ref inout(TestMesh) mesh (in MeshID id) inout;
-        inout(TestMaterial) material (in MaterialID id) inout;
-    }
-
-    static assert (isAssets!IAssets);
-}
 
 /// This will check if the given type is suitable for representing a surface material.
 ///
@@ -241,5 +225,18 @@ version (unittest)
     pure nothrow @safe @nogc unittest
     {
         static assert (isMesh!TestMesh);
+    }
+    private interface TestAssets
+    {
+        inout(TestMaterial[]) materials() inout @property;
+        inout(TestMesh[]) meshes() inout @property;
+
+        ref inout(TestMesh) mesh (in MeshID id) inout;
+        inout(TestMaterial) material (in MaterialID id) inout;
+    }
+    ///
+    pure nothrow @safe @nogc unittest
+    {
+        static assert (isAssets!TestAssets);
     }
 }

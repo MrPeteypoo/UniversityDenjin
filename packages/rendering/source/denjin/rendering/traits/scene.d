@@ -27,7 +27,7 @@ module denjin.rendering.traits.scene;
 /// spotlights = Returns an input range of objects containing spotlight data.
 ///
 /// See_Also:
-///     isCamera, isInputRange, isInstance, isVector3F, MeshID
+///     isCamera, isInputRange, isInstance, isVector3F, MeshID, TestScene
 template isScene (T)
 {
     import std.range                : ElementType, isInputRange, ReturnType;
@@ -89,24 +89,6 @@ template isScene (T)
     }
 
     enum isScene = true;
-}
-///
-pure nothrow @safe @nogc unittest
-{
-    import denjin.rendering.ids : MeshID;
-
-    class SceneTest
-    {   
-        float[3] upDirection;
-        float[3] ambientLightIntensity;
-        TestCamera camera() const { return TestCamera.init; }
-        TestInstance[5] instances;
-        const(TestInstance[]) instancesByMesh(MeshID) const { return instances[]; }
-        TestDirectionalLight[] directionalLights() const @property { return []; }
-        TestPointLight[10] pointLights;
-        TestSpotlight[] spotlights() const { return [TestSpotlight.init]; }
-    }
-    static assert (isScene!SceneTest);
 }
 
 /// This will check if the given type is suitable for representing a camera for rendering systems.
@@ -465,5 +447,21 @@ version (unittest)
     pure nothrow @safe @nogc unittest
     {
         static assert (isSpotlight!TestSpotlight);
+    }
+    private class TestScene
+    {   
+        float[3] upDirection;
+        float[3] ambientLightIntensity;
+        TestCamera camera() const { return TestCamera.init; }
+        TestInstance[5] instances;
+        const(TestInstance[]) instancesByMesh(MeshID) const { return instances[]; }
+        TestDirectionalLight[] directionalLights() const @property { return []; }
+        TestPointLight[10] pointLights;
+        TestSpotlight[] spotlights() const { return [TestSpotlight.init]; }
+    }
+    ///
+    pure nothrow @safe @nogc unittest
+    {
+        static assert (isScene!TestScene);
     }
 }
