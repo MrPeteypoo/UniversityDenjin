@@ -26,7 +26,7 @@ template isVector (T, ElementT, size_t Dimensions)
     static assert (isImplicitlyConvertible!(ElementType!T, ElementT));
     static assert (T.length >= Dimensions);
 
-    enum isVector3F = true;
+    enum isVector = true;
 }
 ///
 pure nothrow @safe @nogc unittest

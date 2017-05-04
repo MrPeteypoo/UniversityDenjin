@@ -13,12 +13,12 @@ import denjin.rendering.traits  : isAssets, isCamera, isDirectionalLight, isMesh
 
 /// An interface to assets management systems which contain models and textures that the rendering needs to load in
 /// order to represent a scene.
-interface IAssets
+interface IAssets ()
 {
 
 }
 
-/// An interface to rendering systems.
+/// An interface to rendering systems. Construction should be performed by derived classes in their constructor.
 /// See_Also:
 ///     isAssets, isScene
 interface IRenderer (Assets, Scene)
@@ -54,8 +54,12 @@ interface IRenderer (Assets, Scene)
 /// See_Also:
 ///     isScene, isVector3F, isCamera, isInstance, isDirectionalLight, isPointLight, isSpotlight
 interface IScene (Vec3F, Camera, Instance, DirectionalLight, PointLight, Spotlight)
-    if (isVector3F!Vec3F && isCamera!Camera && isInstance!Instance &&
-        isDirectionalLight!DirectionalLight && isPointLight!PointLight && isSpotlight!Spotlight)
+    if (isVector3F!Vec3F && 
+        isCamera!Camera && 
+        isInstance!Instance &&
+        isDirectionalLight!DirectionalLight && 
+        isPointLight!PointLight && 
+        isSpotlight!Spotlight)
 {
     /// Should return a 3D unit vector describing the up direction of the world.
     @property inout(Vec3F) upDirection() inout;
