@@ -27,7 +27,7 @@ module denjin.rendering.traits.scene;
 /// spotlights = Returns an input range of objects containing spotlight data.
 ///
 /// See_Also:
-///     isCamera, std.range.isInputRange, isInstance, isVector3F, MeshID
+///     isCamera, isInputRange, isInstance, isVector3F, MeshID
 template isScene (T)
 {
     import std.range                : ElementType, isInputRange, ReturnType;
@@ -93,61 +93,18 @@ template isScene (T)
 ///
 pure nothrow @safe @nogc unittest
 {
-    import denjin.rendering.ids;
+    import denjin.rendering.ids : MeshID;
 
-    struct Camera
-    {
-        float[3] position;
-        float[3] direction;
-        float fieldOfView() const @property { return 75f; }
-        float nearPlaneDistance() const @property { return .3f; }
-        float farPlaneDistance() const { return 300f; }
-    }
-    struct Instance
-    {
-        InstanceID id;
-        MeshID meshID() const { return MeshID.init; }
-        MaterialID materialID() const @property { return MaterialID.init; }
-        bool isStatic;
-        float[4][3] transformationMatrix;
-    }
-    struct DirectionalLight
-    {
-        LightID id;
-        bool isStatic() const { return true; }
-        immutable(bool) isShadowCaster() const { return false; }
-        float[3] direction;
-        immutable float[3] intensity;
-    }
-    struct PointLight
-    {
-        enum LightID id = 0;
-        bool isStatic;
-        bool isShadowCaster;
-        float radius;
-        float[3] position;
-        immutable(float[3]) intensity;
-        immutable(float[3]) attenuation() const { return [0,0,0]; }
-    }
-    struct Spotlight
-    {
-        DirectionalLight dLight;
-        alias dLight this;
-        float range;
-        float coneAngle;
-        float[3] position;
-        int[3] attenuation;
-    }
     class SceneTest
     {   
         float[3] upDirection;
         float[3] ambientLightIntensity;
-        Camera camera() const { return Camera.init; }
-        Instance[5] instances;
-        const(Instance[]) instancesByMesh(MeshID) const { return instances[]; }
-        DirectionalLight[] directionalLights() const @property { return []; }
-        PointLight[10] pointLights;
-        Spotlight[] spotlights() const { return [Spotlight.init]; }
+        TestCamera camera() const { return TestCamera.init; }
+        TestInstance[5] instances;
+        const(TestInstance[]) instancesByMesh(MeshID) const { return instances[]; }
+        TestDirectionalLight[] directionalLights() const @property { return []; }
+        TestPointLight[10] pointLights;
+        TestSpotlight[] spotlights() const { return [TestSpotlight.init]; }
     }
     static assert (isScene!SceneTest);
 }
@@ -162,7 +119,7 @@ pure nothrow @safe @nogc unittest
 /// farPlaneDistance = Returns a value which implicitly convers to a float and controls how far away objects can be before being clipped.
 ///
 /// See_Also:
-///     isVector3F
+///     isVector3F, TestCamera
 template isCamera (T)
 {
     import std.traits               : hasMember, isImplicitlyConvertible;
@@ -204,15 +161,7 @@ template isCamera (T)
 ///
 pure nothrow @safe @nogc unittest
 {
-    struct Camera
-    {
-        float[4] position;
-        float[3] direction;
-        float fieldOfView() const @property { return 75f; }
-        float nearPlaneDistance() const @property { return .3f; }
-        float farPlaneDistance() const { return 300f; }
-    }
-    static assert (isCamera!Camera);
+    static assert (isCamera!TestCamera);
 }
 
 /// Checks to see if the given type meets the requirements for representing a renderable instance.
@@ -224,7 +173,7 @@ pure nothrow @safe @nogc unittest
 /// isStatic = Returns a value which implicitly converts to a bool, this enables static object optimisation.
 /// transformationMatrix = Returns a value which implicitly converts to a 12-item array of floats representing a 4x3 column-major matrix.
 /// See_Also:
-///     InstanceID, MeshID, MaterialID
+///     InstanceID, MeshID, MaterialID, TestInstance
 template isInstance (T)
 {
     import std.traits           : hasMember, isImplicitlyConvertible;
@@ -264,17 +213,7 @@ template isInstance (T)
 ///
 pure nothrow @safe @nogc unittest
 {
-    import denjin.rendering.ids;
-
-    struct Instance
-    {
-        InstanceID id;
-        MeshID meshID() const { return MeshID.init; }
-        MaterialID materialID() const @property { return MaterialID.init; }
-        bool isStatic;
-        float[4][3] transformationMatrix;
-    }
-    static assert (isInstance!Instance);
+    static assert (isInstance!TestInstance);
 }
 
 /// Checks if a type meets the requirements of representing a directional light in a scene.
@@ -287,7 +226,7 @@ pure nothrow @safe @nogc unittest
 /// intensity = Returns a value which can be used as a 3D vector of floats with RGB colour channels ranging from 0f to 1f.
 ///
 /// See_Also:
-///     isVector3F, LightID
+///     isVector3F, LightID, TestDirectionalLight
 template isDirectionalLight (T)
 {
     import std.traits               : hasMember, isImplicitlyConvertible;
@@ -330,17 +269,7 @@ template isDirectionalLight (T)
 ///
 pure nothrow @safe @nogc unittest
 {
-    import denjin.rendering.ids;
-
-    struct DirectionalLight
-    {
-        LightID id;
-        bool isStatic() const { return true; }
-        immutable(bool) isShadowCaster() const { return false; }
-        float[3] direction;
-        immutable float[3] intensity;
-    }
-    static assert (isDirectionalLight!DirectionalLight);
+    static assert (isDirectionalLight!TestDirectionalLight);
 }
 
 /// Checks if a type meets the requirements of representing a point light in a scene.
@@ -355,7 +284,7 @@ pure nothrow @safe @nogc unittest
 /// attenuation = Returns a value which can be used as a 3D vector of floats containing constant, quadratic and linear attenuation factors.
 ///
 /// See_Also:
-///     isVector3F, LightID
+///     isVector3F, LightID, TestPointLight
 template isPointLight (T)
 {
     import std.traits               : hasMember, isImplicitlyConvertible;
@@ -408,19 +337,7 @@ template isPointLight (T)
 ///
 pure nothrow @safe @nogc unittest
 {
-    import denjin.rendering.ids;
-
-    struct PointLight
-    {
-        enum LightID id = 0;
-        bool isStatic;
-        bool isShadowCaster;
-        float radius;
-        float[3] position;
-        immutable(float[3]) intensity;
-        immutable(float[3]) attenuation() const { return [0,0,0]; }
-    }
-    static assert (isPointLight!PointLight);
+    static assert (isPointLight!TestPointLight);
 }
 
 /// Checks if a type meets the requirements of representing a spotlight in a scene.
@@ -437,7 +354,7 @@ pure nothrow @safe @nogc unittest
 /// attenuation = Returns a value which can be used as a 3D vector of floats containing constant, quadratic and linear attenuation factors.
 ///
 /// See_Also:
-///     isVector3F, LightID
+///     isVector3F, LightID, TestSpotlight
 template isSpotlight (T)
 {
     import std.traits               : hasMember, isImplicitlyConvertible;
@@ -500,9 +417,29 @@ template isSpotlight (T)
 ///
 pure nothrow @safe @nogc unittest
 {
-    import denjin.rendering.ids;
+    static assert (isSpotlight!TestSpotlight);
+}
 
-    struct DirectionalLight
+version (unittest)
+{
+    import denjin.rendering.ids : LightID, InstanceID, MaterialID, MeshID;
+    private struct TestCamera
+    {
+        float[3] position;
+        float[3] direction;
+        float fieldOfView() const @property { return 75f; }
+        float nearPlaneDistance() const @property { return .3f; }
+        float farPlaneDistance() const { return 300f; }
+    }
+    private struct TestInstance
+    {
+        InstanceID id;
+        MeshID meshID() const { return MeshID.init; }
+        MaterialID materialID() const @property { return MaterialID.init; }
+        bool isStatic;
+        float[4][3] transformationMatrix;
+    }
+    private struct TestDirectionalLight
     {
         LightID id;
         bool isStatic() const { return true; }
@@ -510,14 +447,23 @@ pure nothrow @safe @nogc unittest
         float[3] direction;
         immutable float[3] intensity;
     }
-    struct Spotlight
+    private struct TestPointLight
     {
-        DirectionalLight dLight;
+        enum LightID id = 0;
+        bool isStatic;
+        bool isShadowCaster;
+        float radius;
+        float[3] position;
+        immutable(float[3]) intensity;
+        immutable(float[3]) attenuation() const { return [0,0,0]; }
+    }
+    private struct TestSpotlight
+    {
+        TestDirectionalLight dLight;
         alias dLight this;
         float range;
         float coneAngle;
         float[3] position;
         int[3] attenuation;
     }
-    static assert (isSpotlight!Spotlight);
 }

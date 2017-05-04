@@ -6,88 +6,70 @@
 */
 module denjin.rendering.traits.assets;
 
-template isAssets (T)
-{
-    
-    enum isAssets = true;
-}
-
-/// Checks if the given type is suitable for representing a Mesh object which can be drawn by a renderer.
+/// Allows for the storage and retrieval of assets used by rendering systems. An assets system should return all 
+/// materials and meshes when required, but also be able to retrieve singular objects using a unique MaterialID and
+/// MeshID.
 ///
 /// Members:
-/// id = Returns a value which is implicitly convertible to a MeshID and should uniquely identify the mesh.
-/// positions = Returns an array or random access range containing 3D vectors of floats denoting the vertex positions that make up the mesh.
-/// normals = Returns an array or random access range containing 3D vectors of floats denoting the normal of each vertex.
-/// tangents = Returns an array or random access range containing 3D vectors of floats denoting the tangent of each vertex normal.
-/// textureCoordinates = Returns an array or random access range containing 2D vectors of floats denoting the UV coordinate of each vertex.
-/// elements = Returns an array or random access range containing uints, this is used to build triangles from the given positions.
-template isMesh (T)
+/// materials = Returns an input range of objects representing unique materials which must be loaded.
+/// meshes = Returns an input range of objects representing unique meshes which must be loaded.
+/// material = Returns a representation of a single material which corresponds to a given MaterialID.
+/// mesh = Returns a representation of a single mesh which corresponds to a given MeshID.
+template isAssets (T)
 {
-    import std.range                : ElementType, isRandomAccessRange;
-    import std.traits               : hasMember, isArray, isImplicitlyConvertible;
-    import denjin.rendering.ids     : MeshID;
-    import denjin.rendering.traits  : isVector;
+    import std.range            : ElementType, isInputRange;
+    import std.traits           : hasMember, isArray;
+    import denjin.rendering.ids : MaterialID, MeshID;
 
-    // These members must exist, all of which can be variables or functions.
-    static assert (hasMember!(T, "id"));
-    static assert (hasMember!(T, "positions"));
-    static assert (hasMember!(T, "normals"));
-    static assert (hasMember!(T, "tangents"));
-    static assert (hasMember!(T, "textureCoordinates"));
-    static assert (hasMember!(T, "elements"));
+    // These members must exist. The following can be variables or functions.
+    static assert (hasMember!(T, "materials"));
+    static assert (hasMember!(T, "meshes"));
+    
+    // The following must be functions taking a single mandatory parameter.
+    static assert (hasMember!(T, "material"));
+    static assert (hasMember!(T, "mesh"));
 
-    // The return types of each member must meet these requirements.
-    void testType (in T mesh)
+    // The return types and parameters of members must meet the following requirements.
+    void testType (in T assets)
     {
-        enum isArrayOrRandomAccessRange (U) = isArray!U || isRandomAccessRange!U;
-        
-        auto id     = mesh.id;
-        alias IDT   = typeof (id);
-        static assert (isImplicitlyConvertible!(IDT, MeshID));
+        enum isArrayOrInputRange (U) = isArray!U || isInputRange!U;
 
-        auto positions  = mesh.positions;
-        alias PosRange  = typeof (positions);   
-        static assert (isArrayOrRandomAccessRange!PosRange);
-        static assert (isVector!(ElementType!PosRange, float, 3));
+        auto materials  = assets.materials;
+        alias MatRange  = typeof (materials);
+        static assert (isArrayOrInputRange!MatRange);
+        static assert (isMaterial!(ElementType!MatRange));
 
-        auto normals    = mesh.normals;
-        alias NormRange = typeof (normals);
-        static assert (isArrayOrRandomAccessRange!NormRange);
-        static assert (isVector!(ElementType!NormRange, float, 3));
+        auto meshes     = assets.meshes;
+        alias MeshRange = typeof (meshes);
+        static assert (isArrayOrInputRange!MeshRange);
+        static assert (isMesh!(ElementType!MeshRange));
 
-        auto tangents   = mesh.tangents;
-        alias TanRange  = typeof (tangents);
-        static assert (isArrayOrRandomAccessRange!TanRange);
-        static assert (isVector!(ElementType!TanRange, float, 3));
+        auto material   = assets.material (MaterialID.init);
+        alias Material  = typeof (material);
+        static assert (isMaterial!Material);
 
-        auto uvs        = mesh.textureCoordinates;
-        alias UVRange   = typeof (uvs);
-        static assert (isArrayOrRandomAccessRange!UVRange);
-        static assert (isVector!(ElementType!UVRange, float, 2));
-
-        auto elements   = mesh.elements;
-        alias ElemType  = typeof (elements);
-        static assert (isArrayOrRandomAccessRange!ElemType);
-        static assert (isImplicitlyConvertible!(ElementType!ElemType, uint));
+        auto mesh       = assets.mesh (MeshID.init);
+        alias Mesh      = typeof (mesh);
+        static assert (isMesh!Mesh);
     }
 
-    enum isMesh = true;
+    enum isAssets = true;
 }
 ///
-pure nothrow @safe @nogc
+pure nothrow @safe @nogc unittest
 {
-    import denjin.rendering.ids : MeshID;
+    import denjin.rendering.ids : MaterialID, MeshID;
 
-    struct Mesh
+    interface IAssets
     {
-        immutable MeshID id = 0;
-        float[3][] positions;
-        enum float[3][] normals = [[0f,0f,0f]];
-        float[3][] tangents() const @property { return [[0f,0f,0f],[0f,0f,0f]]; }
-        float[2][2] textureCoordinates;
-        short[] elements;
+        inout(TestMaterial[]) materials() inout @property;
+        inout(TestMesh[]) meshes() inout @property;
+
+        ref inout(TestMesh) mesh (in MeshID id) inout;
+        inout(TestMaterial) material (in MaterialID id) inout;
     }
-    static assert (isMesh!Mesh);
+
+    static assert (isAssets!IAssets);
 }
 
 /// This will check if the given type is suitable for representing a surface material.
@@ -101,6 +83,9 @@ pure nothrow @safe @nogc
 /// physicsMap = Returns a string which can be used as a file location to load a 3-channel image containing smoothness, reflectance and conductivity channels.
 /// albedoMap = Returns a string which can be used as a file location to load a 4-channel image containing RGB albedo with an alpha transparency value.
 /// normalMap = Returns a string which can be used as a file location to load a 3-channel image acting as a normal map for models.
+///
+/// See_Also:
+///     isVector, TestMaterial
 template isMaterial (T)
 {
     import std.traits               : hasMember, isConvertibleToString, isImplicitlyConvertible, isSomeString;
@@ -160,9 +145,94 @@ template isMaterial (T)
 ///
 pure nothrow @safe @nogc unittest
 {
-    import denjin.rendering.ids : MaterialID;
+    static assert (isMaterial!TestMaterial);
+}
 
-    struct Material
+/// Checks if the given type is suitable for representing a Mesh object which can be drawn by a renderer.
+///
+/// Members:
+/// id = Returns a value which is implicitly convertible to a MeshID and should uniquely identify the mesh.
+/// positions = Returns an array or random access range containing 3D vectors of floats denoting the vertex positions that make up the mesh.
+/// normals = Returns an array or random access range containing 3D vectors of floats denoting the normal of each vertex.
+/// tangents = Returns an array or random access range containing 3D vectors of floats denoting the tangent of each vertex normal.
+/// textureCoordinates = Returns an array or random access range containing 2D vectors of floats denoting the UV coordinate of each vertex.
+/// elements = Returns an array or random access range containing uints, this is used to build triangles from the given positions.
+/// 
+/// See_Also:
+///     isVector, TestMesh
+template isMesh (T)
+{
+    import std.range                : ElementType, isRandomAccessRange;
+    import std.traits               : hasMember, isArray, isImplicitlyConvertible;
+    import denjin.rendering.ids     : MeshID;
+    import denjin.rendering.traits  : isVector;
+
+    // These members must exist, all of which can be variables or functions.
+    static assert (hasMember!(T, "id"));
+    static assert (hasMember!(T, "positions"));
+    static assert (hasMember!(T, "normals"));
+    static assert (hasMember!(T, "tangents"));
+    static assert (hasMember!(T, "textureCoordinates"));
+    static assert (hasMember!(T, "elements"));
+
+    // The return types of each member must meet these requirements.
+    void testType (in T mesh)
+    {
+        enum isArrayOrRandomAccessRange (U) = isArray!U || isRandomAccessRange!U;
+        
+        auto id     = mesh.id;
+        alias IDT   = typeof (id);
+        static assert (isImplicitlyConvertible!(IDT, MeshID));
+
+        auto positions  = mesh.positions;
+        alias PosRange  = typeof (positions);   
+        static assert (isArrayOrRandomAccessRange!PosRange);
+        static assert (isVector!(ElementType!PosRange, float, 3));
+
+        auto normals    = mesh.normals;
+        alias NormRange = typeof (normals);
+        static assert (isArrayOrRandomAccessRange!NormRange);
+        static assert (isVector!(ElementType!NormRange, float, 3));
+
+        auto tangents   = mesh.tangents;
+        alias TanRange  = typeof (tangents);
+        static assert (isArrayOrRandomAccessRange!TanRange);
+        static assert (isVector!(ElementType!TanRange, float, 3));
+
+        auto uvs        = mesh.textureCoordinates;
+        alias UVRange   = typeof (uvs);
+        static assert (isArrayOrRandomAccessRange!UVRange);
+        static assert (isVector!(ElementType!UVRange, float, 2));
+
+        auto elements   = mesh.elements;
+        alias ElemType  = typeof (elements);
+        static assert (isArrayOrRandomAccessRange!ElemType);
+        static assert (isImplicitlyConvertible!(ElementType!ElemType, uint));
+    }
+
+    enum isMesh = true;
+}
+///
+pure nothrow @safe @nogc unittest
+{
+    static assert (isMesh!TestMesh);
+}
+
+version (unittest)
+{
+    import denjin.rendering.ids : MaterialID, MeshID;
+
+    private struct TestMesh
+    {
+        immutable MeshID id = 0;
+        float[3][] positions;
+        enum float[3][] normals = [[0f,0f,0f]];
+        float[3][] tangents() const @property { return [[0f,0f,0f],[0f,0f,0f]]; }
+        float[2][2] textureCoordinates;
+        short[] elements;
+    }
+    
+    private struct TestMaterial
     {
         MaterialID id;
         float smoothness;
@@ -173,6 +243,4 @@ pure nothrow @safe @nogc unittest
         string albedoMap() const { return ""; }
         enum normalMap = "";
     }
-
-    static assert (isMaterial!Material);
 }
