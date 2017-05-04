@@ -7,7 +7,7 @@
 */
 module denjin.rendering;
 
-public import denjin.rendering.assets;
 public import denjin.rendering.interfaces;
-public import denjin.rendering.scene;
+public import denjin.rendering.ids;
+public import denjin.rendering.traits;
 public import denjin.rendering.vulkan;

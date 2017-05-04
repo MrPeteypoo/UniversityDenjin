@@ -7,10 +7,9 @@
 module denjin.rendering.interfaces;
 
 // Engine.
-import denjin.rendering.assets  : isAssets;
 import denjin.rendering.ids     : MeshID;
-import denjin.rendering.scene   : isCamera, isDirectionalLight, isInstance, isPointLight, isScene, isSpotlight, 
-                                  isVector3F;
+import denjin.rendering.traits  : isAssets, isCamera, isDirectionalLight, isMesh, isInstance, isPointLight, isScene,
+                                  isSpotlight, isVector3F;
 
 /// An interface to assets management systems which contain models and textures that the rendering needs to load in
 /// order to represent a scene.
@@ -86,7 +85,6 @@ interface IScene (Vec3F, Camera, Instance, DirectionalLight, PointLight, Spotlig
 pure nothrow @safe @nogc unittest
 {
     import denjin.rendering.ids;
-    import denjin.rendering.scene : isScene;
 
     struct Camera
     {

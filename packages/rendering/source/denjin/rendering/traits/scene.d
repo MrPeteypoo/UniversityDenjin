@@ -5,7 +5,7 @@
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
     Copyright: MIT
 */
-module denjin.rendering.scene;
+module denjin.rendering.traits.scene;
 
 /// Renderers require a scene to know what objects must be rendered in a frame. This will be frequently accessed and
 /// the cost of having a class interface with countless virtual functions would be very high. To allow the renderer to
@@ -33,6 +33,7 @@ template isScene (T)
     import std.range    : ElementType, isInputRange, ReturnType;
     import std.traits   : hasMember, isImplicitlyConvertible, isArray;
     import denjin.rendering.ids;
+    import denjin.rendering.traits : isVector3F;
 
     // These members must exist, most can be either variables or functions.
     static assert (hasMember!(T, "upDirection"));
@@ -165,6 +166,7 @@ pure nothrow @safe @nogc unittest
 template isCamera (T)
 {
     import std.traits : hasMember, isImplicitlyConvertible;
+    import denjin.rendering.traits : isVector3F;
 
     // The type must contain these members, either as functions or variables.
     static assert (hasMember!(T, "position"));
@@ -290,6 +292,7 @@ template isDirectionalLight (T)
 {
     import std.traits : hasMember, isImplicitlyConvertible;
     import denjin.rendering.ids;
+    import denjin.rendering.traits : isVector3F;
 
     // The following members must exist.
     static assert (hasMember!(T, "id"));
@@ -357,6 +360,7 @@ template isPointLight (T)
 {
     import std.traits : hasMember, isImplicitlyConvertible;
     import denjin.rendering.ids;
+    import denjin.rendering.traits : isVector3F;
 
     // The following members must exist.
     static assert (hasMember!(T, "id"));
@@ -438,6 +442,7 @@ template isSpotlight (T)
 {
     import std.traits : hasMember, isImplicitlyConvertible;
     import denjin.rendering.ids;
+    import denjin.rendering.traits : isVector3F;
 
     // The following members must exist.
     static assert (hasMember!(T, "id"));
@@ -515,29 +520,4 @@ pure nothrow @safe @nogc unittest
         int[3] attenuation;
     }
     static assert (isSpotlight!Spotlight);
-}
-
-/// This will check if the given type is suitable for being used as a 3D vector of floats. The type must be a random
-/// access range with a length known at compile-time to be more than 2. The element type must also be implicitly
-/// convertible to a float.
-template isVector3F (T)
-{
-    import std.range : ElementType, isRandomAccessRange;
-    import std.traits : isImplicitlyConvertible, isStaticArray;
-
-    static if (!isStaticArray!T)
-    {
-        static assert (isRandomAccessRange!T);
-    }
-
-    static assert (isImplicitlyConvertible!(ElementType!T, float));
-    static assert (T.length >= 3);
-
-    enum isVector3F = true;
-}
-///
-pure nothrow @safe @nogc unittest
-{
-    static assert (isVector3F!(float[3]));
-    static assert (isVector3F!(float[4]));
 }
