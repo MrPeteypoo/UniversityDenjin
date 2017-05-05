@@ -2,7 +2,8 @@
     Contains a 3D renderer implementing the Vulkan API.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.rendering.vulkan.renderer;
 
@@ -24,8 +25,14 @@ import denjin.rendering.vulkan.swapchain    : Swapchain, VSync;
 // External.
 import erupted.types;
 
-/// A basic 3D renderer implemented using Vulkan. A Vulkan instance must be created and loaded before using the
-/// renderer. The current implementation also requires a logical device and swapchain be generated externally.
+/**
+    A basic 3D renderer implemented using Vulkan. 
+    
+    A Vulkan instance must be created and loaded before using the renderer. The current implementation also requires 
+    a logical device and swapchain be generated externally. The renderer currently only supports forward rendering,
+    it requires further development to support more modern rendering techniques such as deferred shading and deferred
+    lighting.
+*/
 final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
 {
     private 
@@ -52,8 +59,10 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
 
     /// Initialises the renderer, creating Vulkan objects that are required for loading and rendering a scene.
     /// Params:
-    ///     device      = The device which the renderer should take ownership of and use to render with.
-    ///     swapchain   = The swapchain where the renderer should acquire and present images to.
+    ///     device              = The device which the renderer should take ownership of and use to render with.
+    ///     swapchain           = The swapchain where the renderer should acquire and present images to.
+    ///     limits              = The limits of the physical device associated with the given logical device.
+    ///     memoryProperties    = The properties of the memory heaps available to the physical device.
     this (Device device, Swapchain swapchain, 
           VkPhysicalDeviceLimits limits, VkPhysicalDeviceMemoryProperties memoryProperties)
     out
@@ -86,9 +95,12 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         clear();
     }
 
-    /// Destroys all contained data in a safe order. This may take a while as it will wait for any pending GPU tasks to
-    /// complete before returning. This will leave the renderer in an uninitialised state and it should not be used 
-    /// again.
+    /**
+        Destroys all contained data in a safe order. 
+        
+        This may take a while as it will wait for any pending GPU tasks to complete before returning. This will leave 
+        the renderer in an uninitialised state and it should not be used again.
+    */
     public override void clear() nothrow
     {
         if (m_device != nullDevice)
@@ -170,8 +182,10 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         presentImage();
     }
 
-    /// Informs the swapchain to acquire the next image from the presentation engine and halts the application if it's
-    /// unable to do this.
+    /**
+        Informs the swapchain to acquire the next image from the presentation engine and halts the application if it's
+        unable to do this.
+    */
     private void validateNextSwapchainImage() nothrow
     {
         const auto result = m_swapchain.acquireNextImage (m_device, m_syncs.imageAvailable);
@@ -227,8 +241,10 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         renderObjects (cmdBuffer);
     }
 
-    /// Assuming a command buffer record operation has begun, this will record draw commands required to render the 
-    /// scene.
+    /**
+        Assuming a command buffer record operation has begun, this will record draw commands required to render the 
+        scene.
+    */
     private void renderObjects (VkCommandBuffer primaryBuffer) nothrow
     in
     {

@@ -2,7 +2,8 @@
     A collection of miscellaneous vulkan-related functionality.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.rendering.vulkan.logging;
 
@@ -38,7 +39,6 @@ void logLayerProperties (Range) (auto ref Range layerProperties)
 }
 
 /// Iterates through a collection, printing the properties of each extension.
-/// Params: type = "Instance" or "Device"
 void logExtensionProperties(Range)(string type, auto ref Range extensionProperties)
     if (isInputRange!Range && is (Unqual!(ElementType!Range) == VkExtensionProperties))
 {

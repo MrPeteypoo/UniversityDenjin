@@ -1,3 +1,10 @@
+/**
+    Core engine functionality, an entry point for client-applications that want to use the engine.
+
+    Authors: Simon Peter Campbell, peter@spcampbell.co.uk
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
+*/
 module denjin.engine;
 
 // Phobos.
@@ -25,7 +32,7 @@ struct Engine
     Renderer    renderer;   /// A reference to a rendering system, this is created by the window system.
 
     /// Ensure we graciously shut down.
-    public void clear() nothrow
+    void clear() nothrow
     {
         // Window system "own" rendering systems so we can ignore that.
         if (window)

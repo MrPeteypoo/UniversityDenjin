@@ -13,18 +13,29 @@
 	"targetPath": "builds",
 
 	"subPackages": [
+		"./packages/assets/",
 		"./packages/maths/",
 		"./packages/misc/",
 		"./packages/rendering/",
+		"./packages/scene/",
 		"./packages/window/"
 	],
 
 	"dependencies": {
+		"denjin:assets": "*",
 		"denjin:maths": "*",
 		"denjin:misc": "*",
 		"denjin:rendering": "*",
+		"denjin:scene": "*",
 		"denjin:window": "*"
 	},
+
+	"-ddoxFilterArgs": [
+		"--min-protection=Private", 
+		"--in=denjin",
+		"--ex=erupted",
+		"--ex=derelict"
+	],
 
 	"buildRequirements": [
 		"allowWarnings",
@@ -34,12 +45,12 @@
 	"buildTypes": {
 		"optimized": {
 			"buildOptions": ["debugMode", "optimize", "inline", "debugInfo"],
-			"version": [ "optimized" ]
+			"version": ["optimized"]
 		},
 
 		"unittest-optimized": {
 			"buildOptions": ["debugMode", "optimize", "inline", "debugInfo", "unittests"],
-			"version": [ "optimized" ]
+			"version": ["optimized"]
 		}
 	}
 }

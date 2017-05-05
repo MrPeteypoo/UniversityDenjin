@@ -5,6 +5,6 @@
     Copyright: Copyright © 2017, Simon Peter Campbell
     License: MIT
 */
-module denjin.misc;
+module denjin.scene;
 
-public import denjin.misc.mixins;
+public import denjin.scene.jim;

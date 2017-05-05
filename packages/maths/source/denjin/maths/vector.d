@@ -2,7 +2,8 @@
     Contains a templatised n-dimensional numeric vector structure.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.maths.vector;
 
@@ -21,21 +22,14 @@ import denjin.misc.mixins : generateMemberEnum, generateMemberProperty, unrollLo
         Num         = A numerical type to use as the underlying data type of the Vector.
         Dimensions  = Specifies the dimensions the Vector represents and therefore how many components are stored.
 */
+pure nothrow @safe @nogc 
 struct Vector (Num, size_t Dimensions)
     if (isNumeric!Num && Dimensions > 0)
 {
-    nothrow:
-    pure:
-    @nogc:
-    @safe:
-
-    // Members.
-    Num[dimensions] array = void; /// The underlying vector data.
-
-    // Template info.
-    enum    dimensions  = Dimensions;               /// How many components the vector stores.
-    alias   Type        = Vector!(Num, dimensions); /// The complete usable type.
-    alias   NumericType = Num;                      /// The underlying type used to store data.
+    Num[dimensions] array   = void;                     /// The underlying vector data.
+    enum dimensions         = Dimensions;               /// How many components the vector stores.
+    alias Type              = Vector!(Num, dimensions); /// The complete usable type.
+    alias NumericType       = Num;                      /// The underlying type used to store data.
 
     mixin (generateMemberProperty!(Num, "array[0]", "x", "i", "s", "r", "u"));  /// 1D short-hand.
     mixin (generateMemberEnum!(Type, "zero", dimensions, Num(0)));              /// Represents (0...).
@@ -62,18 +56,23 @@ struct Vector (Num, size_t Dimensions)
         mixin (generateMemberProperty!(Num, "array[3]", "w", "l", "q", "a")); /// 4D short-hand.
     }
 
-    /// Sets each component of the vector to the given value.
+    /// Uniform construction of a Vector, setting each component to the given value.
     this (in Num value)
     {
         mixin (unrollLoop!(0, dimensions, "array[$@] = value;"));
     }
 
-    /// Creates a vector by setting each component to the values in the given vectors. This construction method
-    /// supports a mixture of numeric and vector types. The total number of components much match or exceed the
-    /// dimensional space of the vector. If the number of components exceeds the dimensional space of the vector then
-    /// the excess will be truncated and ignored.
-    /// Params:
-    ///     values = A list of numeric/vector values to initialise each component of the vector with.
+    /**
+        Component-wise construction of a Vector.
+
+        Creates a Vector by setting each component to the values in the parameters. This construction method
+        supports a mixture of numeric and Vector types. The total number of components much match or exceed the
+        dimensional space of the Vector. If the number of components exceeds the dimensional space of the Vector then
+        the excess will be truncated and ignored.
+    
+        Params:
+            params = A list of numeric/Vector values to initialise each component of the Vector with.
+    */
     this (T...)(auto ref T params)
         if (componentCount!T > 1 && componentCount!T >= dimensions)
     {
@@ -81,19 +80,9 @@ struct Vector (Num, size_t Dimensions)
         modifyComponents!(0, 0, "=")(forward!params);
     }
 
-    // Operators.
-    ref Num opIndex (size_t index)
+    /// Components can be accessed individually using array-notation.
+    ref inout(Num) opIndex (size_t index) inout
     in
-    {
-        assert (index < dimensions);
-    }
-    body
-    {
-        return array[index];
-    }
-
-    Num opIndex (size_t index) const
-    in 
     {
         assert (index < dimensions);
     }
@@ -110,9 +99,11 @@ struct Vector (Num, size_t Dimensions)
         return result;
     }
 
-    /// Binary operations with numeric values will scale each component by the value. Binary operations on dynamic 
-    /// arrays will be performed in a component-wise manner at run-time, component-wise operations will be performed 
-    /// for all arrays and vectors with more than one component.
+    /**
+        Binary operations with numeric values will scale each component by the value. Binary operations on dynamic 
+        arrays will be performed in a component-wise manner at run-time, component-wise operations will be performed 
+        for all arrays and vectors with more than one component.
+    */
     auto opBinary (string op, T) (auto ref T rhs) const
         if (isDynamicArray!T || (isValueType!T && (componentCount!T == 1 || componentCount!T >= dimensions)))
     {
@@ -121,13 +112,14 @@ struct Vector (Num, size_t Dimensions)
     }
 
     /// Operations when the vector is on the right hand side are exactly the same as the left hand side.
-    auto opBinaryRight (string op, T)(auto ref T lhs)
+    auto opBinaryRight (string op, T)(auto ref T lhs) const
         if (isDynamicArray!T || (isValueType!T && (componentCount!T == 1 || componentCount!T >= dimensions)))
     {
         import std.functional : forward;
         return binaryOperation!(op, No.vecOnLHS)(forward!lhs);
     }
 
+    /// Component-wise and uniform scaling operations are supported on non-const Vectors.
     void opOpAssign (string op, T)(auto ref T rhs)
         if (isDynamicArray!T || (isValueType!T && (componentCount!T == 1 || componentCount!T == dimensions)))
     {
@@ -151,6 +143,7 @@ struct Vector (Num, size_t Dimensions)
         }
     }
 
+    /// Casting from one Vector type to another is supported, either implicitly or explicitly.
     auto opCast (T)() const
         if (isVector!T)
     {

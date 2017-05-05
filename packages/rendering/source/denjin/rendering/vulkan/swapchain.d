@@ -2,7 +2,8 @@
     Manages a swapchain for displaying images using Vulkan.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.rendering.vulkan.swapchain;
 
@@ -24,8 +25,12 @@ import erupted.functions : vkGetPhysicalDeviceSurfaceCapabilitiesKHR, vkGetPhysi
                            vkGetPhysicalDeviceSurfacePresentModesKHR;
 import erupted.types;
 
-/// Facilitates the creation, management and destruction of Vulkan swapchains, these control what is displayed to the
-/// user, and how. Note: Swapchains cannot destroy themselves, they must be destroyed externally by a device.
+/**
+    Facilitates the creation, management and destruction of Vulkan swapchains. 
+    
+    Swapchains control what is displayed to the user, and how. Note: Swapchains cannot destroy themselves, they must be 
+    destroyed externally by a device.
+*/
 struct Swapchain
 {
     private
@@ -55,8 +60,10 @@ struct Swapchain
     // Subtype VkSwapchainKHR to allow for implicit usage.
     alias handle this;
 
-    /// The default timeout when acquiring the next image will halt the application until an image is ready in debug
-    /// and will wait a second in release modes. This is to make debugging easier 
+    /** 
+        The default timeout when acquiring the next image will halt the application until an image is ready in debug
+        and will wait a second in release modes. This is to make debugging easier.
+    */
     debug { enum acquireImageTimeout = uint64_t.max; }
     else {  enum acquireImageTimeout = 1_000_000_000; }
 
@@ -125,8 +132,10 @@ struct Swapchain
     /// Gets the information used to create the current swapchain.
     public @property ref const(VkSwapchainCreateInfoKHR) info() const pure nothrow @safe @nogc { return m_info; }
 
-    /// Creates/recreates the swapchain with the given display mode. This will invalidate handles to current swapchain
-    /// images.
+    /**
+        Creates/recreates the swapchain with the given display mode. This will invalidate handles to current swapchain
+        images.
+    */
     public void create (ref Device device, in VSync desiredMode = VSync.TripleBuffering, 
                         in VkAllocationCallbacks* callbacks = null)
     in
@@ -155,11 +164,15 @@ struct Swapchain
         createImageViews (device, callbacks);
     }
 
-    /// Destroys the currently managed swapchain. This will leave the object in an unusable/unitialised state and 
-    /// should not be used any further.
-    /// Params:
-    ///     device      = The logical device used to create the swapchain in the first place.
-    ///     callbacks   = Any allocation callbacks used to initialise the swapchain with.
+    /**
+        Destroys the currently managed swapchain. 
+        
+        This will leave the object in an unusable/unitialised state and should not be used any further.
+        
+        Params:
+            device      = The logical device used to create the swapchain in the first place.
+            callbacks   = Any allocation callbacks used to initialise the swapchain with.
+    */
     public void clear (ref Device device, in VkAllocationCallbacks* callbacks = null) nothrow
     in
     {
@@ -199,8 +212,12 @@ struct Swapchain
         return result;
     }
 
-    /// Attempts to set the image count and presentation mode to be the same as the desired VSync mode. If the device
-    /// supports the feature then it will be configured, otherwise the closest approximation will be chosen.
+    /**
+        Attempts to set the image count and presentation mode to be the same as the desired VSync mode. 
+        
+        If the device supports the desired present mode then it will be used, otherwise the closest approximation 
+        will be chosen.
+    */
     private void setPresentMode (in VSync desiredMode)
     {
         const auto vsyncMode    = cast (VkPresentModeKHR) desiredMode;
@@ -242,7 +259,7 @@ struct Swapchain
         }
     }
 
-    /// Gets all images associated with the current swapchain and creates image views for each of them.
+    /// Retrieves all images associated with the current swapchain and creates image views for each of them.
     private void createImageViews (ref Device device, in VkAllocationCallbacks* callbacks)
     {
         // Firstly ensure we don't leak data.

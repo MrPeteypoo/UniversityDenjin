@@ -1,0 +1,25 @@
+{
+	"name": "assets",
+	"description": "Asset mangement systems used in Denjin.",
+
+	"targetName": "denjin-assets",
+	"targetType": "library",
+	"targetPath": "builds",
+
+	"buildRequirements": [
+		"allowWarnings",
+		"disallowDeprecations"
+	],
+
+	"buildTypes": {
+		"optimized": {
+			"buildOptions": ["debugMode", "optimize", "inline", "debugInfo"],
+			"version": [ "optimized" ]
+		},
+
+		"unittest-optimized": {
+			"buildOptions": ["debugMode", "optimize", "inline", "debugInfo", "unittests"],
+			"version": [ "optimized" ]
+		}
+	}
+}

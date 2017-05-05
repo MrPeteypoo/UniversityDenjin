@@ -2,7 +2,8 @@
     Contains a representation of a Vulkan logical-device/device-function structure.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.rendering.vulkan.device;
 
@@ -27,8 +28,12 @@ import erupted.types        : uint32_t, VkAllocationCallbacks, VkDevice, VkDevic
                               VkPhysicalDevice, VkQueue, VkQueueFamilyProperties, VkQueueFlagBits, VkSurfaceKHR,
                               VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 
-/// A logical device, allowing for the storage and calling of device-level functionality. It can be passed as a 
-/// VkDevice to Vulkan functions as necessary. Device-level functions can be called directly using opDispatch too.
+/**
+    A logical device, allowing for the storage and calling of device-level functionality. 
+    
+    It can be passed as a VkDevice to Vulkan functions as necessary. Device-level functions can be called directly 
+    using opDispatch too.
+*/
 struct Device
 {
     private
@@ -52,8 +57,13 @@ struct Device
     /// The object is not copyable.
     @disable this (this);
 
-    /// Creates a logical device based on the given physical device and creation information. The device will determine
-    /// which queue families to use for different tasks so this data will be modified.
+    /**
+        Creates a logical device based on the given physical device and creation information. 
+        
+        Upon creation the new device will determine which queue families to use for different tasks and it will unique
+        queues for rendering, compute, transfer and presentation tasks. These queues may not be from different queue
+        families.
+    */
     this (VkPhysicalDevice gpu, ref VkDeviceCreateInfo deviceInfo, 
           VkSurfaceKHR presentationSurface = nullSurface,
           in VkAllocationCallbacks* callbacks = null)
@@ -78,8 +88,13 @@ struct Device
         clear();
     }
 
-    /// Forward function calls to the funcs structure at compile-time if possible. If the first parameter of the 
-    /// function is a VkDevice then the parameter can be omitted.
+    /**
+        Forward function calls to the funcs structure at compile-time if possible. 
+        
+        This will attempt to forward any device-level Vulkan function to a corresponding function pointer. If the 
+        function takes no arguments then it will be returned, otherwise the function will be called with the given
+        parameters. If the the first parameter of the function is a VkDevice then the parameter can be omitted. 
+    */
     public template opDispatch (string func)
         if (func.startsWith ("vk"))
     {

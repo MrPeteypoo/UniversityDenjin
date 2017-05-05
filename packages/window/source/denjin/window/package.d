@@ -1,8 +1,10 @@
 /**
-    Contains window management systems for displaying an application.
+    Window management systems for displaying an application. Interfaces found in denjin.window.interfaces can 
+    be used to implement custom window systems.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.window;
 

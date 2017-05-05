@@ -1,20 +1,29 @@
 /**
-    TBD.
+    Checkable type traits which determine whether a type is suitable for representing assets and asset management
+    systems. Contained trait requirements must be met to use a Denjin rendering system.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.rendering.traits.assets;
 
-/// Allows for the storage and retrieval of assets used by rendering systems. An assets system should return all 
-/// materials and meshes when required, but also be able to retrieve singular objects using a unique MaterialID and
-/// MeshID.
-///
-/// Members:
-/// materials = Returns an input range of objects representing unique materials which must be loaded.
-/// meshes = Returns an input range of objects representing unique meshes which must be loaded.
-/// material = Returns a representation of a single material which corresponds to a given MaterialID.
-/// mesh = Returns a representation of a single mesh which corresponds to a given MeshID.
+/**
+    Checks if a given type is suitable for usage as an asset management system.
+
+    Allows for the storage and retrieval of assets used by rendering systems. An assets system should return all 
+    materials and meshes when required, but also be able to retrieve singular objects using a unique MaterialID and
+    MeshID.
+
+    Members:
+    materials: An input range of objects representing unique materials which must be loaded. 
+    meshes: An input range of objects representing unique meshes which must be loaded.
+    material: A representation of a single material which corresponds to a given MaterialID.
+    mesh: A representation of a single mesh which corresponds to a given MeshID.
+
+    See_Also:
+        isMaterial, isMesh
+*/
 template isAssets (T)
 {
     import std.range            : ElementType, isInputRange;
@@ -55,21 +64,59 @@ template isAssets (T)
 
     enum isAssets = true;
 }
+///
+pure nothrow @safe @nogc unittest
+{
+    import denjin.rendering.ids : MaterialID, MeshID;
 
-/// This will check if the given type is suitable for representing a surface material.
-///
-/// Members:
-/// id = Returns a unique ID which identifies the material, must implicitly convert to a MaterialID.
-/// smoothness = Returns a float value ranging from 0f to 1f, controls how smooth the surface appears.
-/// reflectance = Returns a float value ranging from 0f to 1f, controls the fresnel effect on surfaces.
-/// conductivity = Returns a float value ranging from 0f to 1f, controls how much diffuse reflection occurs.
-/// albedo = Returns a 4D vector type of floats, these should be RGBA channels ranging from 0f to 1f.
-/// physicsMap = Returns a string which can be used as a file location to load a 3-channel image containing smoothness, reflectance and conductivity channels.
-/// albedoMap = Returns a string which can be used as a file location to load a 4-channel image containing RGB albedo with an alpha transparency value.
-/// normalMap = Returns a string which can be used as a file location to load a 3-channel image acting as a normal map for models.
-///
-/// See_Also:
-///     isVector, TestMaterial
+    struct Material
+    {
+        MaterialID id;
+        float smoothness;
+        float reflectance() const { return 0; }
+        float conductivity() const @property { return 0; }
+        float[4] albedo() const { return [0,0,0,0]; }
+        string physicsMap;
+        string albedoMap() const { return ""; }
+        enum normalMap = "";
+    }
+    struct Mesh
+    {
+        immutable MeshID id = 0;
+        float[3][] positions;
+        enum float[3][] normals = [[0f,0f,0f]];
+        float[3][] tangents() const @property { return [[0f,0f,0f],[0f,0f,0f]]; }
+        float[2][2] textureCoordinates;
+        short[] elements;
+    }
+    interface Assets
+    {
+        inout(Material[]) materials() inout @property;
+        inout(Mesh[]) meshes() inout @property;
+
+        inout(Material) material (in MaterialID id) inout;
+        ref inout(Mesh) mesh (in MeshID id) inout;
+    }
+
+    static assert (isAssets!Assets);
+}
+
+/**
+    This will check if the given type is suitable for representing a surface material.
+
+    Members:
+    id: A unique ID which identifies the material, must implicitly convert to a MaterialID.
+    smoothness: A float value ranging from 0f to 1f, controls how smooth the surface appears.
+    reflectance: A float value ranging from 0f to 1f, controls the fresnel effect on surfaces.
+    conductivity: A float value ranging from 0f to 1f, controls how much diffuse reflection occurs.
+    albedo: A 4D vector type of floats, these should be RGBA channels ranging from 0f to 1f.
+    physicsMap: A string which can be used as a file location to load a 3-channel image containing smoothness, reflectance and conductivity channels.
+    albedoMap: A string which can be used as a file location to load a 4-channel image containing RGB albedo with an alpha transparency value.
+    normalMap: A string which can be used as a file location to load a 3-channel image acting as a normal map for models.
+
+    See_Also:
+        isVector
+*/
 template isMaterial (T)
 {
     import std.traits               : hasMember, isConvertibleToString, isImplicitlyConvertible, isSomeString;
@@ -126,19 +173,40 @@ template isMaterial (T)
 
     enum isMaterial = true;
 }
-
-/// Checks if the given type is suitable for representing a Mesh object which can be drawn by a renderer.
 ///
-/// Members:
-/// id = Returns a value which is implicitly convertible to a MeshID and should uniquely identify the mesh.
-/// positions = Returns an array or random access range containing 3D vectors of floats denoting the vertex positions that make up the mesh.
-/// normals = Returns an array or random access range containing 3D vectors of floats denoting the normal of each vertex.
-/// tangents = Returns an array or random access range containing 3D vectors of floats denoting the tangent of each vertex normal.
-/// textureCoordinates = Returns an array or random access range containing 2D vectors of floats denoting the UV coordinate of each vertex.
-/// elements = Returns an array or random access range containing uints, this is used to build triangles from the given positions.
-/// 
-/// See_Also:
-///     isVector, TestMesh
+pure nothrow @safe @nogc unittest
+{
+    import denjin.rendering.ids : MaterialID;
+
+    struct Material
+    {
+        MaterialID id;
+        float smoothness;
+        float reflectance() const { return 0; }
+        float conductivity() const @property { return 0; }
+        float[4] albedo() const { return [0,0,0,0]; }
+        string physicsMap;
+        string albedoMap() const { return ""; }
+        enum normalMap = "";
+    }
+
+    static assert (isMaterial!Material);
+}
+
+/**
+    Checks if the given type is suitable for representing a Mesh object which can be drawn by a renderer.
+
+    Members:
+    id: A value which is implicitly convertible to a MeshID and should uniquely identify the mesh.
+    positions: An array or random access range containing 3D vectors of floats denoting the vertex positions that make up the mesh.
+    normals: An array or random access range containing 3D vectors of floats denoting the normal of each vertex.
+    tangents: An array or random access range containing 3D vectors of floats denoting the tangent of each vertex normal.
+    textureCoordinates: An array or random access range containing 2D vectors of floats denoting the UV coordinate of each vertex.
+    elements: An array or random access range containing uints, this is used to build triangles from the given positions.
+
+    See_Also:
+        isVector
+*/
 template isMesh (T)
 {
     import std.range                : ElementType, isRandomAccessRange;
@@ -191,28 +259,12 @@ template isMesh (T)
 
     enum isMesh = true;
 }
-
-version (unittest)
+///
+pure nothrow @safe @nogc unittest
 {
-    import denjin.rendering.ids : MaterialID, MeshID;
+    import denjin.rendering.ids : MeshID;
     
-    private struct TestMaterial
-    {
-        MaterialID id;
-        float smoothness;
-        float reflectance() const { return 0; }
-        float conductivity() const @property { return 0; }
-        float[4] albedo() const { return [0,0,0,0]; }
-        string physicsMap;
-        string albedoMap() const { return ""; }
-        enum normalMap = "";
-    }
-    ///
-    pure nothrow @safe @nogc unittest
-    {
-        static assert (isMaterial!TestMaterial);
-    }
-    private struct TestMesh
+    struct Mesh
     {
         immutable MeshID id = 0;
         float[3][] positions;
@@ -221,22 +273,6 @@ version (unittest)
         float[2][2] textureCoordinates;
         short[] elements;
     }
-    ///
-    pure nothrow @safe @nogc unittest
-    {
-        static assert (isMesh!TestMesh);
-    }
-    private interface TestAssets
-    {
-        inout(TestMaterial[]) materials() inout @property;
-        inout(TestMesh[]) meshes() inout @property;
 
-        ref inout(TestMesh) mesh (in MeshID id) inout;
-        inout(TestMaterial) material (in MaterialID id) inout;
-    }
-    ///
-    pure nothrow @safe @nogc unittest
-    {
-        static assert (isAssets!TestAssets);
-    }
+    static assert (isMesh!Mesh);
 }

@@ -1,8 +1,9 @@
 /**
-    TBD.
+    Miscellaneous traits that are common across multiple type constraints.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.rendering.traits.misc;
 
@@ -10,8 +11,12 @@ module denjin.rendering.traits.misc;
 alias isVector3 (T, ElementT)   = isVector!(T, ElementT, 3);
 alias isVector3F (T)            = isVector!(T, float, 3);
 
-/// This will check if the given type is suitable for being used as a vector of n-dimensions with the given element
-/// type. It must be a random access range or a static array with a length know at compile-time.
+/** 
+    Checks if the given type meets the requirements of being used as a Vector in rendering systems.
+
+    The given type will be checked to see if it has at least n-dimensions with the given element
+    type. It must be a random access range or a static array with a length know at compile-time.
+*/
 template isVector (T, ElementT, size_t Dimensions)
     if (Dimensions > 0)
 {

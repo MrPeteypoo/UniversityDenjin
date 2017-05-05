@@ -2,7 +2,8 @@
     Constructs the pipelines required by the renderer.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.rendering.vulkan.internals.pipelines;
 
@@ -20,10 +21,17 @@ import denjin.rendering.vulkan.objects                  : createShaderModule;
 // Externals.
 import erupted.types;
 
+/**
+    Contains the pipelines required to perform different render passes that are currently supported.
+
+    Pipelines contain the state which the driver should configure itself in to perform tasks we require of it. These
+    allow the driver to optimise its configuration and is the way Vulkan requires us to configure state.
+*/
 struct Pipelines
 {
     VkPipeline forward = nullPipeline; /// A dedicated forward render pipeline.
 
+    /// For now this just creates a forward rendering pipeline for basic rendering support.
     public void create (ref Device device, in VkExtent2D resolution, ref RenderPasses renderPasses,
                         in VkAllocationCallbacks* callbacks = null)
     in
@@ -46,6 +54,7 @@ struct Pipelines
         enforce (forward != nullPipeline);
     }
 
+    /// Destroys any stored handles the object may have.
     public void clear (ref Device device, in VkAllocationCallbacks* callbacks = null) nothrow @nogc
     {
         forward.safelyDestroyVK (device.vkDestroyPipeline, device, forward, callbacks);
@@ -233,8 +242,12 @@ struct ForwardRenderPipeline
     }
 }
 
-/// Loads and creates the vertex and fragment shader stages required by the rendering pipelines. In the future this
-/// should be expanded to load shaders from a configuration file.
+/**
+    Stores shaders required by the rendering pipelines.
+
+    Loads and creates the vertex and fragment shader stages required by the rendering pipelines. In the future this
+    should be expanded to load shaders from a configuration file.
+*/
 struct Shaders
 {
     alias ShaderInfo = VkPipelineShaderStageCreateInfo;

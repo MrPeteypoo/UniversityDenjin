@@ -2,7 +2,8 @@
     Contains functionality required to load Vulkan functions and create instances/devices for use by the Vulkan API.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.rendering.vulkan.instance;
 
@@ -66,13 +67,18 @@ struct Instance
     /// The object is not copyable.
     @disable this(this);
 
-    /// Performs the first and second stage of Vulkan loading. Loading the global-level functions required by Vulkan, 
-    /// creating an instance and loading instance-level functions. The next stage would be to create devices/renderers. 
-    /// In debug builds this will also register a debug callback which will prints information to the console.
-    /// Params:
-    ///     proc            = The pointer to a function used to load global-level Vulkan functions.
-    ///     extensionCount  = How many extensions will be loaded.
-    ///     extensions      = A collection extension names to be loaded.
+    /**
+        Performs the first and second stage of Vulkan loading. 
+        
+        Loads the global-level functions required by Vulkan, creating an instance and loading instance-level functions.
+        The next stage would be to create devices/renderers. In debug builds this will also register a debug callback 
+        which will prints information to the console.
+     
+        Params:
+            proc            = The pointer to a function used to load global-level Vulkan functions.
+            extensionCount  = How many extensions will be loaded.
+            extensions      = A collection extension names to be loaded.
+    */
     public this (in InstanceProcAddress proc, in uint32_t extensionCount, in char** extensions)
     {
         // Pre-conditions.
@@ -97,16 +103,20 @@ struct Instance
     /// Checks if the vulkan instance has been initialised and is ready for use.
     public @property bool isInitialised() const pure nothrow @safe @nogc { return m_instance != nullInstance; }
 
-    /// Constructs a renderer which is derived from the current instance. This will evaluate physical devices available
-    /// to the system, check their capabilities and create a logical device which will be given to the constructed
-    /// renderer. The given surface will also be used to initialise a swapchain which will also be given to the 
-    /// constructed renderer.
-    ///
-    /// Params: 
-    ///     Assets  = The asset management system type which the renderer will use.
-    ///     Scene   = The scene management system type which the renderer will use.
-    ///     surface = The surface to display images to. The instance will take ownership of this.
-    /// Returns: A renderer which will need to be initialised before being used for rendering.
+    /**
+        Constructs a renderer which is derived from the current instance. 
+        
+        This will evaluate physical devices available to the system, check their capabilities and create a logical 
+        device which will be given to the constructed renderer. The given surface will also be used to initialise a
+        swapchain which will also be given to the constructed renderer.
+    
+        Params: 
+            Assets  = The asset management system type which the renderer will use.
+            Scene   = The scene management system type which the renderer will use.
+            surface = The surface to display images to. The instance will take ownership of this.
+        Returns: 
+            An initialised Vulkan-based renderer.
+    */
     public auto createRenderer(Assets, Scene)(VkSurfaceKHR surface = nullSurface)
     in
     {
@@ -152,8 +162,11 @@ struct Instance
         m_info.clear();
     }
 
-    /// Performs the second stage of Vulkan loading, creating an instance for the application and loading 
-    /// the instance-level functions associated with it. 
+    /**
+        Performs the second stage of Vulkan loading. 
+        
+        Creating an instance for the application and loads the instance-level functions associated with it. 
+    */
     private void createInstance (in uint32_t extensionCount, in char** extensions)
     {
         // We must describe how the instance should be created.
@@ -357,6 +370,7 @@ struct Instance
     }
 }
 
+/// Used to log Vulkan debug callbacks to the standard output stream.
 debug private extern (System) nothrow @nogc
 VkBool32 logVulkanError (VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, 
                          size_t location, int32_t messageCode, const(char)* pLayerPrefix, const(char)* pMessage, 
@@ -402,8 +416,10 @@ VkBool32 logVulkanError (VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT
     return VK_FALSE;
 }
 
-/// Contains creation information and enumerated properties of the current instance. Most of the data is only useful
-/// for debugging purposes.
+/**
+    Contains creation information and enumerated properties of the current instance. Most of the data is only useful
+    for debugging purposes.
+*/
 private struct Info
 {
     Array!VkExtensionProperties             instanceExtProperties;          /// The details of what extensions are available to the instance.

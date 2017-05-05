@@ -2,7 +2,8 @@
     A collection of miscellaneous vulkan-related functionality.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.rendering.vulkan.misc;
 
@@ -45,14 +46,19 @@ Array!VkQueueFamilyProperties enumerateQueueFamilyProperties (VkPhysicalDevice g
     return array;
 }
 
-/// Attempts to find a suitable queue family index by iterating over the given family properties and doing two things.
-/// Firstly, it will look for a queue family which is dedicated to the requirements described. Secondly, if a dedicated
-/// queue family doesn't exist then it will look for one which is more general purpose but still fulfils the 
-/// requirements. 
-/// Params:
-///     familyProperties    = The family properties available to a physical device.
-///     flags               = The requirements of the different family queues.
-/// Returns: An index value if successful, uint32_t.max if not.
+/**
+    Attempts to find a suitable queue family index by iterating over the given family properties.
+    
+    Firstly, it will look for a queue family which is dedicated to the requirements described. Secondly, if a dedicated
+    queue family doesn't exist then it will look for one which is more general purpose but still fulfils the 
+    requirements. 
+    
+    Params:
+        familyProperties    = The family properties available to a physical device.
+        flags               = The requirements of the different family queues.
+    Returns: 
+        An index value if successful, uint32_t.max if not.
+*/
 uint32_t findSuitableQueueFamily (Range)(auto ref Range familyProperties, in VkQueueFlags flags)
     if (isRandomAccessRange!Range && is (Unqual!(typeof (familyProperties[0])) == VkQueueFamilyProperties))
 {
@@ -108,6 +114,7 @@ body
 
 /// Attempts to find the index of the memory type in the given properties which matches the requirements given. 
 /// Params:
+///     properties          = The descriptions of available memory heaps to a physical device.
 ///     typeBits            = This value will likely come from a call to vkGetImageMemoryRequirements.
 ///     requiredProperties  = The visibility flags required for the resource.
 /// Returns: The index of the memory type meeting the given requirements. uint32_t.max if unsuccessful.
@@ -131,13 +138,20 @@ uint32_t memoryTypeIndex (in ref VkPhysicalDeviceMemoryProperties properties, in
     return uint32_t.max;
 }
 
-/// Checks if the given Vulkan handle needs destroying, if so then the given function pointer will be used to destroy
-/// the object. A check will be performed to see if the given function pointer is valid, if it isn't valid an assertion
-/// will occur.
-/// Params:
-///     handle      = The VK handle to be destroyed if necessary.
-///     destoryFunc = The function to use to destroy the handle.
-///     params      = Parameters to be passed to the destroy function.
+/**
+    Checks if the given Vulkan handle needs destroying, and destroys it if necessary. 
+    
+    The handle will be checked to see if it a null-handle, if so then the given function pointer will be used to 
+    destroy the object. A check will be performed to see if the given function pointer is valid, if it isn't valid an assertion
+    will occur.
+
+    Params:
+        handle      = The VK handle to be destroyed if necessary.
+        destroyFunc = The function to use to destroy the handle.
+        params      = Parameters to be passed to the destroy function.
+    Returns:
+        Any return value from the given function pointer.
+*/
 auto safelyDestroyVK (Handle, Func, T...) (ref Handle handle, in Func destroyFunc, auto ref T params)
     if ((isBuiltinType!Handle || isPointer!Handle) && isFunctionPointer!Func)
 {

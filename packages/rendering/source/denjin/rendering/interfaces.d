@@ -2,7 +2,8 @@
     Contains implementation-agnostic dynamic interfaces for rendering systems.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.rendering.interfaces;
 
@@ -11,8 +12,13 @@ import denjin.rendering.ids     : MaterialID, MeshID;
 import denjin.rendering.traits  : isAssets, isCamera, isDirectionalLight, isInstance, isMaterial, isMesh, isPointLight, 
                                   isScene, isSpotlight, isVector3F;
 
-/// An interface to assets management systems which contain models and textures that the rendering needs to load in
-/// order to represent a scene.
+/**
+    An interface to assets management systems which contain models and textures that the rendering needs to load in
+    order to represent a scene.
+
+    See_Also:
+        isMaterial, isMesh
+*/
 interface IAssets (Material, Mesh)
     if (isMaterial!Material &&
         isMesh!Mesh)
@@ -29,18 +35,17 @@ interface IAssets (Material, Mesh)
     /// Retrieve the data for a unique mesh which corresponds to the given ID.
     ref inout(Mesh) mesh (in MeshID id) inout;
 }
-///
-pure nothrow @safe @nogc unittest
-{
-    import denjin.rendering.traits.assets : TestMaterial, TestMesh;
 
-    alias Assets = IAssets!(TestMaterial, TestMesh);
-    static assert (isAssets!Assets);
-}
-
-/// An interface to rendering systems. Construction should be performed by derived classes in their constructor.
-/// See_Also:
-///     isAssets, isScene
+/**
+    An interface to rendering systems. 
+    
+    Rendering systems can use any asset or scene management system, provided it meets the requirements set out by 
+    isAssets and isScene. Construction should be performed by derived classes in their constructor, the interface
+    functions can then be used to polymorphically manage a renderer.
+    
+    See_Also:
+        isAssets, isScene
+*/
 interface IRenderer (Assets, Scene)
     //if (isAssets!Asserts && isScene!Scene)
 {
@@ -63,16 +68,20 @@ interface IRenderer (Assets, Scene)
     void render (in ref Scene scene) nothrow;
 }
 
-/// An interface for a scene management system. This provides the renderers with the necessary data to render objects
-/// in a frame. The interface follows the requirements set out by the isScene constraint. This is a dynamic interface
-/// and as such will cause run-time overhead. It exists primarily as a schematic for a scene management system which
-/// an engine implements. The renderers do not require systems to inherit from this interface, it just provides a
-/// guideline for people to follow.
-///
-/// Params:
-///     Vec3F = The type to use
-/// See_Also:
-///     isScene, isVector3F, isCamera, isInstance, isDirectionalLight, isPointLight, isSpotlight
+/**
+    An interface for a scene management system. 
+    
+    This provides the renderers with the necessary data to render objects in a frame. The interface follows the 
+    requirements set out by the isScene constraint. This is a dynamic interface and as such will cause run-time 
+    overhead. It exists primarily as a schematic for a scene management system which an engine implements. The 
+    renderers do not require systems to inherit from this interface, it just provides a guideline for people to follow.
+
+    Params:
+        Vec3F = The type to use
+
+    See_Also:
+        isScene, isVector3F, isCamera, isInstance, isDirectionalLight, isPointLight, isSpotlight
+*/
 interface IScene (Vec3F, Camera, Instance, DirectionalLight, PointLight, Spotlight)
     if (isVector3F!Vec3F && 
         isCamera!Camera && 
@@ -104,12 +113,4 @@ interface IScene (Vec3F, Camera, Instance, DirectionalLight, PointLight, Spotlig
 
     /// A collection of spotlights active in the scene.
     @property inout(Spotlight[]) spotlights() inout;
-}
-///
-pure nothrow @safe @nogc unittest
-{
-    import denjin.rendering.traits.scene : TestCamera, TestDirectionalLight, TestInstance, TestPointLight, TestSpotlight;
-
-    alias Scene = IScene!(float[3], TestCamera, TestInstance, TestDirectionalLight, TestPointLight, TestSpotlight);
-    static assert (isScene!Scene);
 }

@@ -2,7 +2,8 @@
     Contains structures of synchronisation objects used by the renderer.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.rendering.vulkan.internals.synchronization;
 
@@ -18,8 +19,12 @@ import denjin.rendering.vulkan.objects  : createFence, createSemaphore;
 // External.
 import erupted.types : uint64_t, VkAllocationCallbacks, VkFence, VkSemaphore, VK_FENCE_CREATE_SIGNALED_BIT, VK_TRUE;
 
-/// Contains semaphores and fences which are used to indicate that different stages of have been performed to prevent
-/// data races and undefined behaviour with the multi-threaded API.
+/**
+    Contains the synchronisation objects required to avoid race conditions.
+
+    Semaphores and fences are used to indicate that different stages of have been performed to prevent data races and 
+    undefined behaviour with the multi-threaded API.
+*/
 struct Syncs
 {
     VkSemaphore imageAvailable  = nullSemaphore;    /// Indicates that an image has become available from the presentation engine and writing to it can begin.

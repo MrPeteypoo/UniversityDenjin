@@ -2,12 +2,19 @@
     Contains asset system and scene system ID types.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.rendering.ids;
 
-// Aliases.
-alias InstanceID    = size_t;
-alias LightID       = size_t;
-alias MeshID        = size_t;
-alias MaterialID    = size_t;
+/// Identifies unique renderable instances of a mesh which can be rendered in a scene.
+alias InstanceID = uint;
+
+/// Identifies unique lights in a scene.
+alias LightID = uint;
+
+/// Identifies unique meshes which may be referenced by many instances.
+alias MeshID = uint;
+
+/// Identifies unique materials which describe how a surface should be modelled when rendered.
+alias MaterialID = uint;

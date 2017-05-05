@@ -1,0 +1,1 @@
+module denjin.assets.bob;

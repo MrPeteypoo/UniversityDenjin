@@ -2,7 +2,8 @@
     A window system implementation which encapsulates GLFW.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.window.glfw;
 
@@ -40,9 +41,11 @@ final class WindowGLFW (Assets, Scene) : IWindow!(Assets, Scene)
         GLFWwindow* m_window;       /// A pointer to a GLFW window handle.
         Renderer    m_renderer;     /// The renderer managed by the window system. GLFW supports OpenGL and Vulkan but only Vulkan is implemented right now.
 
-        /// The application-wide Vulkan instance from which devices and renderers can be created from. Realistically this
-        /// should not be managed here because it means we can't have two GLFW windows in use at the same time. Not a
-        /// a problem for this stage of development but it needs to be moved at some point.
+        /** 
+            The application-wide Vulkan instance from which devices and renderers can be created from. Realistically this
+            should not be managed here because it means we can't have two GLFW windows in use at the same time. Not a
+            a problem for this stage of development but it needs to be moved at some point.
+        */
         Instance m_vulkan; 
     }
 
@@ -63,12 +66,15 @@ final class WindowGLFW (Assets, Scene) : IWindow!(Assets, Scene)
         glfwTerminate();
     }
 
-    /// Creates a window using GLFW and attaches a basic Vulkan surface to the window, for use with a renderer.
-    /// Params:
-    ///     width       = How many pixels wide the window should be.
-    ///     height      = How many pixels tall the window should be.
-    ///     fullscreen  = Should the window cover the entire screen?
-    ///     title       = The title of the window, to be displayed by the OS.
+    /**
+        Creates a window using GLFW and attaches a basic Vulkan surface to the window, for use with a renderer.
+        
+        Params:
+            width           = How many pixels wide the window should be.
+            height          = How many pixels tall the window should be.
+            isFullscreen    = Should the window cover the entire screen?
+            title           = The title of the window, to be displayed by the OS.
+    */
     public this (in uint width, in uint height, Flag!"isFullscreen" isFullscreen, string title)
     out
     {
@@ -185,9 +191,11 @@ private void logGLFWError (int error, const(char)* description)
     }
 }
 
-/// Takes an integer error value and attempts to convert it to a string representation of the error code.
-/// Params: error = An error value to be converted.
-/// Returns: Either the string representation of the enum that the error corresponds to, or a string of the error code.
+/** 
+    Takes an integer error value and attempts to convert it to a string representation of the error code.
+    Params: error = An error value to be converted.
+    Returns: Either the string representation of the enum that the error corresponds to, or a string of the error code.
+*/
 pure nothrow @safe
 private string errorNumberToString (int error)
 {

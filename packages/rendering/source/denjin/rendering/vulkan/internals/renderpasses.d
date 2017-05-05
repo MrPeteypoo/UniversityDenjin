@@ -3,7 +3,8 @@
     rendering techniques including forward rendering and deferred shading.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.rendering.vulkan.internals.renderpasses;
 
@@ -27,8 +28,12 @@ import erupted.types : uint32_t, VkAllocationCallbacks, VkAttachmentDescription,
                        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 
                        VK_IMAGE_LAYOUT_UNDEFINED, VK_PIPELINE_BIND_POINT_GRAPHICS, VK_SAMPLE_COUNT_1_BIT;
 
-/// Initially contains a description of how a forward rendering pass works in the renderer, future enhancements would
-/// enable support for deferred shading and deferred lighting.
+/**
+    Contains descriptions of render passes that are performed by the renderer.
+
+    Initially contains a description of how a forward rendering pass works in the renderer, future enhancements would
+    enable support for deferred shading and deferred lighting.
+*/
 struct RenderPasses
 {
     VkRenderPass forward = nullPass; /// A dedicated forward render pass.
@@ -159,14 +164,18 @@ struct ForwardRender (LoadOp colourLoad, StoreOp colourStore,
     }
 }
 
-/// This forward render pass will have the driver automatically transition the colour attachment so it can be displayed
-/// by the presentation engine when the rendering pass ends.
+/**
+    This forward render pass will have the driver automatically transition the colour attachment so it can be displayed
+    by the presentation engine when the rendering pass ends.
+*/
 alias DedicatedForwardRender = ForwardRender!(LoadOp.Clear, StoreOp.Store,
                                               LoadOp.Clear, StoreOp.DontCare,
                                               Yes.presentAfterUse);
 
-/// This forward render pass can be used to perform shadow mapping as no data is loaded but the depth value will be
-/// stored.
+/**
+    This forward render pass can be used to perform shadow mapping as no data is loaded but the depth value will be
+    stored.
+*/
 alias DepthPass = ForwardRender!(LoadOp.DontCare, StoreOp.DontCare,
                                  LoadOp.Clear, StoreOp.Store,
                                  No.presentAfterUse);

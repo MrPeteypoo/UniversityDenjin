@@ -3,31 +3,36 @@
     render frames from.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.rendering.traits.scene;
 
-/// Renderers require a scene to know what objects must be rendered in a frame. This will be frequently accessed and
-/// the cost of having a class interface with countless virtual functions would be very high. To allow the renderer to
-/// work at maximum capacity a static interface will be used. Any scene "type" given to the renderer must meet the 
-/// requirements set out below.
-///
-/// In brief, the scene will be used to provide a means of retrieving every object that needs to be rendered, IDs for 
-/// the resource each object needs and they should be grouped by mesh. Additionally, the scene will contain information
-/// about required lights.
-///
-/// Members:
-/// upDirection = Returns a value which can be used as a 3D vector of floats, a unit vector representing the up direction of the world.
-/// ambientLightIntensity = Returns a value which can be used as a 3D vector of floats, contains RGB colour channels ranging from 0f to 1f.
-/// camera = Returns an object containing camera data.
-/// instances = Returns an input range of objects which contain instance data.
-/// instancesByMesh = Given a MeshID, returns an input range which contains instance data for the given MeshID.
-/// directionalLights = Returns an input range of objects containing directional light data.
-/// pointLights = Returns an input range of objects containing point light data.
-/// spotlights = Returns an input range of objects containing spotlight data.
-///
-/// See_Also:
-///     isCamera, isInputRange, isInstance, isVector3F, MeshID, TestScene
+/** 
+    Checks if the given type is suitable for use as a scene management system for rendering systems.
+
+    Renderers require a scene to know what objects must be rendered in a frame. This will be frequently accessed and
+    the cost of having a class interface with countless virtual functions would be very high. To allow the renderer to
+    work at maximum capacity a static interface will be used. Any scene "type" given to the renderer must meet the 
+    requirements set out below.
+
+    In brief, the scene will be used to provide a means of retrieving every object that needs to be rendered, IDs for 
+    the resource each object needs and they should be grouped by mesh. Additionally, the scene will contain information
+    about required lights.
+
+    Members:
+    upDirection: A value which can be used as a 3D vector of floats, a unit vector representing the up direction of the world.
+    ambientLightIntensity: A value which can be used as a 3D vector of floats, contains RGB colour channels ranging from 0f to 1f.
+    camera: An object containing camera data.
+    instances: An input range of objects which contain instance data.
+    instancesByMesh: Given a MeshID, returns an input range which contains instance data for the given MeshID.
+    directionalLights: An input range of objects containing directional light data.
+    pointLights: An input range of objects containing point light data.
+    spotlights: An input range of objects containing spotlight data.
+
+    See_Also:
+        isCamera, isDirectionalLight, isInputRange, isInstance, isPointLight, isSpotlight, isVector, MeshID
+*/
 template isScene (T)
 {
     import std.range                : ElementType, isInputRange, ReturnType;
@@ -90,18 +95,82 @@ template isScene (T)
 
     enum isScene = true;
 }
+///
+pure nothrow @safe @nogc unittest
+{
+    import denjin.rendering.ids : LightID, InstanceID, MaterialID, MeshID;
 
-/// This will check if the given type is suitable for representing a camera for rendering systems.
-///
-/// Members:
-/// position = Returns a value which can be used as a 3D vector of floats acting as XYZ world-space co-ordinates.
-/// direction = Returns a value which can be used as a 3D vector of floats and should be a unit vector.
-/// fieldOfView = Returns a value which implicitly converts to a float and controls the FOV (degrees) in the viewport of the camera.
-/// nearPlaneDistance = Returns a value which implicitly converts to a float and controls how close objects can be before being clipped.
-/// farPlaneDistance = Returns a value which implicitly convers to a float and controls how far away objects can be before being clipped.
-///
-/// See_Also:
-///     isVector3F, TestCamera
+    struct Camera
+    {
+        float[3] position;
+        float[3] direction;
+        float fieldOfView() const @property { return 75f; }
+        float nearPlaneDistance() const @property { return .3f; }
+        float farPlaneDistance() const { return 300f; }
+    } 
+    struct Instance
+    {
+        InstanceID id;
+        MeshID meshID() const { return MeshID.init; }
+        MaterialID materialID() const @property { return MaterialID.init; }
+        bool isStatic;
+        float[4][3] transformationMatrix;
+    }
+    struct DirectionalLight
+    {
+        LightID id;
+        bool isStatic() const { return true; }
+        immutable(bool) isShadowCaster() const { return false; }
+        float[3] direction;
+        immutable float[3] intensity;
+    }
+    struct PointLight
+    {
+        enum LightID id = 0;
+        bool isStatic;
+        bool isShadowCaster;
+        float radius;
+        float[3] position;
+        immutable(float[3]) intensity;
+        immutable(float[3]) attenuation() const { return [0,0,0]; }
+    }
+    struct Spotlight
+    {
+        DirectionalLight dLight;
+        alias dLight this;
+        float range;
+        float coneAngle;
+        float[3] position;
+        int[3] attenuation;
+    }
+    class Scene
+    {   
+        float[3] upDirection;
+        float[3] ambientLightIntensity;
+        Camera camera() const { return Camera.init; }
+        Instance[5] instances;
+        const(Instance[]) instancesByMesh(MeshID) const { return instances[]; }
+        DirectionalLight[] directionalLights() const @property { return []; }
+        PointLight[10] pointLights;
+        Spotlight[] spotlights() const { return [Spotlight.init]; }
+    }
+
+    static assert (isScene!Scene);
+}
+
+/**
+    Checks if the given type is suitable for representing a camera for rendering systems.
+
+    Members:
+    position: A value which can be used as a 3D vector of floats acting as XYZ world-space co-ordinates.
+    direction: A value which can be used as a 3D vector of floats and should be a unit vector.
+    fieldOfView: A value which implicitly converts to a float and controls the FOV (degrees) in the viewport of the camera.
+    nearPlaneDistance: A value which implicitly converts to a float and controls how close objects can be before being clipped.
+    farPlaneDistance: A value which implicitly convers to a float and controls how far away objects can be before being clipped.
+
+    See_Also:
+        isVector
+*/
 template isCamera (T)
 {
     import std.traits               : hasMember, isImplicitlyConvertible;
@@ -140,17 +209,34 @@ template isCamera (T)
 
     enum isCamera = true;
 }
-
-/// Checks to see if the given type meets the requirements for representing a renderable instance.
 ///
-/// Members:
-/// id = Returns a value which implicitly converts to an InstanceID, this uniquely identifies the instance.
-/// meshID = Returns a value which implicitly converts to a MeshID, this identifies the mesh which should be rendered.
-/// materialID = Returns a value which implicitly converts to a MaterialID, this identifies the material to use when rendering the mesh.
-/// isStatic = Returns a value which implicitly converts to a bool, this enables static object optimisation.
-/// transformationMatrix = Returns a value which implicitly converts to a 12-item array of floats representing a 4x3 column-major matrix.
-/// See_Also:
-///     InstanceID, MeshID, MaterialID, TestInstance
+pure nothrow @safe @nogc unittest
+{
+    struct Camera
+    {
+        float[3] position;
+        float[3] direction;
+        float fieldOfView() const @property { return 75f; }
+        float nearPlaneDistance() const @property { return .3f; }
+        float farPlaneDistance() const { return 300f; }
+    } 
+
+    static assert (isCamera!Camera);
+}
+
+/**
+    Checks to see if the given type meets the requirements for representing a renderable instance.
+
+    Members:
+    id: A value which implicitly converts to an InstanceID, this uniquely identifies the instance.
+    meshID: A value which implicitly converts to a MeshID, this identifies the mesh which should be rendered.
+    materialID: A value which implicitly converts to a MaterialID, this identifies the material to use when rendering the mesh.
+    isStatic: A value which implicitly converts to a bool, this enables static object optimisation.
+    transformationMatrix: A value which implicitly converts to a 12-item array of floats representing a 4x3 column-major matrix.
+
+    See_Also:
+        InstanceID, MeshID, MaterialID
+*/
 template isInstance (T)
 {
     import std.traits           : hasMember, isImplicitlyConvertible;
@@ -187,18 +273,36 @@ template isInstance (T)
 
     enum isInstance = true;
 }
+///
+pure nothrow @safe @nogc unittest
+{
+    import denjin.rendering.ids : InstanceID, MaterialID, MeshID;
 
-/// Checks if a type meets the requirements of representing a directional light in a scene.
-///
-/// Members:
-/// id = Returns a value which implicitly converts to a LightID.
-/// isStatic = Returns a value which implicitly converts to a bool. Enables static object optimisations.
-/// isShadowCaster = Returns a value which implicitly converts to a bool. Controls whether the light casts a shadow.
-/// direction = Returns a value which can be used as a 3D vector of floats and should be a unit vector.
-/// intensity = Returns a value which can be used as a 3D vector of floats with RGB colour channels ranging from 0f to 1f.
-///
-/// See_Also:
-///     isVector3F, LightID, TestDirectionalLight
+    struct Instance
+    {
+        InstanceID id;
+        MeshID meshID() const { return MeshID.init; }
+        MaterialID materialID() const @property { return MaterialID.init; }
+        bool isStatic;
+        float[4][3] transformationMatrix;
+    }
+
+    static assert (isInstance!Instance);
+}
+
+/**
+    Checks if a type meets the requirements of representing a directional light in a scene.
+
+    Members:
+    id: A value which implicitly converts to a LightID.
+    isStatic: A value which implicitly converts to a bool. Enables static object optimisations.
+    isShadowCaster: A value which implicitly converts to a bool. Controls whether the light casts a shadow.
+    direction: A value which can be used as a 3D vector of floats and should be a unit vector.
+    intensity: A value which can be used as a 3D vector of floats with RGB colour channels ranging from 0f to 1f.
+
+    See_Also:
+        isVector, LightID
+*/
 template isDirectionalLight (T)
 {
     import std.traits               : hasMember, isImplicitlyConvertible;
@@ -238,20 +342,38 @@ template isDirectionalLight (T)
 
     enum isDirectionalLight = true;
 }
+///
+pure nothrow @safe @nogc unittest
+{
+    import denjin.rendering.ids : LightID;
 
-/// Checks if a type meets the requirements of representing a point light in a scene.
-///
-/// Members:
-/// id = Returns a value which implicitly converts to a LightID.
-/// isStatic = Returns a value which implicitly converts to a bool. Enables static object optimisations.
-/// isShadowCaster = Returns a value which implicitly converts to a bool. Controls whether the light casts a shadow.
-/// radius = Returns a value which implicitly converts to a float acting as the radius of the light.
-/// position = Returns a value which can be used as a 3D vector of floats acting as XYZ world-space co-ordinates.
-/// intensity = Returns a value which can be used as a 3D vector of floats with RGB colour channels ranging from 0f to 1f.
-/// attenuation = Returns a value which can be used as a 3D vector of floats containing constant, quadratic and linear attenuation factors.
-///
-/// See_Also:
-///     isVector3F, LightID, TestPointLight
+    struct DirectionalLight
+    {
+        LightID id;
+        bool isStatic() const { return true; }
+        immutable(bool) isShadowCaster() const { return false; }
+        float[3] direction;
+        immutable float[3] intensity;
+    }
+
+    static assert (isDirectionalLight!DirectionalLight);
+}
+
+/**
+    Checks if a type meets the requirements of representing a point light in a scene.
+
+    Members:
+    id: A value which implicitly converts to a LightID.
+    isStatic: A value which implicitly converts to a bool. Enables static object optimisations.
+    isShadowCaster: A value which implicitly converts to a bool. Controls whether the light casts a shadow.
+    radius: A value which implicitly converts to a float acting as the radius of the light.
+    position: A value which can be used as a 3D vector of floats acting as XYZ world-space co-ordinates.
+    intensity: A value which can be used as a 3D vector of floats with RGB colour channels ranging from 0f to 1f.
+    attenuation: A value which can be used as a 3D vector of floats containing constant, quadratic and linear attenuation factors.
+
+    See_Also:
+        isVector, LightID
+*/
 template isPointLight (T)
 {
     import std.traits               : hasMember, isImplicitlyConvertible;
@@ -301,22 +423,42 @@ template isPointLight (T)
 
     enum isPointLight = true;
 }
+///
+pure nothrow @safe @nogc unittest
+{
+    import denjin.rendering.ids : LightID;
 
-/// Checks if a type meets the requirements of representing a spotlight in a scene.
-///
-/// Members:
-/// id = Returns a value which implicitly converts to a LightID.
-/// isStatic = Returns a value which implicitly converts to a bool. Enables static object optimisations.
-/// isShadowCaster = Returns a value which implicitly converts to a bool. Controls whether the light casts a shadow.
-/// range = Returns a value which implicitly converts to a float representing the maximum range of the light in the given direction.
-/// coneAngle = Returns a value which implicitly converts to a float representing the angle (degrees) of light being cast from the spotlight.
-/// position = Returns a value which can be used as a 3D vector of floats acting as XYZ world-space co-ordinates.
-/// direction = Returns a value which can be used as a 3D vector of floats and should be a unit vector.
-/// intensity = Returns a value which can be used as a 3D vector of floats with RGB colour channels ranging from 0f to 1f.
-/// attenuation = Returns a value which can be used as a 3D vector of floats containing constant, quadratic and linear attenuation factors.
-///
-/// See_Also:
-///     isVector3F, LightID, TestSpotlight
+    struct PointLight
+    {
+        enum LightID id = 0;
+        bool isStatic;
+        bool isShadowCaster;
+        float radius;
+        float[3] position;
+        immutable(float[3]) intensity;
+        immutable(float[3]) attenuation() const { return [0,0,0]; }
+    }
+
+    static assert (isPointLight!PointLight);
+}
+
+/**
+    Checks if a type meets the requirements of representing a spotlight in a scene.
+
+    Members:
+    id: A value which implicitly converts to a LightID.
+    isStatic: A value which implicitly converts to a bool. Enables static object optimisations.
+    isShadowCaster: A value which implicitly converts to a bool. Controls whether the light casts a shadow.
+    range: A value which implicitly converts to a float representing the maximum range of the light in the given direction.
+    coneAngle: A value which implicitly converts to a float representing the angle (degrees) of light being cast from the spotlight.
+    position: A value which can be used as a 3D vector of floats acting as XYZ world-space co-ordinates.
+    direction: A value which can be used as a 3D vector of floats and should be a unit vector.
+    intensity: A value which can be used as a 3D vector of floats with RGB colour channels ranging from 0f to 1f.
+    attenuation: A value which can be used as a 3D vector of floats containing constant, quadratic and linear attenuation factors.
+
+    See_Also:
+        isVector, LightID
+*/
 template isSpotlight (T)
 {
     import std.traits               : hasMember, isImplicitlyConvertible;
@@ -376,37 +518,12 @@ template isSpotlight (T)
 
     enum isSpotlight = true;
 }
-
-version (unittest)
+///
+pure nothrow @safe @nogc unittest
 {
-    import denjin.rendering.ids : LightID, InstanceID, MaterialID, MeshID;
-    private struct TestCamera
-    {
-        float[3] position;
-        float[3] direction;
-        float fieldOfView() const @property { return 75f; }
-        float nearPlaneDistance() const @property { return .3f; }
-        float farPlaneDistance() const { return 300f; }
-    }
-    ///
-    pure nothrow @safe @nogc unittest
-    {
-        static assert (isCamera!TestCamera);
-    }
-    private struct TestInstance
-    {
-        InstanceID id;
-        MeshID meshID() const { return MeshID.init; }
-        MaterialID materialID() const @property { return MaterialID.init; }
-        bool isStatic;
-        float[4][3] transformationMatrix;
-    }
-    ///
-    pure nothrow @safe @nogc unittest
-    {
-        static assert (isInstance!TestInstance);
-    }
-    private struct TestDirectionalLight
+    import denjin.rendering.ids : LightID;
+
+    struct DirectionalLight
     {
         LightID id;
         bool isStatic() const { return true; }
@@ -414,54 +531,15 @@ version (unittest)
         float[3] direction;
         immutable float[3] intensity;
     }
-    ///
-    pure nothrow @safe @nogc unittest
+    struct Spotlight
     {
-        static assert (isDirectionalLight!TestDirectionalLight);
-    }
-    private struct TestPointLight
-    {
-        enum LightID id = 0;
-        bool isStatic;
-        bool isShadowCaster;
-        float radius;
-        float[3] position;
-        immutable(float[3]) intensity;
-        immutable(float[3]) attenuation() const { return [0,0,0]; }
-    }
-    ///
-    pure nothrow @safe @nogc unittest
-    {
-        static assert (isPointLight!TestPointLight);
-    }
-    private struct TestSpotlight
-    {
-        TestDirectionalLight dLight;
+        DirectionalLight dLight;
         alias dLight this;
         float range;
         float coneAngle;
         float[3] position;
         int[3] attenuation;
     }
-    ///
-    pure nothrow @safe @nogc unittest
-    {
-        static assert (isSpotlight!TestSpotlight);
-    }
-    private class TestScene
-    {   
-        float[3] upDirection;
-        float[3] ambientLightIntensity;
-        TestCamera camera() const { return TestCamera.init; }
-        TestInstance[5] instances;
-        const(TestInstance[]) instancesByMesh(MeshID) const { return instances[]; }
-        TestDirectionalLight[] directionalLights() const @property { return []; }
-        TestPointLight[10] pointLights;
-        TestSpotlight[] spotlights() const { return [TestSpotlight.init]; }
-    }
-    ///
-    pure nothrow @safe @nogc unittest
-    {
-        static assert (isScene!TestScene);
-    }
+
+    static assert (isSpotlight!Spotlight);
 }

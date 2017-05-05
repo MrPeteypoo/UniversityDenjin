@@ -3,7 +3,8 @@
     denjin.rendering.vulkan.internals.renderpasses as they seem to be tightly coupled.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.rendering.vulkan.internals.framebuffers;
 
@@ -30,8 +31,10 @@ import erupted.types : uint32_t, VkAllocationCallbacks, VkDeviceMemory, VkExtent
                        VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, 
                        VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
-/// Contains images, image views and framebuffers which are used for different render passes by the renderer. Swapchain
-/// images are excluded from this as they are managed by the Swapchain. 
+/**
+    Contains images, image views and framebuffers which are used for different render passes by the renderer. Swapchain
+    images are excluded from this as they are managed by the Swapchain. 
+*/
 struct Framebuffers
 {
     VkFramebuffer[] framebuffers;                       /// A framebuffer for each swapchain image will be contained here.
@@ -102,6 +105,7 @@ struct Framebuffers
         depthMemory.safelyDestroyVK (device.vkFreeMemory, device, depthMemory, callbacks);
     }
 
+    /// Creates a depth buffer for use with swapchain images when rendering into generated framebuffers.
     private void createDepthBuffer (ref Device device, in ref Swapchain swapchain, 
                                     in ref VkPhysicalDeviceMemoryProperties memProps,
                                     in VkAllocationCallbacks* callbacks = null)
@@ -160,6 +164,12 @@ struct Framebuffers
         scope (failure) device.vkDestroyImageView (depthView, callbacks);
     }
 
+    /**
+        Constructs a framebuffer for each image in the given swapchain.
+
+        Created framebuffers will contain two attachments, the first will be a swapchain image and the second will be
+        the member depth buffer. A framebuffer will be created for each image in the swapchain.
+    */
     private void createFramebuffers (ref Device device, ref Swapchain swapchain, ref RenderPasses renderPasses,
                                      in VkAllocationCallbacks* callbacks)
     {

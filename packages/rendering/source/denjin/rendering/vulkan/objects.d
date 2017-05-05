@@ -2,7 +2,8 @@
     Utility functions for the creation/use of different basic Vulkan objects.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.rendering.vulkan.objects;
 

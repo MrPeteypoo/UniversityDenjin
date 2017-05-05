@@ -2,15 +2,28 @@
     Contains implementation-agnostic interfaces required for window management systems.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.window.interfaces;
 
 // Engine.
-import denjin.rendering.interfaces : IRenderer;
+import denjin.rendering.interfaces  : IRenderer;
+import denjin.rendering.traits      : isAssets, isScene;
 
-/// An interface to be implemented by window management systems.
+/** 
+    An interface to be implemented by window management systems. Window systems are in charge of initialising rendering
+    systems as they are often tightly coupled.
+
+    Params:
+        Assets  = An asset management system which a renderer will load resources from.
+        Scene   = A scene management system which a renderer can use to render frames with.
+
+    See_Also:
+        isAssets, isScene
+*/
 interface IWindow (Assets, Scene)
+    //if (isAssets!Assets && isScene!Scene)
 {
     /// The asset and scene management systems are used to specify the renderer interface.
     alias Renderer = IRenderer!(Assets, Scene);

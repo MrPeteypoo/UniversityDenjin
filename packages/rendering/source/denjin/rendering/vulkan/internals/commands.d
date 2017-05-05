@@ -2,7 +2,8 @@
     Manages the construction, containment and destruction of command pools.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
-    Copyright: MIT
+    Copyright: Copyright © 2017, Simon Peter Campbell
+    License: MIT
 */
 module denjin.rendering.vulkan.internals.commands;
 
@@ -87,8 +88,12 @@ struct Commands
         transfer.length = 0;
     }
     
-    /// If the device doesn't have a dedicated queue family as specified by the given parameter, then the render family
-    /// is assumed to be general purpose and that command pool will be used as a fallback.
+    /**
+        Attempts to create a command pool from the given queue family.
+
+        If the device doesn't have a dedicated queue family as specified by the given parameter, then the render family
+        is assumed to be general purpose and that command pool will be used as a fallback.
+    */
     nothrow @nogc
     private VkCommandPool createCommandPoolIfPossible (ref Device device, in bool hasDedicatedQueueFamily, 
                                                        in uint32_t queueFamily, in VkCommandPoolCreateFlags flags)

@@ -1,0 +1,25 @@
+{
+	"name": "scene",
+	"description": "Scene management systems used in Denjin.",
+
+	"targetName": "denjin-scene",
+	"targetType": "library",
+	"targetPath": "builds",
+
+	"buildRequirements": [
+		"allowWarnings",
+		"disallowDeprecations"
+	],
+
+	"buildTypes": {
+		"optimized": {
+			"buildOptions": ["debugMode", "optimize", "inline", "debugInfo"],
+			"version": [ "optimized" ]
+		},
+
+		"unittest-optimized": {
+			"buildOptions": ["debugMode", "optimize", "inline", "debugInfo", "unittests"],
+			"version": [ "optimized" ]
+		}
+	}
+}
