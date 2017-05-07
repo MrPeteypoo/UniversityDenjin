@@ -68,7 +68,7 @@ struct RenderMaterial
 
     /// The first three values represent the base colour of the material, the fourth is an opacity factor.
     /// Returns: An array of four floats ranging from zero to one.
-    const(float[4]) albedo() const pure nothrow @safe @nogc @property { return m_albedo; }
+    ref const(float[4]) albedo() const pure nothrow @safe @nogc @property { return m_albedo; }
 
     /// The file location of a texture map to be used for smoothness, reflectance and conductivity values.
     /// Returns: A file location as a string, An empty string indicates no texture map should be used.
@@ -145,8 +145,8 @@ struct RenderMaterial
 ///
 pure nothrow @safe unittest
 {
-    import std.math         : approxEqual;
-    import denjin.rendering : isMaterial;
+    import std.math                 : approxEqual;
+    import denjin.rendering.traits  : isMaterial;
 
     // The material must meet the requirements of materials used by the renderer.
     static assert (isMaterial!RenderMaterial);
@@ -155,7 +155,7 @@ pure nothrow @safe unittest
     auto matA = RenderMaterial();
 
     // We can give a material a MaterialID at construction.
-    auto matB = RenderMaterial (1);
+    auto matB = RenderMaterial(1);
     assert (matB.id == 1);
 
     // Physics parameters are set as follows.
@@ -240,4 +240,144 @@ pure nothrow @safe unittest
     clampAlbedoTest (mat, -0.1f, false);
     clampAlbedoTest (mat, 1.1f, true);
     clampAlbedoTest (mat, 1.1f, false);
+}
+
+/**
+    Provides the data necessary to construct a renderable mesh.
+
+    These meshes can be used to create instances from, allowing multiple objects in a scene to be represented by the
+    same mesh data containing in this structure.
+*/
+struct RenderMesh
+{
+    private
+    {
+        MeshID m_id; /// An ID which should represent a unique mesh. This should be referenced by instances.
+    }
+
+    alias Vec3 = float[3];      /// 3D vectors are represented by an array of 3 floats.
+    alias Vec2 = float[2];      /// 2D vectors are represented by an array of 2 floats.
+    Vec3[] positions;           /// Contains the position of every vertex of the mesh.
+    Vec3[] normals;             /// Contains the surface normal of every vertex of the mesh.
+    Vec3[] tangents;            /// Contains the surface tangents of every vertex of the mesh.
+    Vec2[] textureCoordinates;  /// Contains the UV co-ordinates of every vertex of the mesh.
+    uint[] elements;            /// Contains the elements necessary to construct triangles from vertex positions.
+
+    /**
+        Construct a mesh with the given ID. 
+    
+        The ID should uniquely identify the mesh, it should not be shared by other meshes.
+    */
+    this (in MeshID id) pure nothrow @safe @nogc
+    {
+        m_id = id;
+    }
+
+    /// Gets the unique identifier of the mesh.
+    MeshID id() const pure nothrow @safe @nogc @property { return m_id; }
+}
+///
+pure nothrow @safe unittest
+{
+    import denjin.rendering.traits : isMesh;
+
+    // The mesh must meet the requirements of the renderer.
+    static assert (isMesh!RenderMesh);
+
+    // We can default construct meshes but the ID may not be unique.
+    enum meshA = RenderMesh();
+    static assert (meshA.id == 0);
+
+    auto meshB = RenderMesh(1);
+    assert (meshB.id == 1);
+
+    // Vertex attributes can be added like so.
+    meshB.positions ~= [1f, 1f, 1f];
+    assert (meshB.positions[$-1] == [1f, 1f, 1f]);
+
+    meshB.normals ~= [2f, 2f, 2f];
+    assert (meshB.normals[$-1] == [2f, 2f, 2f]);
+    
+    meshB.tangents ~= [3f, 3f, 3f];
+    assert (meshB.tangents[$-1] == [3f, 3f, 3f]);
+
+    meshB.elements ~= [0u, 0u, 0u];
+    assert (meshB.elements == [0u, 0u, 0u]);
+
+    // Convenience functions exist to do this as well.
+    meshB.addVertex ([2f, 2f, 2f]);
+    assert (meshB.positions[$-1] == [2f, 2f, 2f]);
+}
+
+/// An entire vertex is added to the given RenderMesh.
+/// Params:
+///     mesh    = The mesh to add a vertex to.
+///     normal  = The surface normal of the vertex, this is used in lighting calculations.
+///     tangent = The tangent of the surface normal, this is used in bump mapping techniques.
+///     uv      = The texture-coordinate for the new vertex.
+void addVertex (ref RenderMesh mesh, 
+                in RenderMesh.Vec3 position, 
+                in RenderMesh.Vec3 normal = [0f, 1f, 0f], 
+                in RenderMesh.Vec3 tangent = [0f, 0f, 1f], 
+                in RenderMesh.Vec2 uv = [0f, 0f]) pure nothrow @safe
+{
+    mesh.positions          ~= position;
+    mesh.normals            ~= normal;
+    mesh.tangents           ~= tangent;
+    mesh.textureCoordinates ~= uv;
+}
+///
+pure nothrow @safe unittest
+{
+    auto mesh = RenderMesh();
+    mesh.addVertex ([1f, 1f, 1f], [2f, 2f, 2f], [3f, 3f, 3f], [4f, 4f]);
+
+    assert (mesh.positions[0] == [1f, 1f, 1f]);
+    assert (mesh.normals[0] == [2f, 2f, 2f]);
+    assert (mesh.tangents[0] == [3f, 3f, 3f]);
+    assert (mesh.textureCoordinates[0] == [4f, 4f]);
+}
+
+/**
+    An entire triangle is added to the given RenderMesh.
+    
+    Params:
+        first   = The starting position index of the triangle.
+        second  = The position index of the vertex to draw a line from the first position to.
+        third   = The position index of the vertex to draw a line from the second position to. A line will then be draw 
+                  back to the first position index.
+*/
+void addTriangle (ref RenderMesh mesh, in uint first, in uint second, in uint third) pure nothrow @safe
+{
+    // Eagerly increase the element length for efficiency.
+    mesh.elements.length += 3;
+
+    // Specify each new element.
+    mesh.elements[$-3] = first;
+    mesh.elements[$-2] = second;
+    mesh.elements[$-1] = third;
+}
+///
+pure nothrow @safe unittest
+{
+    // Adding a triangle to be rendered is easy!
+    auto mesh = RenderMesh();
+    
+    // First add the necessary positions. Here we're creating a quad.
+    mesh.positions.length += 4;
+    mesh.positions[$-4] = [0f, 0f, 0f];
+    mesh.positions[$-3] = [1f, 0f, 0f];
+    mesh.positions[$-2] = [0f, 1f, 0f];
+    mesh.positions[$-1] = [1f, 1f, 0f];
+
+    // Now we can construct the two triangles necessary to draw a quad, this will be done counter-clockwise.
+    mesh.addTriangle (0, 1, 2);
+    mesh.addTriangle (2, 1, 3);
+
+    assert (mesh.elements[0] == 0);
+    assert (mesh.elements[1] == 1);
+    assert (mesh.elements[2] == 2);
+    assert (mesh.elements[3] == 2);
+    assert (mesh.elements[4] == 1);
+    assert (mesh.elements[5] == 3);
 }
