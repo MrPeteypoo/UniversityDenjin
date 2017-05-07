@@ -8,7 +8,7 @@
 module denjin.assets.types;
 
 // Phobos.
-import std.algorithm    : clamp, each;
+import std.algorithm    : clamp;
 import std.traits       : isArray, isDynamicArray, isStaticArray;
 
 // Engine.
