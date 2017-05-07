@@ -5,7 +5,7 @@
     Copyright: Copyright © 2017, Simon Peter Campbell
     License: MIT
 */
-module denjin.rendering.ids;
+module denjin.misc.ids;
 
 /// Identifies unique renderable instances of a mesh which can be rendered in a scene.
 alias InstanceID = uint;

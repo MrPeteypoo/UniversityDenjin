@@ -8,7 +8,7 @@
 module denjin.rendering.interfaces;
 
 // Engine.
-import denjin.rendering.ids     : MaterialID, MeshID;
+import denjin.misc.ids          : MaterialID, MeshID;
 import denjin.rendering.traits  : isAssets, isCamera, isDirectionalLight, isInstance, isMaterial, isMesh, isPointLight, 
                                   isScene, isSpotlight, isVector3F;
 

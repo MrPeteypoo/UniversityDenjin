@@ -37,7 +37,7 @@ template isScene (T)
 {
     import std.range                : ElementType, isInputRange, ReturnType;
     import std.traits               : hasMember, isArray, isImplicitlyConvertible;
-    import denjin.rendering.ids     : MeshID;
+    import denjin.misc.ids          : MeshID;
     import denjin.rendering.traits  : isVector3F;
 
     // These members must exist, most can be either variables or functions.
@@ -98,7 +98,7 @@ template isScene (T)
 ///
 pure nothrow @safe @nogc unittest
 {
-    import denjin.rendering.ids : LightID, InstanceID, MaterialID, MeshID;
+    import denjin.misc.ids : LightID, InstanceID, MaterialID, MeshID;
 
     struct Camera
     {
@@ -239,8 +239,8 @@ pure nothrow @safe @nogc unittest
 */
 template isInstance (T)
 {
-    import std.traits           : hasMember, isImplicitlyConvertible;
-    import denjin.rendering.ids : InstanceID, MaterialID, MeshID;
+    import std.traits       : hasMember, isImplicitlyConvertible;
+    import denjin.misc.ids  : InstanceID, MaterialID, MeshID;
 
     // The following members must exist.
     static assert (hasMember!(T, "id"));
@@ -276,7 +276,7 @@ template isInstance (T)
 ///
 pure nothrow @safe @nogc unittest
 {
-    import denjin.rendering.ids : InstanceID, MaterialID, MeshID;
+    import denjin.misc.ids : InstanceID, MaterialID, MeshID;
 
     struct Instance
     {
@@ -306,7 +306,7 @@ pure nothrow @safe @nogc unittest
 template isDirectionalLight (T)
 {
     import std.traits               : hasMember, isImplicitlyConvertible;
-    import denjin.rendering.ids     : LightID;
+    import denjin.misc.ids          : LightID;
     import denjin.rendering.traits  : isVector3F;
 
     // The following members must exist.
@@ -345,7 +345,7 @@ template isDirectionalLight (T)
 ///
 pure nothrow @safe @nogc unittest
 {
-    import denjin.rendering.ids : LightID;
+    import denjin.misc.ids : LightID;
 
     struct DirectionalLight
     {
@@ -377,7 +377,7 @@ pure nothrow @safe @nogc unittest
 template isPointLight (T)
 {
     import std.traits               : hasMember, isImplicitlyConvertible;
-    import denjin.rendering.ids     : LightID;
+    import denjin.misc.ids          : LightID;
     import denjin.rendering.traits  : isVector3F;
 
     // The following members must exist.
@@ -426,7 +426,7 @@ template isPointLight (T)
 ///
 pure nothrow @safe @nogc unittest
 {
-    import denjin.rendering.ids : LightID;
+    import denjin.misc.ids : LightID;
 
     struct PointLight
     {
@@ -462,7 +462,7 @@ pure nothrow @safe @nogc unittest
 template isSpotlight (T)
 {
     import std.traits               : hasMember, isImplicitlyConvertible;
-    import denjin.rendering.ids     : LightID;
+    import denjin.misc.ids          : LightID;
     import denjin.rendering.traits  : isVector3F;
 
     // The following members must exist.
@@ -521,7 +521,7 @@ template isSpotlight (T)
 ///
 pure nothrow @safe @nogc unittest
 {
-    import denjin.rendering.ids : LightID;
+    import denjin.misc.ids : LightID;
 
     struct DirectionalLight
     {

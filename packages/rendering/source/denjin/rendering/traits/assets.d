@@ -26,9 +26,9 @@ module denjin.rendering.traits.assets;
 */
 template isAssets (T)
 {
-    import std.range            : ElementType, isInputRange;
-    import std.traits           : hasMember, isArray;
-    import denjin.rendering.ids : MaterialID, MeshID;
+    import std.range        : ElementType, isInputRange;
+    import std.traits       : hasMember, isArray;
+    import denjin.misc.ids  : MaterialID, MeshID;
 
     // These members must exist. The following can be variables or functions.
     static assert (hasMember!(T, "materials"));
@@ -67,7 +67,7 @@ template isAssets (T)
 ///
 pure nothrow @safe @nogc unittest
 {
-    import denjin.rendering.ids : MaterialID, MeshID;
+    import denjin.misc.ids : MaterialID, MeshID;
 
     struct Material
     {
@@ -120,7 +120,7 @@ pure nothrow @safe @nogc unittest
 template isMaterial (T)
 {
     import std.traits               : hasMember, isConvertibleToString, isImplicitlyConvertible, isSomeString;
-    import denjin.rendering.ids     : MaterialID;
+    import denjin.misc.ids          : MaterialID;
     import denjin.rendering.traits  : isVector;
 
     // These members must exist, all of which can be variables or functions.
@@ -176,7 +176,7 @@ template isMaterial (T)
 ///
 pure nothrow @safe @nogc unittest
 {
-    import denjin.rendering.ids : MaterialID;
+    import denjin.misc.ids : MaterialID;
 
     struct Material
     {
@@ -211,7 +211,7 @@ template isMesh (T)
 {
     import std.range                : ElementType, isRandomAccessRange;
     import std.traits               : hasMember, isArray, isImplicitlyConvertible;
-    import denjin.rendering.ids     : MeshID;
+    import denjin.misc.ids          : MeshID;
     import denjin.rendering.traits  : isVector;
 
     // These members must exist, all of which can be variables or functions.
@@ -262,7 +262,7 @@ template isMesh (T)
 ///
 pure nothrow @safe @nogc unittest
 {
-    import denjin.rendering.ids : MeshID;
+    import denjin.misc.ids : MeshID;
     
     struct Mesh
     {

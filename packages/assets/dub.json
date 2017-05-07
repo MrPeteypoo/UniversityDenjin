@@ -6,6 +6,11 @@
 	"targetType": "library",
 	"targetPath": "builds",
 
+	"dependencies": {
+		"denjin:misc": "*",
+		"denjin:rendering": "*"
+	},
+
 	"buildRequirements": [
 		"allowWarnings",
 		"disallowDeprecations"
