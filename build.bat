@@ -24,7 +24,9 @@ if not "%compiler%" == "" (
 )
 
 dub %command% %buildFlag% %archFlag% %compilerFlag% --quiet || exit /b 1
+dub %command% denjin:assets %buildFlag% %archFlag% %compilerFlag% --quiet || exit /b 1
 dub %command% denjin:maths %buildFlag% %archFlag% %compilerFlag% --quiet || exit /b 1
 dub %command% denjin:misc %buildFlag% %archFlag% %compilerFlag% --quiet || exit /b 1
 dub %command% denjin:rendering %buildFlag% %archFlag% %compilerFlag% --quiet || exit /b 1
+dub %command% denjin:scene %buildFlag% %archFlag% %compilerFlag% --quiet || exit /b 1
 dub %command% denjin:window %buildFlag% %archFlag% %compilerFlag% --quiet || exit /b 1
