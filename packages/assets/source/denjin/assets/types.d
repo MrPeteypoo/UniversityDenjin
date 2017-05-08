@@ -309,12 +309,15 @@ pure nothrow @safe unittest
     assert (meshB.positions[$-1] == [2f, 2f, 2f]);
 }
 
-/// An entire vertex is added to the given RenderMesh.
-/// Params:
-///     mesh    = The mesh to add a vertex to.
-///     normal  = The surface normal of the vertex, this is used in lighting calculations.
-///     tangent = The tangent of the surface normal, this is used in bump mapping techniques.
-///     uv      = The texture-coordinate for the new vertex.
+/**
+    An entire vertex is added to the given RenderMesh.
+    
+    Params:
+        mesh    = The mesh to add a vertex to.
+        normal  = The surface normal of the vertex, this is used in lighting calculations.
+        tangent = The tangent of the surface normal, this is used in bump mapping techniques.
+        uv      = The texture-coordinate for the new vertex.
+*/
 void addVertex (ref RenderMesh mesh, 
                 in RenderMesh.Vec3 position, 
                 in RenderMesh.Vec3 normal = [0f, 1f, 0f], 
