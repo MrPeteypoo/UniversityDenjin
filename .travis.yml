@@ -15,6 +15,7 @@ addons:
 
     packages: &native_deps
       - gcc-multilib  # unittest-cov support.
+      - g++-multilib  # Assimp support.
       - cmake         # GLFW.
 
 matrix:
