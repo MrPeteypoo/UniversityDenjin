@@ -7,10 +7,18 @@
 */
 module denjin.assets.management;
 
+// Phobos.
+import std.algorithm    : move;
+import std.string       : toStringz;
+
 // Engine.
-import denjin.assets.types  : RenderMaterial, RenderMesh;
-import denjin.misc.ids      : MaterialID, MeshID;
-import denjin.misc.strings  : toHash;
+import denjin.assets.loading    : loadRenderMesh;
+import denjin.assets.types      : RenderMaterial, RenderMesh;
+import denjin.misc.ids          : MaterialID, MeshID;
+
+// External.
+import derelict.assimp3.assimp;
+import derelict.assimp3.types;
 
 /// Contains assets required by various parts of the engine that must be
 struct Assets
@@ -21,13 +29,26 @@ struct Assets
         RenderMesh[MeshID]          m_meshes;     /// Contains every mesh available.
     }
 
+    /// Ensures the ASSIMP3 library is loaded.
+    static this()
+    {
+        DerelictASSIMP3.load();
+    }
+
     /**
         In an ideal world, this would load every asset specified in the given configuration file. Due to time 
         constraints this does not happen yet.
     */
     this (in string config)
     {
-        
+        hardCodedMeshes;
+    }
+
+    /// Manually clears stored resources.
+    void clear() pure nothrow
+    {
+        m_materials.clear;
+        m_meshes.clear;
     }
 
     /// Returns a dynamic array containing every loaded material asset.
@@ -53,6 +74,34 @@ struct Assets
     {
         return id in m_meshes;
     }
+
+    /// In the future we'll load from a config file. For now we will just load testing files.
+    private void hardCodedMeshes()
+    {
+        immutable   sponza  = "models/sponza.dae";
+        enum        flags   = aiProcess_GenNormals | aiProcess_CalcTangentSpace | aiProcess_ImproveCacheLocality | 
+                              aiProcess_JoinIdenticalVertices;
+        const auto  scene   = aiImportFile (sponza.toStringz, flags);
+
+        if (scene is null)
+        {
+            assert (false, "Sponza couldn't be loaded. Commit sudoku.");
+        }
+
+        // Ensure we clean up after ourselves.
+        scope (exit) aiReleaseImport (scene);
+
+        // Now we can add each mesh.
+        foreach (i; 0..scene.mNumMeshes)
+        {
+            // Firstly we must interpret the ASSIMP mesh.
+            auto mesh = loadRenderMesh (scene.mMeshes[i]);
+
+            // Next we can add it to the hash table.
+            assert ((mesh.id in m_meshes) is null);
+            m_meshes[mesh.id] = move (mesh);
+        }
+    }
 }
 ///
 pure nothrow @safe @nogc unittest
@@ -61,16 +110,4 @@ pure nothrow @safe @nogc unittest
 
     // The struct must meet the requirements of the renderer.
     static assert (isAssets!Assets);
-}
-
-/// Returns the MaterialID representation of the given file location string.
-MaterialID materialID (in string fileLocation) pure nothrow @nogc
-{
-    return cast (MaterialID) fileLocation.toHash;
-}
-
-/// Returns the MeshID representation of the given file location string.
-MeshID meshID (in string fileLocation) pure nothrow @nogc
-{
-    return cast (MeshID) fileLocation.toHash;
 }

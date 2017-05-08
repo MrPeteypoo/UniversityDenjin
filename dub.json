@@ -52,5 +52,7 @@
 			"buildOptions": ["debugMode", "optimize", "inline", "debugInfo", "unittests"],
 			"version": ["optimized"]
 		}
-	}
+	},
+	
+	"copyFiles": ["content/all/models"]
 }

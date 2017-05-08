@@ -7,6 +7,9 @@
 */
 module denjin.misc.ids;
 
+// Engine.
+import denjin.misc.strings : toHash;
+
 /// Identifies unique renderable instances of a mesh which can be rendered in a scene.
 alias InstanceID = uint;
 
@@ -18,3 +21,15 @@ alias MeshID = uint;
 
 /// Identifies unique materials which describe how a surface should be modelled when rendered.
 alias MaterialID = uint;
+
+/// Returns the MaterialID representation of the given file location string.
+MaterialID materialID (in string fileLocation) pure nothrow @nogc
+{
+    return cast (MaterialID) fileLocation.toHash;
+}
+
+/// Returns the MeshID representation of the given file location string.
+MeshID meshID (in string fileLocation) pure nothrow @nogc
+{
+    return cast (MeshID) fileLocation.toHash;
+}
