@@ -48,11 +48,9 @@ cd .temp\%folder%\glfw
 
 echo:Running CMake on GLFW with generator: %generator%...
 cmake %glfw% -DBUILD_SHARED_LIBS=ON -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF -G %generator% > nul
-echo: 
 
 echo:Attempting to build GLFW...
 cmake --build . --target glfw --config Release > null
-echo: 
 
 echo:Copying glfw3.dll for %folder%...
 xcopy /Y src\Release\glfw3.dll ..\..\..\%output%\ > null
