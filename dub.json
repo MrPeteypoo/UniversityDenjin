@@ -11,7 +11,8 @@
 	"targetName": "denjin",
 	"targetType": "library",
 	"targetPath": "builds",
-
+	"workingDirectory":"builds",
+	
 	"subPackages": [
 		"./packages/assets/",
 		"./packages/maths/",

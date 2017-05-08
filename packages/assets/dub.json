@@ -5,6 +5,7 @@
 	"targetName": "denjin-assets",
 	"targetType": "library",
 	"targetPath": "builds",
+	"workingDirectory":"builds",
 
 	"dependencies": {
 		"denjin:misc": "*",

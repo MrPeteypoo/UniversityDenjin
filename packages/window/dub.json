@@ -5,6 +5,7 @@
 	"targetType": "library",
 	"targetName": "denjin-window",
 	"targetPath": "builds",
+	"workingDirectory":"builds",
 
 	"dependencies": {
 		"derelict-glfw3": "~>3.1.0",

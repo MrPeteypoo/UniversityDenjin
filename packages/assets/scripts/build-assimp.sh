@@ -60,7 +60,7 @@ echo "Attempting to build assimp..."
 cmake --build . > /dev/null
 
 echo "Copying libassimp.so.3 for $folder..."
-cp -u src/libassimp.so.3 ../../../$outputFile > /dev/null
-cp -u src/libassimp.so.3 "$shDir../$outputFile" > /dev/null
+cp -u code/libassimp.so.3 ../../../$output > /dev/null
+cp -u code/libassimp.so.3 "$shDir../$output" > /dev/null
 
 exit_script
