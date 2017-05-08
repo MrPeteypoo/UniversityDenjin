@@ -25,7 +25,7 @@ if [ "$compiler" != "" ]; then
 fi
 
 dub $command $buildFlag $archFlag $compilerFlag --quiet || exit $?
-dub $command denjin:assets $buildFlag $archFlag $compilerFlag --quiet || exit $?
+dub $command denjin:assets $buildFlag $archFlag $compilerFlag || exit $?
 dub $command denjin:maths $buildFlag $archFlag $compilerFlag --quiet || exit $?
 dub $command denjin:misc $buildFlag $archFlag $compilerFlag --quiet || exit $?
 dub $command denjin:rendering $buildFlag $archFlag $compilerFlag --quiet || exit $?
