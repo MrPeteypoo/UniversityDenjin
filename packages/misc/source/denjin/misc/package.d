@@ -9,3 +9,4 @@ module denjin.misc;
 
 public import denjin.misc.ids;
 public import denjin.misc.mixins;
+public import denjin.misc.strings;
