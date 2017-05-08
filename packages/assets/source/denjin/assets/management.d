@@ -9,10 +9,11 @@ module denjin.assets.management;
 
 // Phobos.
 import std.algorithm    : move;
+import std.meta         : AliasSeq;
 import std.string       : toStringz;
 
 // Engine.
-import denjin.assets.loading    : loadRenderMesh;
+import denjin.assets.loading    : loadRenderMaterial, loadRenderMesh;
 import denjin.assets.types      : RenderMaterial, RenderMesh;
 import denjin.misc.ids          : MaterialID, MeshID;
 
@@ -41,6 +42,8 @@ struct Assets
     */
     this (in string config)
     {
+        scope (failure) clear;
+        hardCodedMaterials;
         hardCodedMeshes;
     }
 
@@ -98,8 +101,29 @@ struct Assets
             auto mesh = loadRenderMesh (scene.mMeshes[i]);
 
             // Next we can add it to the hash table.
+            assert (mesh.id != 0);
             assert ((mesh.id in m_meshes) is null);
             m_meshes[mesh.id] = move (mesh);
+        }
+    }
+
+    /// In the future we'll load from a config file. For now we will just load testing data.
+    private void hardCodedMaterials()
+    {
+        enum materials = AliasSeq!("arch", "bricks", "ceiling", "chain", "column_a", "column_b", "column_c", 
+                                   "chains", "fabric_a", "fabric_c", "fabric_d", "fabric_e", "fabric_f", "fabric_g",
+                                   "flagpole", "floor", "leaf", "Material", "Material__25", "Material__298", 
+                                   "Material__47", "Material__57", "roof", "vase", "vase_hanging", "vase_round");
+
+        foreach (matName; materials)
+        {
+            // Firstly retrieve the newly built material.
+            auto material = loadRenderMaterial (matName);
+            
+            // Ensure the material is valid.
+            assert (material.id != 0);
+            assert ((material.id in m_materials) is null);
+            m_materials[material.id] = move (material);
         }
     }
 }

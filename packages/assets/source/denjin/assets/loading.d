@@ -12,7 +12,7 @@ import std.conv     : to;
 import std.stdio    : writeln;
 
 // Engine.
-import denjin.assets.types  : RenderMesh, addVertex, addTriangle;
+import denjin.assets.types  : RenderMaterial, RenderMesh, addVertex, addTriangle;
 import denjin.misc.ids      : materialID, meshID;
 
 // External.
@@ -77,4 +77,202 @@ body
     {
         assert (false, "Uh oh");
     }
+}
+
+/// Loads a RenderMaterial with the given name (currently hard-coded).
+RenderMaterial loadRenderMaterial (in string name) pure nothrow @nogc
+{
+    auto material = RenderMaterial (name.materialID);
+
+    with (material)
+    {
+        smoothness      = 0.5f;
+        reflectance     = 0.5f;
+        conductivity    = 0f;
+        setAlbedo (0.25f, 0.5f, 0.25f, 1f);
+
+        if (name == "arch")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "bricks")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "ceiling")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "chain")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "column_a")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "column_b")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "column_c")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "details")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "fabric_a")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "fabric_c")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "fabric_d")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "fabric_e")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "fabric_f")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "fabric_g")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "flagpole")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "floor")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "leaf")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "Material")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "Material__25")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "Material__298")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "Material__47")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "Material__57")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "roof")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "vase")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "vase_hanging")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+
+        else if (name == "vase_round")
+        {
+            physicsMap      = "";
+            albedoMap       = "";
+            normalMap       = "";
+        }
+    }
+
+    return material;
 }
