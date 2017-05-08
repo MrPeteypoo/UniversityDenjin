@@ -18,8 +18,8 @@ module denjin.rendering.traits.assets;
     Members:
     materials: An input range of objects representing unique materials which must be loaded. 
     meshes: An input range of objects representing unique meshes which must be loaded.
-    material: A representation of a single material which corresponds to a given MaterialID.
-    mesh: A representation of a single mesh which corresponds to a given MeshID.
+    material: A pointer to a representation of a single material which corresponds to a given MaterialID.
+    mesh: A pointer to a representation of a single mesh which corresponds to a given MeshID.
 
     See_Also:
         isMaterial, isMesh
@@ -27,7 +27,7 @@ module denjin.rendering.traits.assets;
 template isAssets (T)
 {
     import std.range        : ElementType, isInputRange;
-    import std.traits       : hasMember, isArray;
+    import std.traits       : hasMember, isArray, PointerTarget;
     import denjin.misc.ids  : MaterialID, MeshID;
 
     // These members must exist. The following can be variables or functions.
@@ -55,11 +55,11 @@ template isAssets (T)
 
         auto material   = assets.material (MaterialID.init);
         alias Material  = typeof (material);
-        static assert (isMaterial!Material);
+        static assert (isMaterial!(PointerTarget!Material));
 
         auto mesh       = assets.mesh (MeshID.init);
         alias Mesh      = typeof (mesh);
-        static assert (isMesh!Mesh);
+        static assert (isMesh!(PointerTarget!Mesh));
     }
 
     enum isAssets = true;
@@ -94,8 +94,8 @@ pure nothrow @safe @nogc unittest
         inout(Material[]) materials() inout @property;
         inout(Mesh[]) meshes() inout @property;
 
-        inout(Material) material (in MaterialID id) inout;
-        ref inout(Mesh) mesh (in MeshID id) inout;
+        inout(Material*) material (in MaterialID id) inout;
+        ref inout(Mesh*) mesh (in MeshID id) inout;
     }
 
     static assert (isAssets!Assets);

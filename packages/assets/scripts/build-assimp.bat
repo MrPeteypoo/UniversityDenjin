@@ -7,9 +7,9 @@ set batchFileName=%~n0
 
 set arch=%DUB_ARCH%
 set folder=win-%arch%
-set glfw=%batchDir%..\..\..\external\glfw
+set assimp=%batchDir%..\..\..\external\assimp
 set output=content\%folder%
-set outputFile=%output%\glfw3.dll
+set outputFile=%output%\assimp.dll
 set generator=""
 
 if exist %currentDir%\%outputFile% (
@@ -27,9 +27,9 @@ if %arch% == x86 (
 
 REM cd %batchDir%
 
-if not exist %glfw%\CMakeLists.txt (
-    echo:Couldn't find external\glfw\CMakeLists.txt, GLFW will not be built.
-    echo:%glfw%
+if not exist %assimp%\CMakeLists.txt (
+    echo:Couldn't find external\assimp\CMakeLists.txt, Assimp will not be built.
+    echo:%assimp%
     exit 0
 )
 
@@ -39,24 +39,25 @@ echo:Starting %batchFileName%...
 echo:=================================
 echo: 
 
-if not exist .temp mkdir .temp
+if not exist .temp\ mkdir .temp
 if not exist .temp\%folder% mkdir .temp\%folder%
-if not exist .temp\%folder%\glfw mkdir .temp\%folder%\glfw
+if not exist .temp\%folder%\assimp mkdir .temp\%folder%\assimp
 if not exist %output% mkdir %output%
+if not exist %batchDir%..\%output% mkdir %batchDir%..\%output%
 
-cd .temp\%folder%\glfw
+cd .temp\%folder%\assimp
 
-echo:Running CMake on GLFW with generator: %generator%...
-cmake %glfw% -DBUILD_SHARED_LIBS=ON -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF -G %generator% > nul
-echo: 
+echo:Running CMake on Assimp with generator: %generator%...
+cmake %assimp% -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=OFF -G %generator% 1> nul
 
-echo:Attempting to build GLFW...
-cmake --build . --target glfw --config Release > null
-echo: 
+echo:Attempting to build Assimp...
+cmake --build . --config Release 1> nul
 
-echo:Copying glfw3.dll for %folder%...
-xcopy /Y src\Release\glfw3.dll ..\..\..\%output%\ > null
-xcopy /Y src\Release\glfw3.dll %batchDir%..\%output%\ > null
+echo:Copying assimp.dll for %folder%...
+xcopy /y /i code\Release\assimp-vc140-mt.dll ..\..\..\%output% > nul
+ren ..\..\..\%output%\assimp-vc140-mt.dll assimp.dll > nul
+xcopy /y /i code\Release\assimp-vc140-mt.dll %batchDir%..\%output% > nul
+ren %batchDir%..\%output%\assimp-vc140-mt.dll assimp.dll > nul
 call :exit_script
 
 REM Ensure we go back to the previous directory.

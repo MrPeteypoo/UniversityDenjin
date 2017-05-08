@@ -8,9 +8,9 @@ shFileName="${0##*/}"
 
 arch="$DUB_ARCH"
 folder="linux-$arch"
-glfw="$shDir/../../../external/glfw"
+assimp="$shDir/../../../external/assimp"
 output="content/$folder"
-outputFile="$output/libglfw3.so"
+outputFile="$output/libassimp.so.3"
 extraCMakeFlags=""
 
 if [ -e "$currentDir/$outputFile" ]; then
@@ -37,8 +37,8 @@ elif [ "$arch" != "x86_64" ]; then
     exit_script
 fi;
 
-if [ ! -e "$glfw/CMakeLists.txt" ]; then
-    echo "Couldn't find external/glfw/CMakeLists.txt, GLFW will not be built."
+if [ ! -e "$assimp/CMakeLists.txt" ]; then
+    echo "Couldn't find external/assimp/CMakeLists.txt, assimp will not be built."
     exit 0
 fi;
 
@@ -50,19 +50,19 @@ echo ""
 
 mkdir -p $output
 mkdir -p $shDir../$output
-mkdir -p .temp/$folder/glfw
-cd .temp/$folder/glfw
+mkdir -p .temp/$folder/assimp
+cd .temp/$folder/assimp
 
-echo "Running CMake on GLFW..."
-cmake $glfw -DBUILD_SHARED_LIBS=ON -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF -DCMAKE_BUILD_TYPE=Release $extraCMakeFlags > /dev/null
+echo "Running CMake on assimp..."
+cmake $assimp -DBUILD_SHARED_LIBS=ON -DBUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release $extraCMakeFlags > /dev/null
 echo ""
 
-echo "Attempting to build GLFW..."
-cmake --build . --target glfw > /dev/null
+echo "Attempting to build assimp..."
+cmake --build . > /dev/null
 echo ""
 
-echo "Copying libglfw.so for $folder..."
-cp -u src/libglfw.so ../../../$outputFile > /dev/null
-cp -u src/libglfw.so "$shDir../$outputFile" > /dev/null
+echo "Copying libassimp.so.3 for $folder..."
+cp -u src/libassimp.so.3 ../../../$outputFile > /dev/null
+cp -u src/libassimp.so.3 "$shDir../$outputFile" > /dev/null
 
 exit_script
