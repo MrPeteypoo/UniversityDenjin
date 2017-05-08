@@ -55,11 +55,9 @@ cd .temp/$folder/glfw
 
 echo "Running CMake on GLFW..."
 cmake $glfw -DBUILD_SHARED_LIBS=ON -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF -DCMAKE_BUILD_TYPE=Release $extraCMakeFlags > /dev/null
-echo ""
 
 echo "Attempting to build GLFW..."
 cmake --build . --target glfw > /dev/null
-echo ""
 
 echo "Copying libglfw.so for $folder..."
 cp -u src/libglfw.so ../../../$outputFile > /dev/null
