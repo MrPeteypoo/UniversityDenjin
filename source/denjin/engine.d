@@ -37,9 +37,9 @@ struct Engine
     void initialise()
     {
         // Create/retrieve the systems.
+        assets      = new Assets ("THIS PARAM DOES NOTHING");
         window      = new WindowGLFW!(TempA, TempA)(1280, 720, No.isFullscreen, "Denjin");
         renderer    = window.renderer;
-        assets      = new Assets ("THIS PARAM DOES NOTHING");
 
         // Extra initialisationa as required.
         auto temp = TempA();

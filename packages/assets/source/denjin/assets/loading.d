@@ -8,17 +8,19 @@
 module denjin.assets.loading;
 
 // Phobos. 
-import std.conv     : to;
-import std.stdio    : writeln;
+import std.conv         : to;
+import std.algorithm    : move;
+import std.stdio        : writeln;
 
 // Engine.
 import denjin.assets.types  : RenderMaterial, RenderMesh, addVertex, addTriangle;
-import denjin.misc.ids      : materialID, meshID;
+import denjin.misc.ids      : MaterialID, MeshID, materialID, meshID;
 
 // External.
 import derelict.assimp3.types : aiMesh;
 
-RenderMesh loadRenderMesh (in aiMesh* assimpMesh) nothrow 
+/// Loads a RenderMesh from an ASSIMP mesh at the given location.
+void loadRenderMesh (ref RenderMesh[MeshID] meshes, in aiMesh* assimpMesh) nothrow 
 in
 {
     assert (assimpMesh !is null);
@@ -35,43 +37,48 @@ body
         immutable name = assimpMesh.mName.data.ptr.to!string;
         writeln ("Reading mesh: ", name);
 
-        // Construct a mesh with a unique ID.
-        auto renderMesh = RenderMesh (name.meshID);
-        
-        // Speed the process up by reserving enough memory.
-        immutable reservation = cast (size_t) assimpMesh.mNumVertices;
-        renderMesh.positions.reserve (reservation);
-        renderMesh.normals.reserve (reservation);
-        renderMesh.tangents.reserve (reservation);
-        renderMesh.textureCoordinates.reserve (reservation);
-
-        // Add the vertices.
-        foreach (i; 0..reservation)
+        // Don't do anything if the mesh already exists.
+        immutable id = name.meshID;
+        if ((id in meshes) is null)
         {
-            immutable pos   = assimpMesh.mVertices[i];
-            immutable norm  = assimpMesh.mNormals[i];
-            immutable tan   = assimpMesh.mTangents[i];
-            immutable uv    = assimpMesh.mTextureCoords[0][i];
+            // Construct a mesh with a unique ID.
+            auto renderMesh = RenderMesh (name.meshID);
 
-            renderMesh.addVertex ([pos.x, pos.y, pos.z],
-                                  [norm.x, norm.y, norm.z],
-                                  [tan.x, tan.y, tan.z],
-                                  [uv.x, uv.y]);
-        }
+            // Speed the process up by reserving enough memory.
+            immutable reservation = cast (size_t) assimpMesh.mNumVertices;
+            renderMesh.positions.reserve (reservation);
+            renderMesh.normals.reserve (reservation);
+            renderMesh.tangents.reserve (reservation);
+            renderMesh.textureCoordinates.reserve (reservation);
 
-        // Add the elements.
-        renderMesh.elements.reserve (cast (size_t) assimpMesh.mNumFaces * 3);
-        foreach (i; 0..assimpMesh.mNumFaces)
-        {
-            const face      = assimpMesh.mFaces[i];
-            const indices   = face.mNumIndices;
-            if (indices >= 3)
+            // Add the vertices.
+            foreach (i; 0..reservation)
             {
-                renderMesh.addTriangle (face.mIndices[0], face.mIndices[1], face.mIndices[2]);
-            }
-        }
+                immutable pos   = assimpMesh.mVertices[i];
+                immutable norm  = assimpMesh.mNormals[i];
+                immutable tan   = assimpMesh.mTangents[i];
+                immutable uv    = assimpMesh.mTextureCoords[0][i];
 
-        return renderMesh;
+                renderMesh.addVertex ([pos.x, pos.y, pos.z],
+                                      [norm.x, norm.y, norm.z],
+                                      [tan.x, tan.y, tan.z],
+                                      [uv.x, uv.y]);
+            }
+
+            // Add the elements.
+            renderMesh.elements.reserve (cast (size_t) assimpMesh.mNumFaces * 3);
+            foreach (i; 0..assimpMesh.mNumFaces)
+            {
+                const face      = assimpMesh.mFaces[i];
+                const indices   = face.mNumIndices;
+                if (indices >= 3)
+                {
+                    renderMesh.addTriangle (face.mIndices[0], face.mIndices[1], face.mIndices[2]);
+                }
+            }
+
+            meshes[id] = move (renderMesh);
+        }
     }
     catch (Throwable)
     {
@@ -80,199 +87,214 @@ body
 }
 
 /// Loads a RenderMaterial with the given name (currently hard-coded).
-RenderMaterial loadRenderMaterial (in string name) pure nothrow @nogc
+void loadRenderMaterial(string name)(ref RenderMaterial[MaterialID] materials)
 {
-    auto material = RenderMaterial (name.materialID);
-
-    with (material)
+    try
     {
-        smoothness      = 0.5f;
-        reflectance     = 0.5f;
-        conductivity    = 0f;
-        setAlbedo (0.25f, 0.5f, 0.25f, 1f);
-
-        if (name == "arch")
+        writeln ("Reading material: ", name);
+        immutable id = name.materialID;
+        if ((id in materials) is null)
         {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
 
-        else if (name == "bricks")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+            auto material = RenderMaterial (name.materialID);
+            with (material)
+            {
+                smoothness      = 0.5f;
+                reflectance     = 0.5f;
+                conductivity    = 0f;
+                setAlbedo (0.25f, 0.5f, 0.25f, 1f);
 
-        else if (name == "ceiling")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                static if (name == "arch")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "chain")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "bricks")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "column_a")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "ceiling")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "column_b")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "chain")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "column_c")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "column_a")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "details")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "column_b")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "fabric_a")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "column_c")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "fabric_c")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "details")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "fabric_d")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "fabric_a")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "fabric_e")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "fabric_c")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "fabric_f")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "fabric_d")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "fabric_g")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "fabric_e")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "flagpole")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "fabric_f")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "floor")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "fabric_g")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "leaf")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "flagpole")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "Material")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "floor")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "Material__25")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "leaf")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "Material__298")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "Material")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "Material__47")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "Material__25")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "Material__57")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "Material__298")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "roof")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "Material__47")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "vase")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "Material__57")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "vase_hanging")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
-        }
+                else static if (name == "roof")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
 
-        else if (name == "vase_round")
-        {
-            physicsMap      = "";
-            albedoMap       = "";
-            normalMap       = "";
+                else static if (name == "vase")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
+
+                else static if (name == "vase_hanging")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
+
+                else static if (name == "vase_round")
+                {
+                    physicsMap      = "";
+                    albedoMap       = "";
+                    normalMap       = "";
+                }
+    
+                else
+                {
+                    static assert (false, "We don't handle this yet! " ~ name);
+                }
+            }
+            materials[id] = move (material);
         }
     }
-
-    return material;
+    catch (Throwable)
+    {
+    }
 }

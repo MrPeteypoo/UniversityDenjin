@@ -8,7 +8,6 @@
 module denjin.assets.management;
 
 // Phobos.
-import std.algorithm    : move;
 import std.meta         : AliasSeq;
 import std.string       : toStringz;
 
@@ -97,13 +96,7 @@ struct Assets
         // Now we can add each mesh.
         foreach (i; 0..scene.mNumMeshes)
         {
-            // Firstly we must interpret the ASSIMP mesh.
-            auto mesh = loadRenderMesh (scene.mMeshes[i]);
-
-            // Next we can add it to the hash table.
-            assert (mesh.id != 0);
-            assert ((mesh.id in m_meshes) is null);
-            m_meshes[mesh.id] = move (mesh);
+            m_meshes.loadRenderMesh (scene.mMeshes[i]);
         }
     }
 
@@ -111,19 +104,13 @@ struct Assets
     private void hardCodedMaterials()
     {
         enum materials = AliasSeq!("arch", "bricks", "ceiling", "chain", "column_a", "column_b", "column_c", 
-                                   "chains", "fabric_a", "fabric_c", "fabric_d", "fabric_e", "fabric_f", "fabric_g",
-                                   "flagpole", "floor", "leaf", "Material", "Material__25", "Material__298", 
-                                   "Material__47", "Material__57", "roof", "vase", "vase_hanging", "vase_round");
+                                   "fabric_a", "fabric_c", "fabric_d", "fabric_e", "fabric_f", "fabric_g", "flagpole",
+                                   "floor", "leaf", "Material", "Material__25", "Material__298", "Material__47", 
+                                   "Material__57", "roof", "vase", "vase_hanging", "vase_round");
 
         foreach (matName; materials)
         {
-            // Firstly retrieve the newly built material.
-            auto material = loadRenderMaterial (matName);
-            
-            // Ensure the material is valid.
-            assert (material.id != 0);
-            assert ((material.id in m_materials) is null);
-            m_materials[material.id] = move (material);
+            m_materials.loadRenderMaterial!(matName);
         }
     }
 }
