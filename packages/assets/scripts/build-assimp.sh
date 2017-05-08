@@ -54,12 +54,10 @@ mkdir -p .temp/$folder/assimp
 cd .temp/$folder/assimp
 
 echo "Running CMake on assimp..."
-cmake $assimp -DBUILD_SHARED_LIBS=ON -DBUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release $extraCMakeFlags > /dev/null
-echo ""
+cmake $assimp -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=OFF -DCMAKE_BUILD_TYPE=Release $extraCMakeFlags > /dev/null
 
 echo "Attempting to build assimp..."
 cmake --build . > /dev/null
-echo ""
 
 echo "Copying libassimp.so.3 for $folder..."
 cp -u src/libassimp.so.3 ../../../$outputFile > /dev/null
