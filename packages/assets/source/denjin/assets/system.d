@@ -5,7 +5,7 @@
     Copyright: Copyright © 2017, Simon Peter Campbell
     License: MIT
 */
-module denjin.assets.management;
+module denjin.assets.system;
 
 // Phobos.
 import std.meta         : AliasSeq;
@@ -13,7 +13,7 @@ import std.string       : toStringz;
 
 // Engine.
 import denjin.assets.loading    : loadRenderMaterial, loadRenderMesh;
-import denjin.assets.types      : RenderMaterial, RenderMesh;
+import denjin.assets.rendering  : RenderMaterial, RenderMesh;
 import denjin.misc.ids          : MaterialID, MeshID;
 
 // External.
@@ -103,7 +103,7 @@ struct Assets
     /// In the future we'll load from a config file. For now we will just load testing data.
     private void hardCodedMaterials() nothrow
     {
-        enum materials = AliasSeq!("arch", "bricks", "ceiling", "chain", "column_a", "column_b", "column_c", 
+        enum materials = AliasSeq!("arch", "bricks", "ceiling", "chain", "column_a", "column_b", "column_c", "details",
                                    "fabric_a", "fabric_c", "fabric_d", "fabric_e", "fabric_f", "fabric_g", "flagpole",
                                    "floor", "leaf", "Material", "Material__25", "Material__298", "Material__47", 
                                    "Material__57", "roof", "vase", "vase_hanging", "vase_round");

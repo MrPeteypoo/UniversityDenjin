@@ -1,11 +1,11 @@
 /**
-    Common types representing scene objects such as instances, cameras, lights, etc.
+    Common types representing renderable scene objects such as instances, cameras, lights, etc.
 
     Authors: Simon Peter Campbell, peter@spcampbell.co.uk
     Copyright: Copyright © 2017, Simon Peter Campbell
     License: MIT
 */
-module denjin.scene.types;
+module denjin.scene.rendering;
 
 // Engine.
 import denjin.maths     : Vector3f;

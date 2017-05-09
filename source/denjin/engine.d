@@ -20,51 +20,67 @@ else
     import denjin.assets    : Assets;
     import denjin.window    : IWindow, WindowGLFW;
     import denjin.rendering : IRenderer;
+    import denjin.scene     : Scene;
 }
 
 /// An incredibly basic "Engine" structure, this holds the different game systems and manages initialisation/shutdown.
 struct Engine
 {
-    struct TempA { }
-    alias Window    = IWindow!(TempA, TempA);
+    alias Window    = IWindow!(Assets, Scene);
     alias Renderer  = Window.Renderer;
 
     Assets*     assets;     /// A pointer to Denjins asset management system.
     Window      window;     /// A reference to a window management system, hard coded to GLFW right now.
     Renderer    renderer;   /// A reference to a rendering system, this is created by the window system.
+    Scene*      scene;      /// A pointer to Denjins scene management system.
 
     /// Construct each required system and prepare for running.
     void initialise()
     {
+        // Ensure we destroy resources straight away.
+        scope (failure) clear;
+
         // Create/retrieve the systems.
         assets      = new Assets ("THIS PARAM DOES NOTHING");
-        window      = new WindowGLFW!(TempA, TempA)(1280, 720, No.isFullscreen, "Denjin");
+        window      = new WindowGLFW!(Assets, Scene)(1280, 720, No.isFullscreen, "Denjin");
         renderer    = window.renderer;
+        scene       = new Scene ("THIS PARAM DOES NOTHING");
 
         // Extra initialisationa as required.
-        auto temp = TempA();
-        renderer.load (temp, temp);
+        renderer.load (*assets, *scene);
     }
 
     /// Ensure we graciously shut down.
     void clear() nothrow
     {
-        // Window system "own" rendering systems so we can ignore that.
-        if (window)
+        try
         {
-            window.clear();
-        }
+            scope (exit)
+            {
+                window      = null;
+                renderer    = null;
+            }
 
-        // Don't clear the assets system if it hasn't been initialised.
-        if (assets)
+            // Window system "own" rendering systems so we can ignore that.
+            window.destroy;
+            assets.destroy;
+            scene.destroy;
+        }
+        catch (Throwable)
         {
-            delete assets;
-            assets = null;
         }
     }
 
     /// Starts the game loop.
     void run()
+    in
+    {
+        assert (assets);
+        assert (window);
+        assert (renderer);
+        assert (scene);
+    }
+    body
     {
         while (!window.shouldClose())
         {
@@ -73,8 +89,7 @@ struct Engine
 
             if (window.isVisible)
             {
-                auto temp = TempA();
-                renderer.render (temp);
+                renderer.render (*scene);
             }
         }
     }

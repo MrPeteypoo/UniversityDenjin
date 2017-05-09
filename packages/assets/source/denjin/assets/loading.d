@@ -13,8 +13,8 @@ import std.algorithm    : move;
 import std.stdio        : writeln;
 
 // Engine.
-import denjin.assets.types  : RenderMaterial, RenderMesh, addVertex, addTriangle;
-import denjin.misc.ids      : MaterialID, MeshID, materialID, meshID;
+import denjin.assets.rendering  : RenderMaterial, RenderMesh, addVertex, addTriangle;
+import denjin.misc.ids          : MaterialID, MeshID, materialID, meshID;
 
 // External.
 import derelict.assimp3.types : aiMesh;
@@ -230,6 +230,7 @@ void loadRenderMaterial(string name)(ref RenderMaterial[MaterialID] materials)
                     normalMap       = "";
                 }
 
+                // Lion head.
                 else static if (name == "Material__25")
                 {
                     physicsMap      = "";
@@ -237,6 +238,7 @@ void loadRenderMaterial(string name)(ref RenderMaterial[MaterialID] materials)
                     normalMap       = "";
                 }
 
+                // Lion mantle.
                 else static if (name == "Material__298")
                 {
                     physicsMap      = "";
@@ -244,6 +246,7 @@ void loadRenderMaterial(string name)(ref RenderMaterial[MaterialID] materials)
                     normalMap       = "";
                 }
 
+                // Blank picture frame.
                 else static if (name == "Material__47")
                 {
                     physicsMap      = "";
@@ -251,6 +254,7 @@ void loadRenderMaterial(string name)(ref RenderMaterial[MaterialID] materials)
                     normalMap       = "";
                 }
 
+                // Flowers on pots.
                 else static if (name == "Material__57")
                 {
                     physicsMap      = "";

@@ -8,5 +8,5 @@
 module denjin.assets;
 
 public import denjin.assets.loading;
-public import denjin.assets.management;
-public import denjin.assets.types;
+public import denjin.assets.system;
+public import denjin.assets.rendering;

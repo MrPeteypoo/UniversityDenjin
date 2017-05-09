@@ -5,7 +5,7 @@
     Copyright: Copyright © 2017, Simon Peter Campbell
     License: MIT
 */
-module denjin.assets.types;
+module denjin.assets.rendering;
 
 // Phobos.
 import std.algorithm    : clamp;

@@ -47,7 +47,7 @@ interface IAssets (Material, Mesh)
         isAssets, isScene
 */
 interface IRenderer (Assets, Scene)
-    //if (isAssets!Asserts && isScene!Scene)
+    if (isAssets!Assets && isScene!Scene)
 {
     /// Requests the renderer stop what it's doing, shutdown and clear its resources.
     void clear() nothrow;

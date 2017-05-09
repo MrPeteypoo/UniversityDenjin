@@ -23,7 +23,7 @@ import denjin.rendering.traits      : isAssets, isScene;
         isAssets, isScene
 */
 interface IWindow (Assets, Scene)
-    //if (isAssets!Assets && isScene!Scene)
+    if (isAssets!Assets && isScene!Scene)
 {
     /// The asset and scene management systems are used to specify the renderer interface.
     alias Renderer = IRenderer!(Assets, Scene);
