@@ -8,6 +8,7 @@
 	"workingDirectory":"builds",
 
 	"dependencies": {
+		"denjin:maths": "*",
 		"denjin:misc": "*",
 		"denjin:rendering": "*",
 		"derelict-assimp3": "~>1.3.0"

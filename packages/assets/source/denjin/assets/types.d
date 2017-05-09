@@ -12,7 +12,8 @@ import std.algorithm    : clamp;
 import std.traits       : isArray, isDynamicArray, isStaticArray;
 
 // Engine.
-import denjin.misc.ids : MaterialID, MeshID;
+import denjin.maths     : Vector2f, Vector3f, Vector4f;
+import denjin.misc.ids  : MaterialID, MeshID;
 
 /**
     Provides a description of the material properties of a rendered object. 
@@ -24,11 +25,11 @@ struct RenderMaterial
 {
     private
     {
-        MaterialID  m_id;                               /// An ID uniquely identifying this instance of a RenderMaterial.
-        float       m_smoothness    = 0f;               /// A smoothness factor.
-        float       m_reflectance   = 0f;               /// A reflectance factor.
-        float       m_conductivity  = 0f;               /// A conductivity factor.
-        float[4]    m_albedo        = [0f, 0f, 0f, 1f]; /// The base colour and opacity of the material.
+        MaterialID  m_id;                                           /// An ID uniquely identifying this instance of a RenderMaterial.
+        float       m_smoothness    = 0f;                           /// A smoothness factor.
+        float       m_reflectance   = 0f;                           /// A reflectance factor.
+        float       m_conductivity  = 0f;                           /// A conductivity factor.
+        Vector4f    m_albedo        = [0f, 0f, 0f, 1f];    /// The base colour and opacity of the material.
 
         string      m_physicsMap;   /// The file location to a texture map to use for physics properties.
         string      m_albedoMap;    /// The file location to a texture map to use for the albedo.
@@ -68,7 +69,7 @@ struct RenderMaterial
 
     /// The first three values represent the base colour of the material, the fourth is an opacity factor.
     /// Returns: An array of four floats ranging from zero to one.
-    ref const(float[4]) albedo() const pure nothrow @safe @nogc @property { return m_albedo; }
+    ref const(Vector4f) albedo() const pure nothrow @safe @nogc @property { return m_albedo; }
 
     /// The file location of a texture map to be used for smoothness, reflectance and conductivity values.
     /// Returns: A file location as a string, An empty string indicates no texture map should be used.
@@ -124,13 +125,10 @@ struct RenderMaterial
     /// Sets the base colour and opacity of the material, each value will be clamped in the range zero to one.
     void setAlbedo (in float red, in float green, in float blue, in float alpha) pure nothrow @safe @nogc
     {
-        m_albedo =
-        [
-            red.clamp (0f, 1f),
-            green.clamp (0f, 1f),
-            blue.clamp (0f, 1f),
-            alpha.clamp (0f, 1f)
-        ];
+        m_albedo.r = red.clamp (0f, 1f);
+        m_albedo.g = green.clamp (0f, 1f);
+        m_albedo.b = blue.clamp (0f, 1f);
+        m_albedo.a = alpha.clamp (0f, 1f);
     }
 
     /// Sets the texture map to use for smoothness, reflectance and conductivity. An empty string will disable the map.
@@ -255,13 +253,11 @@ struct RenderMesh
         MeshID m_id; /// An ID which should represent a unique mesh. This should be referenced by instances.
     }
 
-    alias Vec3 = float[3];      /// 3D vectors are represented by an array of 3 floats.
-    alias Vec2 = float[2];      /// 2D vectors are represented by an array of 2 floats.
-    Vec3[] positions;           /// Contains the position of every vertex of the mesh.
-    Vec3[] normals;             /// Contains the surface normal of every vertex of the mesh.
-    Vec3[] tangents;            /// Contains the surface tangents of every vertex of the mesh.
-    Vec2[] textureCoordinates;  /// Contains the UV co-ordinates of every vertex of the mesh.
-    uint[] elements;            /// Contains the elements necessary to construct triangles from vertex positions.
+    Vector3f[]  positions;           /// Contains the position of every vertex of the mesh.
+    Vector3f[]  normals;             /// Contains the surface normal of every vertex of the mesh.
+    Vector3f[]  tangents;            /// Contains the surface tangents of every vertex of the mesh.
+    Vector2f[]  textureCoordinates;  /// Contains the UV co-ordinates of every vertex of the mesh.
+    uint[]      elements;            /// Contains the elements necessary to construct triangles from vertex positions.
 
     /**
         Construct a mesh with the given ID. 
@@ -292,13 +288,13 @@ pure nothrow @safe unittest
     assert (meshB.id == 1);
 
     // Vertex attributes can be added like so.
-    meshB.positions ~= [1f, 1f, 1f];
+    meshB.positions ~= Vector3f (1f, 1f, 1f);
     assert (meshB.positions[$-1] == [1f, 1f, 1f]);
 
-    meshB.normals ~= [2f, 2f, 2f];
+    meshB.normals ~= Vector3f (2f, 2f, 2f);
     assert (meshB.normals[$-1] == [2f, 2f, 2f]);
     
-    meshB.tangents ~= [3f, 3f, 3f];
+    meshB.tangents ~= Vector3f (3f, 3f, 3f);
     assert (meshB.tangents[$-1] == [3f, 3f, 3f]);
 
     meshB.elements ~= [0u, 0u, 0u];
@@ -319,15 +315,15 @@ pure nothrow @safe unittest
         uv      = The texture-coordinate for the new vertex.
 */
 void addVertex (ref RenderMesh mesh, 
-                in RenderMesh.Vec3 position, 
-                in RenderMesh.Vec3 normal = [0f, 1f, 0f], 
-                in RenderMesh.Vec3 tangent = [0f, 0f, 1f], 
-                in RenderMesh.Vec2 uv = [0f, 0f]) pure nothrow @safe
+                in float[3] position, 
+                in float[3] normal = [0f, 1f, 0f], 
+                in float[3] tangent = [0f, 0f, 1f], 
+                in float[2] uv = [0f, 0f]) pure nothrow @safe
 {
-    mesh.positions          ~= position;
-    mesh.normals            ~= normal;
-    mesh.tangents           ~= tangent;
-    mesh.textureCoordinates ~= uv;
+    mesh.positions          ~= Vector3f (position);
+    mesh.normals            ~= Vector3f (normal);
+    mesh.tangents           ~= Vector3f (tangent);
+    mesh.textureCoordinates ~= Vector2f (uv);
 }
 ///
 pure nothrow @safe unittest
