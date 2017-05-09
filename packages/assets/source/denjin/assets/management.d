@@ -101,7 +101,7 @@ struct Assets
     }
 
     /// In the future we'll load from a config file. For now we will just load testing data.
-    private void hardCodedMaterials()
+    private void hardCodedMaterials() nothrow
     {
         enum materials = AliasSeq!("arch", "bricks", "ceiling", "chain", "column_a", "column_b", "column_c", 
                                    "fabric_a", "fabric_c", "fabric_d", "fabric_e", "fabric_f", "fabric_g", "flagpole",

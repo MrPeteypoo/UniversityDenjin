@@ -38,7 +38,7 @@ template isScene (T)
     import std.range                : ElementType, isInputRange, ReturnType;
     import std.traits               : hasMember, isArray, isImplicitlyConvertible;
     import denjin.misc.ids          : MeshID;
-    import denjin.rendering.traits  : isVector3F;
+    import denjin.rendering.traits  : isVector;
 
     // These members must exist, most can be either variables or functions.
     static assert (hasMember!(T, "upDirection"));
@@ -57,11 +57,11 @@ template isScene (T)
 
         auto upDirVector    = scene.upDirection;
         alias UpDirType     = typeof (upDirVector);
-        static assert (isVector3F!UpDirType);
+        static assert (isVector!(UpDirType, float, 3));
 
         auto ambientLight   = scene.ambientLightIntensity;
         alias AmbLightType  = typeof (ambientLight);
-        static assert (isVector3F!AmbLightType);
+        static assert (isVector!(AmbLightType, float, 3));
 
         auto camera     = scene.camera;
         alias CamType   = typeof (camera);
@@ -114,7 +114,7 @@ pure nothrow @safe @nogc unittest
         MeshID meshID() const { return MeshID.init; }
         MaterialID materialID() const @property { return MaterialID.init; }
         bool isStatic;
-        float[4][3] transformationMatrix;
+        float[3][4] transformationMatrix;
     }
     struct DirectionalLight
     {
@@ -174,7 +174,7 @@ pure nothrow @safe @nogc unittest
 template isCamera (T)
 {
     import std.traits               : hasMember, isImplicitlyConvertible;
-    import denjin.rendering.traits  : isVector3F;
+    import denjin.rendering.traits  : isVector;
 
     // The type must contain these members, either as functions or variables.
     static assert (hasMember!(T, "position"));
@@ -188,11 +188,11 @@ template isCamera (T)
     {
         auto position = camera.position;
         alias PosType = typeof (position);
-        static assert (isVector3F!PosType);
+        static assert (isVector!(PosType, float, 3));
 
         auto direction  = camera.direction;
         alias DirType   = typeof (direction);
-        static assert (isVector3F!DirType);
+        static assert (isVector!(DirType, float, 3));
 
         auto fieldOfView    = camera.fieldOfView;
         alias FOVType       = typeof (fieldOfView);
@@ -307,7 +307,7 @@ template isDirectionalLight (T)
 {
     import std.traits               : hasMember, isImplicitlyConvertible;
     import denjin.misc.ids          : LightID;
-    import denjin.rendering.traits  : isVector3F;
+    import denjin.rendering.traits  : isVector;
 
     // The following members must exist.
     static assert (hasMember!(T, "id"));
@@ -333,11 +333,11 @@ template isDirectionalLight (T)
 
         auto direction  = light.direction;
         alias DirType   = typeof (direction);
-        static assert (isVector3F!DirType);
+        static assert (isVector!(DirType, float, 3));
 
         auto intensity  = light.intensity;
         alias IntType   = typeof (intensity);
-        static assert (isVector3F!IntType);
+        static assert (isVector!(IntType, float, 3));
     }
 
     enum isDirectionalLight = true;
@@ -378,7 +378,7 @@ template isPointLight (T)
 {
     import std.traits               : hasMember, isImplicitlyConvertible;
     import denjin.misc.ids          : LightID;
-    import denjin.rendering.traits  : isVector3F;
+    import denjin.rendering.traits  : isVector;
 
     // The following members must exist.
     static assert (hasMember!(T, "id"));
@@ -410,15 +410,15 @@ template isPointLight (T)
 
         auto position   = light.position;
         alias PosType   = typeof (position);
-        static assert (isVector3F!PosType);
+        static assert (isVector!(PosType, float, 3));
 
         auto intensity  = light.intensity;
         alias IntType   = typeof (intensity);
-        static assert (isVector3F!IntType);
+        static assert (isVector!(IntType, float, 3));
 
         auto attenuation    = light.attenuation;
         alias AttType       = typeof (attenuation);
-        static assert (isVector3F!AttType);
+        static assert (isVector!(AttType, float, 3));
     }
 
     enum isPointLight = true;
@@ -463,7 +463,7 @@ template isSpotlight (T)
 {
     import std.traits               : hasMember, isImplicitlyConvertible;
     import denjin.misc.ids          : LightID;
-    import denjin.rendering.traits  : isVector3F;
+    import denjin.rendering.traits  : isVector;
 
     // The following members must exist.
     static assert (hasMember!(T, "id"));
@@ -501,19 +501,19 @@ template isSpotlight (T)
 
         auto position   = light.position;
         alias PosType   = typeof (position);
-        static assert (isVector3F!PosType);
+        static assert (isVector!(PosType, float, 3));
 
         auto direction  = light.direction;
         alias DirType   = typeof (direction);
-        static assert (isVector3F!DirType);
+        static assert (isVector!(DirType, float, 3));
 
         auto intensity  = light.intensity;
         alias IntType   = typeof (intensity);
-        static assert (isVector3F!IntType);
+        static assert (isVector!(IntType, float, 3));
 
         auto attenuation    = light.attenuation;
         alias AttType       = typeof (attenuation);
-        static assert (isVector3F!AttType);
+        static assert (isVector!(AttType, float, 3));
     }
 
     enum isSpotlight = true;

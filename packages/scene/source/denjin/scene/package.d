@@ -7,4 +7,5 @@
 */
 module denjin.scene;
 
-public import denjin.scene.jim;
+public import denjin.scene.management;
+public import denjin.scene.types;

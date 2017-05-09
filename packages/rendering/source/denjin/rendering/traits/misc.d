@@ -7,10 +7,6 @@
 */
 module denjin.rendering.traits.misc;
 
-// Aliases.
-alias isVector3 (T, ElementT)   = isVector!(T, ElementT, 3);
-alias isVector3F (T)            = isVector!(T, float, 3);
-
 /** 
     Checks if the given type meets the requirements of being used as a Vector in rendering systems.
 
@@ -23,7 +19,7 @@ template isVector (T, ElementT, size_t Dimensions)
     import std.range : ElementType, isRandomAccessRange;
     import std.traits : isImplicitlyConvertible, isStaticArray;
 
-    static if (!isStaticArray!T)
+    static if (!isStaticArray!T && !isImplicitlyConvertible!(T, ElementT[Dimensions]))
     {
         static assert (isRandomAccessRange!T);
     }

@@ -6,6 +6,12 @@
 	"targetType": "library",
 	"targetPath": "builds",
 
+	"dependencies": {
+		"denjin:maths":"*",
+		"denjin:misc":"*",
+		"denjin:rendering":"*"
+	},
+
 	"buildRequirements": [
 		"allowWarnings",
 		"disallowDeprecations"

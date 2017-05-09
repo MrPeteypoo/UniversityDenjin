@@ -26,10 +26,15 @@ pure nothrow @safe @nogc
 struct Vector (Num, size_t Dimensions)
     if (isNumeric!Num && Dimensions > 0)
 {
-    Num[dimensions] array   = void;                     /// The underlying vector data.
-    enum dimensions         = Dimensions;               /// How many components the vector stores.
-    alias Type              = Vector!(Num, dimensions); /// The complete usable type.
-    alias NumericType       = Num;                      /// The underlying type used to store data.
+    /// The underlying vector data.
+    Num[dimensions] array; 
+
+    /// Vectors are implicitly convertible to static arrays.
+    alias array this;
+
+    enum dimensions     = Dimensions;               /// How many components the vector stores.
+    alias Type          = Vector!(Num, dimensions); /// The complete usable type.
+    alias NumericType   = Num;                      /// The underlying type used to store data.
 
     mixin (generateMemberProperty!(Num, "array[0]", "x", "i", "s", "r", "u"));  /// 1D short-hand.
     mixin (generateMemberEnum!(Type, "zero", dimensions, Num(0)));              /// Represents (0...).
@@ -355,7 +360,7 @@ struct Vector (Num, size_t Dimensions)
 ///
 @safe @nogc pure nothrow unittest
 {
-    // Most efficient constructor, data is not set to any value.
+    // Default construction sets each value to Num.init;
     enum vec1f = Vector!(float, 1)();
     static assert (vec1f.array.length == vec1f.dimensions);
     

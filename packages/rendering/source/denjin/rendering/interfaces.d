@@ -10,7 +10,7 @@ module denjin.rendering.interfaces;
 // Engine.
 import denjin.misc.ids          : MaterialID, MeshID;
 import denjin.rendering.traits  : isAssets, isCamera, isDirectionalLight, isInstance, isMaterial, isMesh, isPointLight, 
-                                  isScene, isSpotlight, isVector3F;
+                                  isScene, isSpotlight, isVector;
 
 /**
     An interface to assets management systems which contain models and textures that the rendering needs to load in
@@ -80,10 +80,10 @@ interface IRenderer (Assets, Scene)
         Vec3F = The type to use
 
     See_Also:
-        isScene, isVector3F, isCamera, isInstance, isDirectionalLight, isPointLight, isSpotlight
+        isScene, isCamera, isInstance, isDirectionalLight, isPointLight, isSpotlight
 */
 interface IScene (Vec3F, Camera, Instance, DirectionalLight, PointLight, Spotlight)
-    if (isVector3F!Vec3F && 
+    if (isVector!(Vec3F, float, 3) && 
         isCamera!Camera && 
         isInstance!Instance &&
         isDirectionalLight!DirectionalLight && 
