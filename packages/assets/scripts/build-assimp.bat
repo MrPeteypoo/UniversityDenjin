@@ -48,10 +48,10 @@ if not exist %batchDir%..\%output% mkdir %batchDir%..\%output%
 cd .temp\%folder%\assimp
 
 echo:Running CMake on Assimp with generator: %generator%...
-cmake %assimp% -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=OFF -DASSIMP_BUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release -G %generator% 1> nul
+cmake %assimp% -DBUILD_SHARED_LIBS=ON -DBUILD_TESTING=OFF -DASSIMP_BUILD_TESTS=OFF -G %generator% 1> nul
 
 echo:Attempting to build Assimp...
-cmake --build . 1> nul
+cmake --build . --config Release 1> nul
 
 echo:Copying assimp.dll for %folder%...
 xcopy /y /i code\Release\assimp-vc140-mt.dll ..\..\..\%output% > nul
