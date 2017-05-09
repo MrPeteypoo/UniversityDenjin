@@ -8,11 +8,7 @@
 module denjin.maths.vector;
 
 // Phobos.
-import std.traits   : isDynamicArray, isNumeric, isSigned, isStaticArray;
-import std.typecons : Flag, No, Yes;
-
-// Engine.
-import denjin.misc.mixins : generateMemberEnum, generateMemberProperty, unrollLoop;
+import std.traits : isNumeric;
 
 /**
     A templatised vector which can contain any numerical data type and can be as large as you wish. It features
@@ -26,6 +22,14 @@ pure nothrow @safe @nogc
 struct Vector (Num, size_t Dimensions)
     if (isNumeric!Num && Dimensions > 0)
 {
+    // Phobos.
+    import std.range    : ElementType;
+    import std.traits   : isDynamicArray, isNumeric, isImplicitlyConvertible, isSigned, isStaticArray;
+    import std.typecons : Flag, No, Yes;
+
+    // Engine.
+    import denjin.misc.mixins : generateMemberEnum, generateMemberProperty, unrollLoop;
+
     /// The underlying vector data.
     Num[dimensions] array; 
 
@@ -68,6 +72,19 @@ struct Vector (Num, size_t Dimensions)
     }
 
     /**
+        Construction of a vector with a single dynamic array. If the length is less than the size of the vector then
+        extra elements will be left at Num.init.
+    */
+    this (T)(auto ref T dynamicArray)
+        if (isDynamicArray!T && isImplicitlyConvertible!(ElementType!T, Num))
+    {
+        for (size_t i = 0; i < dynamicArray.length && i < dimensions; ++i)
+        {
+            array[i] = dynamicArray[i];
+        }
+    }
+
+    /**
         Component-wise construction of a Vector.
 
         Creates a Vector by setting each component to the values in the parameters. This construction method
@@ -78,8 +95,9 @@ struct Vector (Num, size_t Dimensions)
         Params:
             params = A list of numeric/Vector values to initialise each component of the Vector with.
     */
-    this (T...)(auto ref T params)
-        if (componentCount!T > 1 && componentCount!T >= dimensions)
+    this (Params...)(auto ref Params params)
+        if ((Params.length == 1 && isDynamicArray!(Params[0])) || 
+            (componentCount!Params > 1 && componentCount!Params >= dimensions))
     {
         import std.functional : forward;
         modifyComponents!(0, 0, "=")(forward!params);
