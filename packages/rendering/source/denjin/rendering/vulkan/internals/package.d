@@ -13,3 +13,4 @@ public import denjin.rendering.vulkan.internals.framebuffers;
 public import denjin.rendering.vulkan.internals.pipelines;
 public import denjin.rendering.vulkan.internals.renderpasses;
 public import denjin.rendering.vulkan.internals.synchronization;
+public import denjin.rendering.vulkan.internals.types;
