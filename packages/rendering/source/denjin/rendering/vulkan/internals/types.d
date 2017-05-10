@@ -11,7 +11,49 @@ module denjin.rendering.vulkan.internals.types;
 import denjin.maths : Vector;
 
 // Aliases.
+alias Mat4 = float[4][4];
 alias Vec3 = Vector!(float, 3);
+
+/**
+    Wraps an array of T elements in a package which can be used in a shader. The generated array cannot be larger than
+    16KiB.
+    
+    Params:
+        T           = The type of the element being stored in the array.
+        capacity    = The total number of elements that can be stored in the array.
+*/
+struct UniformArray (T, size_t capacity = 1)
+{
+    static assert ((Array.sizeof + 16) < 16_384, "A UniformArray cannot be larger than 16KiB.");
+
+    align (16)
+    {
+        alias Array = Element[capacity]; /// The array is sized to the given capacity of aligned objects.
+
+        uint    length; /// The number of elements that have data written to them.
+        Array   array;  /// The number of elements writable in the array.
+    }
+
+    /// Each element is forcefully aligned to Vulkans requirements of 16-bytes.
+    align (16) struct Element
+    {
+        T item;             /// The item being aligned.
+        alias item this;    /// The item can be used normally as the given type.
+    }
+
+    /// The uniform array is a subtype of the primary array.
+    alias array this;
+
+}
+///
+pure nothrow @safe @nogc unittest
+{
+    static assert (UniformArray!(ubyte).Element.sizeof == 16);
+    static assert (UniformArray!(float).Element.sizeof == 16);
+    static assert (UniformArray!(double).Element.sizeof == 16);
+    static assert (UniformArray!(float[3]).Element.sizeof == 16);
+    static assert (UniformArray!(float[5]).Element.sizeof == 32);
+}
 
 /// The shader representation of a directional light.
 struct DirectionalLight
@@ -78,7 +120,6 @@ struct Spotlight
         float   aConstant;      /// The constant co-efficient for the attenuation formula.
         float   aLinear;        /// The linear co-efficient for the attenuation formula.
         float   aQuadratic;     /// The quadratic co-efficient for the attenuation formula.
-        int     viewIndex;      /// The index of the view transform of the light.
     }
 }
 ///
@@ -96,7 +137,6 @@ pure nothrow @safe @nogc unittest
     static assert (Spotlight.aConstant.offsetof     == 48);
     static assert (Spotlight.aLinear.offsetof       == 52);
     static assert (Spotlight.aQuadratic.offsetof    == 56);
-    static assert (Spotlight.viewIndex.offsetof     == 60);
 
-    static assert (Spotlight.sizeof == 64);
+    static assert (Spotlight.sizeof == 60);
 }
