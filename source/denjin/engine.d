@@ -8,6 +8,7 @@
 module denjin.engine;
 
 // Phobos.
+import core.memory  : GC;
 import std.typecons : Flag, No, Yes;
 
 // Engine.
@@ -39,6 +40,7 @@ struct Engine
     {
         // Ensure we destroy resources straight away.
         scope (failure) clear;
+        scope (success) GC.collect;
 
         // Create/retrieve the systems.
         assets      = new Assets ("THIS PARAM DOES NOTHING");
@@ -57,14 +59,21 @@ struct Engine
         {
             scope (exit)
             {
+                assets      = null;
                 window      = null;
                 renderer    = null;
+                scene       = null;
             }
 
             // Window system "own" rendering systems so we can ignore that.
-            window.destroy;
-            assets.destroy;
-            scene.destroy;
+            if (window)
+            {
+                window.clear;
+            }
+            if (assets)
+            {
+                assets.clear;
+            }
         }
         catch (Throwable)
         {

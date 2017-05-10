@@ -43,7 +43,6 @@ struct UniformArray (T, size_t capacity = 1)
 
     /// The uniform array is a subtype of the primary array.
     alias array this;
-
 }
 ///
 pure nothrow @safe @nogc unittest

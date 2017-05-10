@@ -11,12 +11,13 @@ module denjin.rendering.vulkan.internals.pipelines;
 import std.exception : enforce;
 
 // Engine.
-import denjin.rendering.vulkan.device                   : Device;
-import denjin.rendering.vulkan.internals.renderpasses   : RenderPasses;
-import denjin.rendering.vulkan.misc                     : enforceSuccess, safelyDestroyVK;
-import denjin.rendering.vulkan.nulls                    : nullDevice, nullLayout, nullPass, nullPipeline, 
-                                                          nullPipelineCache, nullShader;
-import denjin.rendering.vulkan.objects                  : createShaderModule;
+import denjin.rendering.vulkan.device   : Device;
+import denjin.rendering.vulkan.misc     : enforceSuccess, safelyDestroyVK;
+import denjin.rendering.vulkan.nulls    : nullDevice, nullPass, nullPipeLayout, nullPipeline, nullPipelineCache, 
+                                          nullShader;
+import denjin.rendering.vulkan.objects  : createShaderModule;
+
+import denjin.rendering.vulkan.internals.renderpasses;
 
 // Externals.
 import erupted.types;
@@ -81,7 +82,7 @@ struct ForwardRenderPipeline
         pDepthStencilState:     null,           // Must be changed.
         pColorBlendState:       null,           // Must be changed.
         pDynamicState:          null,
-        layout:                 nullLayout,     // Must be changed.
+        layout:                 nullPipeLayout, // Must be changed.
         renderPass:             nullPass,       // Must be changed.
         subpass:                0,
         basePipelineHandle:     nullPipeline,

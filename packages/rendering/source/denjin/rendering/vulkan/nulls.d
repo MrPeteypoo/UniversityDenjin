@@ -15,10 +15,10 @@ module denjin.rendering.vulkan.nulls;
 import std.traits : isBuiltinType, isPointer;
 
 // External.
-import erupted.types : VkDebugReportCallbackEXT, VkCommandBuffer, VkCommandPool, VkDevice, VkDeviceMemory, VkFence, 
-                       VkFramebuffer, VkImage, VkImageView, VkInstance, VkPipeline, VkPipelineCache, VkPipelineLayout,
-                       VkPhysicalDevice, VkQueue, VkRenderPass, VkSemaphore, VkShaderModule, VkSurfaceKHR, 
-                       VkSwapchainKHR;
+import erupted.types : VkDebugReportCallbackEXT, VkBuffer, VkCommandBuffer, VkCommandPool, VkDevice, VkDeviceMemory, 
+                       VkDescriptorPool, VkDescriptorSetLayout, VkFence, VkFramebuffer, VkImage, VkImageView, 
+                       VkInstance, VkPipeline, VkPipelineCache, VkPipelineLayout, VkPhysicalDevice, VkQueue, 
+                       VkRenderPass, VkSemaphore, VkShaderModule, VkSurfaceKHR, VkSwapchainKHR;
 
 /// Gets the correct null handle to use when checking if a VK handle is null.
 /// Params: T = The type to retrieve the null handle for.
@@ -45,14 +45,17 @@ template nullHandle (T)
 }
 
 enum nullCMDBuffer      = nullHandle!VkCommandBuffer;
+enum nullBuffer         = nullHandle!VkBuffer;
 enum nullDebug          = nullHandle!VkDebugReportCallbackEXT;
 enum nullDevice         = nullHandle!VkDevice;
+enum nullDescLayout     = nullHandle!VkDescriptorSetLayout;
+enum nullDescPool       = nullHandle!VkDescriptorPool;
 enum nullFence          = nullHandle!VkFence;
 enum nullFramebuffer    = nullHandle!VkFramebuffer;
 enum nullImage          = nullHandle!VkImage;
 enum nullImageView      = nullHandle!VkImageView;
 enum nullInstance       = nullHandle!VkInstance;
-enum nullLayout         = nullHandle!VkPipelineLayout;
+enum nullPipeLayout     = nullHandle!VkPipelineLayout;
 enum nullMemory         = nullHandle!VkDeviceMemory;
 enum nullPass           = nullHandle!VkRenderPass;
 enum nullPipeline       = nullHandle!VkPipeline;

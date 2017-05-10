@@ -16,7 +16,8 @@ import std.algorithm.mutation   : move;
 // Engine.
 import denjin.rendering.interfaces          : IRenderer;
 import denjin.rendering.vulkan.device       : Device;
-import denjin.rendering.vulkan.internals    : Barriers, Commands, Framebuffers, Pipelines, RenderPasses, Syncs;
+import denjin.rendering.vulkan.internals    : Barriers, Commands, Framebuffers, Pipelines, RenderPasses, Syncs, 
+                                              Uniforms;
 import denjin.rendering.vulkan.misc         : safelyDestroyVK;
 import denjin.rendering.vulkan.nulls;
 import denjin.rendering.vulkan.objects      : createCommandPool;
@@ -44,6 +45,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         Device          m_device;       /// The logical device containing device-level Functionality.
         Swapchain       m_swapchain;    /// Manages the display mode and displayable images available to the renderer.
         RenderPasses    m_passes;       /// The handles required to perform different rendering passes.
+        Uniforms        m_uniforms;     /// Handles the construction of uniform buffer blocks.
         Pipelines       m_pipelines;    /// Stores the bindable pipelines used in the render loop.
         Commands        m_cmds;         /// The command pools and buffers required by the primary rendering thread.
         Framebuffers    m_fbs;          /// Contains framebuffer handles and data which can be used as render targets.
@@ -82,6 +84,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         scope (failure) clear();
         m_swapchain.create (m_device);
         m_passes.create (m_device, m_swapchain.info.imageFormat);
+        m_uniforms.create (m_device, m_limits, m_memProps, 3);
         m_pipelines.create (m_device, m_swapchain.info.imageExtent, m_passes);
         m_cmds.create (m_device, m_swapchain.imageCount);
         m_fbs.create (m_device, m_swapchain, m_passes, m_memProps);
@@ -110,6 +113,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
             m_fbs.clear (m_device);
             m_cmds.clear (m_device);
             m_pipelines.clear (m_device);
+            m_uniforms.clear (m_device);
             m_passes.clear (m_device);
             m_swapchain.clear (m_device);
             m_device.clear();
