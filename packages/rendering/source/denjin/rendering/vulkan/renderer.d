@@ -135,7 +135,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
     body
     {
         scope (failure) unload;
-        m_geometry.create (m_device, m_memProps, assets, scene, virtualFrames);
+        m_geometry.create (m_device, m_memProps, m_cmds.transfer[0], assets, scene, virtualFrames);
     }
 
     /// Unloads the stored geometry and texture data, allowing the renderer to load new data.
@@ -147,6 +147,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
     }
     body
     {
+        m_syncs.waitForFences (m_device);
         m_geometry.clear (m_device);
     }
 

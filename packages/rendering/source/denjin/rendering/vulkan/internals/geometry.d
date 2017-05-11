@@ -16,18 +16,22 @@ import std.traits       : isArray;
 import denjin.misc.ids                          : MeshID;
 import denjin.rendering.vulkan.device           : Device;
 import denjin.rendering.vulkan.misc             : enforceSuccess, safelyDestroyVK;
-import denjin.rendering.vulkan.nulls            : nullBuffer, nullDevice, nullMemory;
-import denjin.rendering.vulkan.objects          : createBuffer, createStagingBuffer;
+import denjin.rendering.vulkan.nulls            : nullBuffer, nullCMDBuffer, nullDevice, nullFence, nullMemory;
+import denjin.rendering.vulkan.objects          : createBuffer, createFence, createStagingBuffer;
 import denjin.rendering.traits                  : isAssets, isMesh, isScene;
 import denjin.rendering.vulkan.internals.types  : Mat4x3, Vec2, Vec3;
 
 // External.
-import erupted.types :  int32_t, uint32_t, VkAllocationCallbacks, VkBuffer, VkDeviceMemory, VkDeviceSize, 
-                        VkMappedMemoryRange, VkPhysicalDeviceMemoryProperties,
+import erupted.types :  int32_t, uint32_t, uint64_t, VkAllocationCallbacks, VkBuffer, VkBufferCopy, VkBufferMemoryBarrier, 
+                        VkCommandBuffer, VkCommandBufferBeginInfo, VkDeviceMemory, VkDeviceSize, VkFence, 
+                        VkMappedMemoryRange, VkPhysicalDeviceMemoryProperties, VkSubmitInfo,
+                        VK_ACCESS_MEMORY_WRITE_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 
                         VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_BUFFER_USAGE_TRANSFER_DST_BIT, 
-                        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-                        VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
-                        VK_WHOLE_SIZE;
+                        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, VK_FALSE,
+                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 
+                        VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, 
+                        VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, 
+                        VK_STRUCTURE_TYPE_SUBMIT_INFO, VK_WHOLE_SIZE;
 
 /// Contains the data required to render a mesh.
 struct Mesh
@@ -58,11 +62,13 @@ struct GeometryT (Assets, Scene)
         performed, the total instances will just be used to ensure that enough data is stored to draw every object in
         the scene.
     */
-    public void create (ref Device device, in ref VkPhysicalDeviceMemoryProperties memProps, in ref Assets assets, 
-                        in ref Scene scene, in uint32_t virtualFrames, in VkAllocationCallbacks* callbacks = null)
+    public void create (ref Device device, in ref VkPhysicalDeviceMemoryProperties memProps, VkCommandBuffer transfer, 
+                        in ref Assets assets, in ref Scene scene, in uint32_t virtualFrames, 
+                        in VkAllocationCallbacks* callbacks = null)
     in
     {
         assert (device != nullDevice);
+        assert (transfer != nullCMDBuffer);
         assert (virtualFrames > 0);
         assert (staticBuffer == nullBuffer);
         assert (dynamicBuffer == nullBuffer);
@@ -73,8 +79,8 @@ struct GeometryT (Assets, Scene)
     {
         scope (failure) clear (device, callbacks);
         allocateStaticBuffers (device, memProps, assets, callbacks);
-        fillStaticBuffer (device, memProps, assets, callbacks);
-        //allocateDynamicBuffers (device, scene, virtualFrames, callbacks);
+        fillStaticBuffer (device, memProps, transfer, assets, callbacks);
+        allocateDynamicBuffers (device, scene, virtualFrames, callbacks);
     }
 
     /// Deallocates resources, deleting all stored buffers and meshes.
@@ -117,7 +123,7 @@ struct GeometryT (Assets, Scene)
 
     /// Generates GPU-storable meshes and transfers them to the GPU, ready for usage by a scene.
     private void fillStaticBuffer (ref Device device, in ref VkPhysicalDeviceMemoryProperties memProps, 
-                                   in ref Assets assets, in VkAllocationCallbacks* callbacks)
+                                   VkCommandBuffer transfer, in ref Assets assets, in VkAllocationCallbacks* callbacks)
     {
         // We'll need a staging buffer to transfer the mesh data from.
         VkBuffer hostBuffer         = void;
@@ -150,7 +156,56 @@ struct GeometryT (Assets, Scene)
         device.vkUnmapMemory (hostMemory);
 
         // Finally we can transfer the data from the staging buffer to the static buffer.
+        immutable VkCommandBufferBeginInfo beginInfo = 
+        {
+            sType:              VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            pNext:              null,
+            flags:              VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+            pInheritanceInfo:   null
+        };
+        immutable VkBufferCopy copyInfo =
+        {
+            srcOffset:  0,
+            dstOffset:  0,
+            size:       staticSize
+        };
+        const VkBufferMemoryBarrier barrier = 
+        {
+            sType:                  VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+            pNext:                  null,
+            srcAccessMask:          VK_ACCESS_MEMORY_WRITE_BIT,
+            dstAccessMask:          VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
+            srcQueueFamilyIndex:    device.transferQueueFamily,
+            dstQueueFamilyIndex:    device.renderQueueFamily,
+            buffer:                 staticBuffer,
+            offset:                 0,
+            size:                   VK_WHOLE_SIZE
+        };
 
+        device.vkBeginCommandBuffer (transfer, &beginInfo);
+        device.vkCmdCopyBuffer (transfer, hostBuffer, staticBuffer, 1, &copyInfo);
+        device.vkCmdPipelineBarrier (transfer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                                     0, 0, null, 1, &barrier, 0, null);
+        device.vkEndCommandBuffer (transfer);
+
+        // Now submit the commands and wait for the device to finish transferring data.
+        const VkSubmitInfo submitInfo = 
+        {
+            sType:                  VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            pNext:                  null,
+            waitSemaphoreCount:     0,
+            pWaitSemaphores:        null,
+            pWaitDstStageMask:      null,
+            commandBufferCount:     1,
+            pCommandBuffers:        &transfer,
+            signalSemaphoreCount:   0,
+            pSignalSemaphores:      null
+        };
+        VkFence fence = void;
+        fence.createFence (device, 0).enforceSuccess;
+        scope (exit) device.vkDestroyFence (fence, null);
+        device.vkQueueSubmit (device.transferQueue, 1, &submitInfo, fence).enforceSuccess;
+        device.vkWaitForFences (1, &fence, VK_FALSE, uint64_t.max).enforceSuccess;
     }
 }
 

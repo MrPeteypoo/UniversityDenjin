@@ -15,7 +15,7 @@ import std.traits   : isPointer;
 // Engine.
 import denjin.rendering.vulkan.device   : Device;
 import denjin.rendering.vulkan.misc     : enforceSuccess, safelyDestroyVK;
-import denjin.rendering.vulkan.nulls    : nullBuffer, nullDescLayout, nullDescPool, nullDevice, nullMemory, nullSet;
+import denjin.rendering.vulkan.nulls    : nullBuffer, nullCMDBuffer, nullDescLayout, nullDescPool, nullDevice, nullMemory, nullSet;
 import denjin.rendering.vulkan.objects  : createBuffer;
 
 import denjin.rendering.vulkan.internals.types;
