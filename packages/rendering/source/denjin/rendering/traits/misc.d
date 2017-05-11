@@ -16,8 +16,8 @@ module denjin.rendering.traits.misc;
 template isVector (T, ElementT, size_t Dimensions)
     if (Dimensions > 0)
 {
-    import std.range : ElementType, isRandomAccessRange;
-    import std.traits : isImplicitlyConvertible, isStaticArray;
+    import std.range    : ElementType, isRandomAccessRange;
+    import std.traits   : isImplicitlyConvertible, isStaticArray;
 
     static if (!isStaticArray!T && !isImplicitlyConvertible!(T, ElementT[Dimensions]))
     {

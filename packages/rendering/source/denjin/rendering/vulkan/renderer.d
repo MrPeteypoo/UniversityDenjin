@@ -16,12 +16,12 @@ import std.algorithm.mutation   : move;
 // Engine.
 import denjin.rendering.interfaces          : IRenderer;
 import denjin.rendering.vulkan.device       : Device;
-import denjin.rendering.vulkan.internals    : Barriers, Commands, Framebuffers, Pipelines, RenderPasses, Syncs, 
-                                              Uniforms;
+import denjin.rendering.vulkan.internals    : Barriers, Commands, Framebuffers, GeometryT, Pipelines, RenderPasses, 
+                                              Syncs, Uniforms;
 import denjin.rendering.vulkan.misc         : safelyDestroyVK;
-import denjin.rendering.vulkan.nulls;
 import denjin.rendering.vulkan.objects      : createCommandPool;
 import denjin.rendering.vulkan.swapchain    : Swapchain, VSync;
+import denjin.rendering.vulkan.nulls;
 
 // External.
 import erupted.types;
@@ -39,6 +39,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
     private 
     {
         // Aliases.
+        alias Geometry      = GeometryT!(Assets, Scene);
         alias Limits        = VkPhysicalDeviceLimits;
         alias MemoryProps   = VkPhysicalDeviceMemoryProperties;
 
@@ -46,15 +47,16 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         enum VkClearColorValue clearColor               = { float32: [0f, 0f, 0f, 0f] };
         enum VkClearDepthStencilValue clearDepth        = { depth: 1f, stencil: 255 };
         static immutable VkClearValue[2] clearValues    = [{ color: clearColor }, { depthStencil: clearDepth }];
-        static immutable size_t virtualFrames           = 3;
+        static immutable uint32_t virtualFrames         = 3;
 
         size_t          m_frameCount;   /// Counts how many frames in total have been rendered.
         Device          m_device;       /// The logical device containing device-level Functionality.
         Swapchain       m_swapchain;    /// Manages the display mode and displayable images available to the renderer.
-        RenderPasses    m_passes;       /// The handles required to perform different rendering passes.
-        Uniforms        m_uniforms;     /// Handles the construction of uniform buffer blocks.
-        Pipelines       m_pipelines;    /// Stores the bindable pipelines used in the render loop.
         Commands        m_cmds;         /// The command pools and buffers required by the primary rendering thread.
+        Geometry       m_geometry;     /// Manages renderable geometry, including vertex data and instancing buffers.
+        Uniforms        m_uniforms;     /// Handles the construction of uniform buffer blocks.
+        RenderPasses    m_passes;       /// The handles required to perform different rendering passes.
+        Pipelines       m_pipelines;    /// Stores the bindable pipelines used in the render loop.
         Framebuffers    m_fbs;          /// Contains framebuffer handles and data which can be used as render targets.
         Barriers        m_barriers;     /// Stores the barriers required to synchronise access to resources across different queues.
         Syncs           m_syncs;        /// The synchronization objects used to control the flow of generated commands.
@@ -86,10 +88,10 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         // We need to build the resources required by the rendering before loading a scene.
         scope (failure) clear();
         m_swapchain.create (m_device);
-        m_passes.create (m_device, m_swapchain.info.imageFormat);
+        m_cmds.create (m_device, virtualFrames);
         m_uniforms.create (m_device, m_limits, m_memProps, virtualFrames);
+        m_passes.create (m_device, m_swapchain.info.imageFormat);
         m_pipelines.create (m_device, m_swapchain.info.imageExtent, m_passes);
-        m_cmds.create (m_device, m_swapchain.imageCount);
         m_fbs.create (m_device, m_swapchain, m_passes, m_memProps);
         m_barriers.reset (m_device);
         m_syncs.create (m_device, virtualFrames);
@@ -123,6 +125,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         }
     }
 
+    /// Loads geometry data and textures from the given asset data so that the given scene can be rendered.
     public override void load (in ref Assets assets, in ref Scene scene)
     in
     {
@@ -131,6 +134,20 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
     }
     body
     {
+        scope (failure) unload;
+        m_geometry.create (m_device, m_memProps, assets, scene, virtualFrames);
+    }
+
+    /// Unloads the stored geometry and texture data, allowing the renderer to load new data.
+    public override void unload() nothrow
+    in
+    {
+        assert (m_device != nullDevice);
+        assert (m_swapchain != nullSwapchain);
+    }
+    body
+    {
+        m_geometry.clear (m_device);
     }
 
     /// The given resolution is ignored because if it differs from the swapchain we will cause an error.
@@ -143,9 +160,12 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
     body
     {
         // We must wait for command buffers to be consumed before recreating the swapchain.
-        scope (failure) clear();
+        scope (failure) clear;
         m_syncs.waitForFences (m_device);
         m_swapchain.create (m_device);
+
+        m_passes.clear (m_device);
+        m_passes.create (m_device, m_swapchain.info.imageFormat);
         
         m_fbs.clear (m_device);
         m_fbs.create (m_device, m_swapchain, m_passes, m_memProps);

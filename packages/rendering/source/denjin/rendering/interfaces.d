@@ -58,6 +58,9 @@ interface IRenderer (Assets, Scene)
     ///     scene   = Contains static and dynamic instances of objects which will be rendered in the future.
     void load (in ref Assets assets, in ref Scene scene);
 
+    /// Requests that the renderer unload any loaded assets and scene data so that it can be loaded again.
+    void unload() nothrow;
+
     /// Requests the renderer resets any resolution-dependent data as it may have changed.
     void reset (in uint width, in uint height);
 

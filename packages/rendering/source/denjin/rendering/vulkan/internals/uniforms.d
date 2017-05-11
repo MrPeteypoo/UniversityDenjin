@@ -14,8 +14,9 @@ import std.traits   : isPointer;
 
 // Engine.
 import denjin.rendering.vulkan.device   : Device;
-import denjin.rendering.vulkan.misc     : enforceSuccess, memoryTypeIndex, safelyDestroyVK;
+import denjin.rendering.vulkan.misc     : enforceSuccess, safelyDestroyVK;
 import denjin.rendering.vulkan.nulls    : nullBuffer, nullDescLayout, nullDescPool, nullDevice, nullMemory, nullSet;
+import denjin.rendering.vulkan.objects  : createBuffer;
 
 import denjin.rendering.vulkan.internals.types;
 
@@ -86,9 +87,10 @@ struct Uniforms
     {
         assert (device != nullDevice);
         assert (virtualFrames > 0);
-
         assert (buffer == nullBuffer);
         assert (memory == nullMemory);
+        assert (layout == nullDescLayout);
+        assert (pool == nullDescPool);
     }
     body
     {
@@ -111,8 +113,8 @@ struct Uniforms
         sets.length = 0;
         frameIndex  = 0;
 
-        buffer.safelyDestroyVK (device.vkDestroyBuffer, device, buffer, callbacks);
         memory.safelyDestroyVK (device.vkFreeMemory, device, memory, callbacks);
+        buffer.safelyDestroyVK (device.vkDestroyBuffer, device, buffer, callbacks);
         layout.safelyDestroyVK (device.vkDestroyDescriptorSetLayout, device, layout, callbacks);
         pool.safelyDestroyVK (device.vkDestroyDescriptorPool, device, pool, callbacks);
     }
@@ -122,37 +124,11 @@ struct Uniforms
                                in ref VkPhysicalDeviceMemoryProperties memProps, 
                                in uint32_t virtualFrames, in VkAllocationCallbacks* callbacks)
     {
-        // Firstly we must create the buffer.
-        immutable VkBufferCreateInfo bufferInfo = 
-        {
-            sType:                  VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-            pNext:                  null,
-            flags:                  0,
-            size:                   bufferSize (limits) * virtualFrames,
-            usage:                  VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            sharingMode:            VK_SHARING_MODE_EXCLUSIVE,
-            queueFamilyIndexCount:  0,
-            pQueueFamilyIndices:    null
-        };
-        device.vkCreateBuffer (&bufferInfo, callbacks, &buffer).enforceSuccess;
-
-        // Next we allocate memory for the buffer.
-        VkMemoryRequirements requirements = void;
-        device.vkGetBufferMemoryRequirements (buffer, &requirements);
-
-        immutable VkMemoryAllocateInfo memoryInfo =
-        {
-            sType:              VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            pNext:              null,
-            allocationSize:     requirements.size,
-            memoryTypeIndex:    memProps.memoryTypeIndex (requirements.memoryTypeBits, 
-                                                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
-        };
-        device.vkAllocateMemory (&memoryInfo, callbacks, &memory).enforceSuccess;
-
-        // Finally we bind the buffer and memory together.
-        device.vkBindBufferMemory (buffer, memory, 0).enforceSuccess;
+        enum bufferUsage    = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        enum memoryUsage    = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        immutable size      = bufferSize (limits) * virtualFrames;
+        
+        buffer.createBuffer (memory, device, memProps, size, bufferUsage, memoryUsage, callbacks).enforceSuccess;
     }
 
     /// Creates the descriptor set layout so that the uniform buffer can be used by pipelines.

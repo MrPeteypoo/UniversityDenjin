@@ -14,7 +14,8 @@ import std.traits           : Unqual;
 import std.typecons         : Flag, Yes, No;
 
 // Engine.
-import denjin.rendering.vulkan.device : Device;
+import denjin.rendering.vulkan.device   : Device;
+import denjin.rendering.vulkan.misc     : memoryTypeIndex, safelyDestroyVK;
 import denjin.rendering.vulkan.nulls;
 
 // External.
@@ -40,6 +41,91 @@ body
         commandBufferCount: cast (uint32_t) output.length
     };
     return device.vkAllocateCommandBuffers (&info, &output[0]);
+}
+
+/**
+    Creates a buffer with the given characteristics.
+
+    Params:
+        buffer          = Where to write the created buffer handle.
+        memory          = Where to write the allocated memory handle.
+        device          = The device to use to create the buffer with.
+        properties      = The properties of the physical device containing the allocated memory.
+        size            = The desired size of the buffer, extra memory may be allocated due to alignment requirements.
+        bufferUsage     = Describes how the buffer will be used.
+        memoryUsage     = Describes how the memory will be used.
+        callbacks       = Callback functions which should be used when allocating memory.
+        sharingMode     = How the buffer will be shared by queue families.
+        queueIndices    = If the sharing mode isn't exclusive the queue families that will access the resource must be specified here.
+
+    Returns: 
+        The result of the buffer creation and memory allocation. VK_ERROR_FORMAT_NOT_SUPPORTED if the desired memory 
+        usage isn't supported.
+*/
+nothrow
+VkResult createBuffer (out VkBuffer buffer, out VkDeviceMemory memory, ref Device device, 
+                       in VkPhysicalDeviceMemoryProperties properties, in VkDeviceSize size, 
+                       in VkBufferUsageFlags bufferUsage, in VkMemoryPropertyFlags memoryUsage, 
+                       in VkAllocationCallbacks* callbacks = null, 
+                       in VkSharingMode sharingMode = VK_SHARING_MODE_EXCLUSIVE, in uint32_t[] queueIndices = [])
+in
+{
+    assert (device != nullDevice);
+}
+body
+{
+    // Firstly prepare how we'll destroy the objects if something goes wrong.
+    enum destroyBuffer = "buffer.safelyDestroyVK (device.vkDestroyBuffer, device, buffer, callbacks);";
+    enum destroyMemory = "memory.safelyDestroyVK (device.vkFreeMemory, device, memory, callbacks);";
+
+    // Create the buffer.
+    const VkBufferCreateInfo bufferInfo =
+    {
+        sType:                  VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        pNext:                  null,
+        flags:                  0,
+        size:                   size,
+        usage:                  bufferUsage,
+        sharingMode:            sharingMode,
+        queueFamilyIndexCount:  cast (uint32_t) queueIndices.length,
+        pQueueFamilyIndices:    queueIndices.ptr
+    };
+
+    immutable bufferResult = device.vkCreateBuffer (&bufferInfo, callbacks, &buffer);
+    if (bufferResult != VK_SUCCESS) return bufferResult;
+
+    // Next we allocate memory for the buffer.
+    VkMemoryRequirements requirements = void;
+    device.vkGetBufferMemoryRequirements (buffer, &requirements);
+
+    immutable VkMemoryAllocateInfo memoryInfo =
+    {
+        sType:              VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        pNext:              null,
+        allocationSize:     requirements.size,
+        memoryTypeIndex:    properties.memoryTypeIndex (requirements.memoryTypeBits, memoryUsage)
+    };
+    if (memoryInfo.memoryTypeIndex == uint32_t.max)
+    {
+        mixin (destroyBuffer);
+        return VK_ERROR_FORMAT_NOT_SUPPORTED;
+    }
+
+    immutable allocateResult = device.vkAllocateMemory (&memoryInfo, callbacks, &memory);
+    if (allocateResult != VK_SUCCESS)
+    {
+        mixin (destroyBuffer);
+        return allocateResult;
+    }
+
+    // Finally bind the memory to the buffer.
+    immutable bindResult = device.vkBindBufferMemory (buffer, memory, 0);
+    if (bindResult != VK_SUCCESS)
+    {
+        mixin (destroyBuffer);
+        mixin (destroyMemory);
+    }
+    return bindResult;
 }
 
 /// Creates a command pool with the given flags for the given queue family.
@@ -166,4 +252,17 @@ body
     }
 
     return VK_ERROR_INITIALIZATION_FAILED;
+}
+
+/**
+    Similar to createBuffer. This creates a buffer dedicated to transferring data from the CPU to the GPU. The 
+    resulting memory can be mapped and used as a transfer source into device-local memory.
+*/
+VkResult createStagingBuffer (out VkBuffer buffer, out VkDeviceMemory memory, ref Device device, 
+                              in ref VkPhysicalDeviceMemoryProperties properties, in VkDeviceSize size,
+                              in VkAllocationCallbacks* callbacks = null) nothrow
+{
+    enum bufferUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    enum memoryUsage = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+    return createBuffer (buffer, memory, device, properties, size, bufferUsage, memoryUsage, callbacks);
 }
