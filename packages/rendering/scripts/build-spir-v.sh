@@ -14,6 +14,10 @@ shaderNames[0]="testVert.spv"
 shaderFiles[0]="test.vert"
 shaderNames[1]="testFrag.spv"
 shaderFiles[1]="test.frag"
+shaderNames[2]="geometry.spv"
+shaderFiles[2]="geometry.vert"
+shaderNames[3]="forward.spv"
+shaderFiles[3]="forward.frag"
 
 cd $shaderDir
 mkdir -p $output
