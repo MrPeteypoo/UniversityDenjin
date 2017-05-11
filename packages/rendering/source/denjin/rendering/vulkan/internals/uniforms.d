@@ -20,7 +20,18 @@ import denjin.rendering.vulkan.nulls    : nullBuffer, nullDescLayout, nullDescPo
 import denjin.rendering.vulkan.internals.types;
 
 // External.
-import erupted.types;
+import erupted.types : uint32_t, VkAllocationCallbacks, VkBuffer, VkBufferCreateInfo, VkDescriptorBufferInfo, 
+                       VkDescriptorPool, VkDescriptorPoolCreateInfo, VkDescriptorPoolSize, VkDescriptorSet,
+                       VkDescriptorSetAllocateInfo, VkDescriptorSetLayout,  VkDescriptorSetLayoutBinding, 
+                       VkDescriptorSetLayoutCreateInfo, VkDeviceMemory, VkDeviceSize, VkMemoryAllocateInfo, 
+                       VkMemoryRequirements, VkPhysicalDeviceLimits, VkPhysicalDeviceMemoryProperties, 
+                       VkWriteDescriptorSet,
+                       VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 
+                       VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 
+                       VK_SHADER_STAGE_ALL_GRAPHICS, VK_SHARING_MODE_EXCLUSIVE, VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, 
+                       VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, 
+                       VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, 
+                       VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 
 /// Creates, stores and destroys uniform buffer data which shaders can access.
 struct Uniforms

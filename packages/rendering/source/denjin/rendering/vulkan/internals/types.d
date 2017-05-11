@@ -13,6 +13,7 @@ import denjin.maths : Vector;
 // Aliases.
 alias Mat4      = float[4][4];
 alias Mat4x3    = float[3][4];
+alias Vec2      = Vector!(float, 2);
 alias Vec3      = Vector!(float, 3);
 
 /**
