@@ -22,10 +22,12 @@ import denjin.rendering.traits                  : isAssets, isMesh, isScene;
 import denjin.rendering.vulkan.internals.types  : Mat4x3, Vec2, Vec3;
 
 // External.
-import erupted.types :  int32_t, uint32_t, VkAllocationCallbacks, VkBuffer, VkDeviceMemory, VkDeviceSize,
-                        VkPhysicalDeviceMemoryProperties,
+import erupted.types :  int32_t, uint32_t, VkAllocationCallbacks, VkBuffer, VkDeviceMemory, VkDeviceSize, 
+                        VkMappedMemoryRange, VkPhysicalDeviceMemoryProperties,
                         VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_BUFFER_USAGE_TRANSFER_DST_BIT, 
-                        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_WHOLE_SIZE;
+                        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
+                        VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+                        VK_WHOLE_SIZE;
 
 /// Contains the data required to render a mesh.
 struct Mesh
@@ -72,7 +74,7 @@ struct GeometryT (Assets, Scene)
         scope (failure) clear (device, callbacks);
         allocateStaticBuffers (device, memProps, assets, callbacks);
         fillStaticBuffer (device, memProps, assets, callbacks);
-        //createDynamicData (device, scene, virtualFrames, callbacks);
+        //allocateDynamicBuffers (device, scene, virtualFrames, callbacks);
     }
 
     /// Deallocates resources, deleting all stored buffers and meshes.
@@ -90,6 +92,7 @@ struct GeometryT (Assets, Scene)
         meshes.length   = 0;
         vertexOffset    = 0;
         indexOffset     = 0;
+        staticSize      = 0;
     }
 
     /// Analyses the given assets, determining how much memory is required to store meshes and creates the buffer. 
@@ -128,14 +131,26 @@ struct GeometryT (Assets, Scene)
         // Map the buffer, ready for writing.
         void* mapping = void;
         device.vkMapMemory (hostMemory, 0, VK_WHOLE_SIZE, 0, &mapping).enforceSuccess;
-        scope (exit) device.vkUnmapMemory (hostMemory);
-
-        // Before we write any data we need pointers to the vertex and index buffer.
-        auto vertexMapping  = cast (Vertex*)    (mapping + vertexOffset);
-        auto indexMapping   = cast (uint32_t*)  (mapping + indexOffset);
+        scope (failure) device.vkUnmapMemory (hostMemory);
 
         // Now we can write the mesh data to the host-visible memory.
-        meshes.fillMeshData (vertexMapping, indexMapping, assets.meshes);
+        meshes.fillMeshData (cast (Vertex*) (mapping + vertexOffset), 
+                             cast (uint32_t*) (mapping + indexOffset), 
+                             assets.meshes);
+
+        const VkMappedMemoryRange flush =
+        {
+            sType:      VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+            pNext:      null,
+            memory:     hostMemory,
+            offset:     0,
+            size:       VK_WHOLE_SIZE
+        };
+        device.vkFlushMappedMemoryRanges (1, &flush).enforceSuccess;
+        device.vkUnmapMemory (hostMemory);
+
+        // Finally we can transfer the data from the staging buffer to the static buffer.
+
     }
 }
 
@@ -193,6 +208,12 @@ size_t countVertices (Mesh)(auto ref Mesh mesh)
 */
 void fillMeshData (Meshes)(out Mesh[] meshes, Vertex* vertices, uint32_t* indices, auto ref Meshes sceneMeshes)
     if (isMesh!(ElementType!Meshes))
+in
+{
+    assert (vertices !is null);
+    assert (indices !is null);
+}
+body
 {
     import std.algorithm : max;
     
@@ -265,10 +286,10 @@ pure nothrow @safe @nogc unittest
     static assert (Vertex.position.offsetof == 0);
     static assert (Vertex.normal.offsetof   == 12);
     static assert (Vertex.tangent.offsetof  == 24);
-    static assert (Vertex.uv.offsetof       == 32);
+    static assert (Vertex.uv.offsetof       == 36);
 
-    static assert (Vertex.sizeof == 38);
-    static assert (Vertex.sizeof % uint32 == 0);
+    static assert (Vertex.sizeof == 44);
+    static assert (Vertex.sizeof % uint32_t.sizeof == 0);
 }
 
 /// A group of texture indices as they are stored inside a vertex buffer.
