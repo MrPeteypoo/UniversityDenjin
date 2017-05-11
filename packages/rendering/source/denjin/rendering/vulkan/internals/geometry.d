@@ -24,38 +24,18 @@ import denjin.rendering.vulkan.internals.types  : Mat4x3, Vec2, Vec3;
 // External.
 import erupted.types :  int32_t, uint32_t, uint64_t, VkAllocationCallbacks, VkBuffer, VkBufferCopy, 
                         VkBufferMemoryBarrier, VkCommandBuffer, VkCommandBufferBeginInfo, VkDeviceMemory, VkDeviceSize, 
-                        VkFence, VkMappedMemoryRange, VkPhysicalDeviceMemoryProperties, VkSubmitInfo,
-                        VK_ACCESS_MEMORY_WRITE_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,  
-                        VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
-                        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, VK_FALSE, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
-                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
-                        VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 
-                        VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, 
-                        VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, VK_STRUCTURE_TYPE_SUBMIT_INFO, VK_WHOLE_SIZE;
-
-/// Contains the data required to render a mesh.
-struct Mesh
-{
-    MeshID      id;             /// The unique ID of the mesh.
-    uint32_t    indexCount;     /// How many element indices construct the mesh.
-    uint32_t    firstIndex;     /// An offset into the index buffer where the indices for the mesh start.
-    uint32_t    vertexOffset;   /// an offset into the vertex buffer where the first vertex can be found.
-}
-
-/// Dynamic vertex attributes which are required to render an instance.
-align (1) struct InstanceAttributes
-{
-    MaterialIndices material;   /// Contains the index of texture maps for the material.
-    ModelTransform  transform;  /// Contains the model transform of the instance.
-}
-///
-pure nothrow @safe @nogc unittest
-{
-    static assert (InstanceAttributes.material.offsetof     == 0);
-    static assert (InstanceAttributes.transform.offsetof    == 12);
-    
-    static assert (InstanceAttributes.sizeof == 60);
-}
+                        VkFence, VkMappedMemoryRange, VkPhysicalDeviceMemoryProperties, VkSubmitInfo, 
+                        VkVertexInputAttributeDescription, VkVertexInputBindingDescription, 
+                        VK_ACCESS_MEMORY_WRITE_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 
+                        VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_BUFFER_USAGE_TRANSFER_DST_BIT, 
+                        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, VK_FALSE, 
+                        VK_FORMAT_R32G32_SFLOAT, VK_FORMAT_R32G32B32_SFLOAT, VK_FORMAT_R32G32B32_SINT, 
+                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 
+                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 
+                        VK_PIPELINE_STAGE_TRANSFER_BIT, VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, 
+                        VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, 
+                        VK_STRUCTURE_TYPE_SUBMIT_INFO, VK_VERTEX_INPUT_RATE_VERTEX, VK_VERTEX_INPUT_RATE_INSTANCE, 
+                        VK_WHOLE_SIZE;
 
 /// Loads, stores and manages geometry data. This includes vertex, index, material and transform data.
 /// See_Also: isAssets, isScene.
@@ -122,6 +102,19 @@ struct GeometryT (Assets, Scene)
         dynamicMemory.safelyDestroyVK (device.vkFreeMemory, device, dynamicMemory, callbacks);
         staticBuffer.safelyDestroyVK (device.vkDestroyBuffer, device, staticBuffer, callbacks);
         dynamicBuffer.safelyDestroyVK (device.vkDestroyBuffer, device, dynamicBuffer, callbacks);
+    }
+
+    /// Retrieves the instance attributes array for the given frame index.
+    public inout(InstanceAttributes[]) instanceAttributes (size_t frameIndex) inout pure nothrow @nogc
+    in
+    {
+        assert (dynamicMapping !is null);
+    }
+    body
+    {
+        immutable length    = dynamicSize % InstanceAttributes.sizeof;
+        auto attribMapping  = cast (inout(InstanceAttributes*)) (dynamicMapping + dynamicSize * frameIndex);
+        return attribMapping[0..length];
     }
 
     /// Analyses the given assets, determining how much memory is required to store meshes and creates the buffer. 
@@ -248,6 +241,194 @@ struct GeometryT (Assets, Scene)
         // Now we can map the buffer.
         device.vkMapMemory (dynamicMemory, 0, VK_WHOLE_SIZE, 0, &dynamicMapping).enforceSuccess;
     }
+}
+
+/// Contains the data required to render a mesh.
+struct Mesh
+{
+    MeshID      id;             /// The unique ID of the mesh.
+    uint32_t    indexCount;     /// How many element indices construct the mesh.
+    uint32_t    firstIndex;     /// An offset into the index buffer where the indices for the mesh start.
+    uint32_t    vertexOffset;   /// an offset into the vertex buffer where the first vertex can be found.
+}
+
+/// Contains the vertex input binding and attribute descriptions.
+struct VertexAttributes
+{
+    /// A collection of binding descriptions for geometric meshes.
+    static immutable VkVertexInputBindingDescription[2] bindings = 
+    [
+        vertices, instances
+    ];
+
+    /// A collection of vertex input attributes.
+    static immutable VkVertexInputAttributeDescription[9] attributes = 
+    [
+        position, normal, tangent, uv, material, transform1, transform2, transform3, transform4
+    ];
+
+    /// The binding point and description of mesh vertices.
+    enum VkVertexInputBindingDescription vertices =
+    {
+        binding:    0,
+        stride:     Vertex.sizeof,
+        inputRate:  VK_VERTEX_INPUT_RATE_VERTEX
+    };
+
+    /// The binding point and description of instance materials and transforms.
+    enum VkVertexInputBindingDescription instances = 
+    {
+        binding:    1,
+        stride:     InstanceAttributes.sizeof,
+        inputRate:  VK_VERTEX_INPUT_RATE_INSTANCE
+    };
+
+    /// Describes how the position attribute is stored and located.
+    enum VkVertexInputAttributeDescription position = 
+    {
+        location:   0,
+        binding:    vertices.binding,
+        format:     VK_FORMAT_R32G32B32_SFLOAT,
+        offset:     Vertex.position.offsetof
+    };
+
+    /// Describes how the normal attribute is stored and located.
+    enum VkVertexInputAttributeDescription normal = 
+    {
+        location:   1,
+        binding:    vertices.binding,
+        format:     VK_FORMAT_R32G32B32_SFLOAT,
+        offset:     Vertex.normal.offsetof
+    };
+
+    /// Describes how the tangent attribute is stored and located.
+    enum VkVertexInputAttributeDescription tangent = 
+    {
+        location:   2,
+        binding:    vertices.binding,
+        format:     VK_FORMAT_R32G32B32_SFLOAT,
+        offset:     Vertex.tangent.offsetof
+    };
+
+    /// Describes how the uv attribute is stored and located.
+    enum VkVertexInputAttributeDescription uv = 
+    {
+        location:   3,
+        binding:    vertices.binding,
+        format:     VK_FORMAT_R32G32_SFLOAT,
+        offset:     Vertex.uv.offsetof
+    };
+
+    /// Describes how the material attribute is stored and located.
+    enum VkVertexInputAttributeDescription material = 
+    {
+        location:   4,
+        binding:    instances.binding,
+        format:     VK_FORMAT_R32G32B32_SINT,
+        offset:     InstanceAttributes.material.offsetof
+    };
+
+    /// Describes how the first transform attribute is stored and located.
+    enum VkVertexInputAttributeDescription transform1 = 
+    {
+        location:   5,
+        binding:    instances.binding,
+        format:     VK_FORMAT_R32G32B32_SFLOAT,
+        offset:     InstanceAttributes.transform.offsetof
+    };
+
+    /// Describes how the second transform attribute is stored and located.
+    enum VkVertexInputAttributeDescription transform2 = 
+    {
+        location:   6,
+        binding:    instances.binding,
+        format:     VK_FORMAT_R32G32B32_SFLOAT,
+        offset:     InstanceAttributes.transform.offsetof + Vec3.sizeof
+    };
+
+    /// Describes how the third transform attribute is stored and located.
+    enum VkVertexInputAttributeDescription transform3 = 
+    {
+        location:   7,
+        binding:    instances.binding,
+        format:     VK_FORMAT_R32G32B32_SFLOAT,
+        offset:     InstanceAttributes.transform.offsetof + Vec3.sizeof * 2
+    };
+
+    /// Describes how the fourth transform attribute is stored and located.
+    enum VkVertexInputAttributeDescription transform4 = 
+    {
+        location:   8,
+        binding:    instances.binding,
+        format:     VK_FORMAT_R32G32B32_SFLOAT,
+        offset:     InstanceAttributes.transform.offsetof + Vec3.sizeof * 3
+    };
+}
+
+/// Dynamic vertex attributes which are required to render an instance.
+align (1) struct InstanceAttributes
+{
+    MaterialIndices material;   /// Contains the index of texture maps for the material.
+    ModelTransform  transform;  /// Contains the model transform of the instance.
+}
+///
+pure nothrow @safe @nogc unittest
+{
+    static assert (InstanceAttributes.material.offsetof     == 0);
+    static assert (InstanceAttributes.transform.offsetof    == 12);
+
+    static assert (InstanceAttributes.sizeof == 60);
+}
+
+/// A vertex as it is stored inside a vertex buffer.
+align (1) struct Vertex
+{
+    Vec3    position;   /// The position of the vertex in model-space.
+    Vec3    normal;     /// The surface normal of the vertex.
+    Vec3    tangent;    /// The normal tangent of the vertex.
+    Vec2    uv;         /// The UV co-ordinates of the vertex.
+}
+///
+pure nothrow @safe @nogc unittest
+{
+    static assert (Vertex.position.offsetof == 0);
+    static assert (Vertex.normal.offsetof   == 12);
+    static assert (Vertex.tangent.offsetof  == 24);
+    static assert (Vertex.uv.offsetof       == 36);
+
+    static assert (Vertex.sizeof == 44);
+    static assert (Vertex.sizeof % uint32_t.sizeof == 0);
+}
+
+/// A group of texture indices as they are stored inside a vertex buffer.
+align (1) struct MaterialIndices
+{
+    int32_t physics = -1;   /// The index of a physics map to use.
+    int32_t albedo  = -1;   /// The index of an albedo map to use.
+    int32_t normal  = -1;   /// The index of a normal map to use.
+}
+///
+pure nothrow @safe @nogc unittest
+{
+    static assert (MaterialIndices.physics.offsetof == 0);
+    static assert (MaterialIndices.albedo.offsetof  == 4);
+    static assert (MaterialIndices.normal.offsetof  == 8);
+
+    static assert (MaterialIndices.sizeof == 12);
+}
+
+/// Contains a model transform for objects as it appears inside a vertex buffer.
+align (1) struct ModelTransform
+{
+    Mat4x3 transform; /// The 4x3 matrix containing an objects tranform.
+
+    alias transform this;
+}
+///
+pure nothrow @safe @nogc unittest
+{
+    static assert (ModelTransform.transform.offsetof == 0);
+    static assert (ModelTransform.sizeof == 48);
 }
 
 /**
@@ -379,55 +560,4 @@ size_t countInstances (Scene)(auto ref Scene scene, Mesh[] meshes)
         total += scene.instancesByMesh (mesh.id).count;
     }
     return total;
-}
-
-/// A vertex as it is stored inside a vertex buffer.
-align (1) struct Vertex
-{
-    Vec3    position;   /// The position of the vertex in model-space.
-    Vec3    normal;     /// The surface normal of the vertex.
-    Vec3    tangent;    /// The normal tangent of the vertex.
-    Vec2    uv;         /// The UV co-ordinates of the vertex.
-}
-///
-pure nothrow @safe @nogc unittest
-{
-    static assert (Vertex.position.offsetof == 0);
-    static assert (Vertex.normal.offsetof   == 12);
-    static assert (Vertex.tangent.offsetof  == 24);
-    static assert (Vertex.uv.offsetof       == 36);
-
-    static assert (Vertex.sizeof == 44);
-    static assert (Vertex.sizeof % uint32_t.sizeof == 0);
-}
-
-/// A group of texture indices as they are stored inside a vertex buffer.
-align (1) struct MaterialIndices
-{
-    int32_t physics = -1;   /// The index of a physics map to use.
-    int32_t albedo  = -1;   /// The index of an albedo map to use.
-    int32_t normal  = -1;   /// The index of a normal map to use.
-}
-///
-pure nothrow @safe @nogc unittest
-{
-    static assert (MaterialIndices.physics.offsetof == 0);
-    static assert (MaterialIndices.albedo.offsetof  == 4);
-    static assert (MaterialIndices.normal.offsetof  == 8);
-
-    static assert (MaterialIndices.sizeof == 12);
-}
-
-/// Contains a model transform for objects as it appears inside a vertex buffer.
-align (1) struct ModelTransform
-{
-    Mat4x3 transform; /// The 4x3 matrix containing an objects tranform.
-
-    alias transform this;
-}
-///
-pure nothrow @safe @nogc unittest
-{
-    static assert (ModelTransform.transform.offsetof == 0);
-    static assert (ModelTransform.sizeof == 48);
 }

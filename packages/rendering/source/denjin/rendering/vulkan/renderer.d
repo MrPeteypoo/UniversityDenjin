@@ -91,7 +91,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         m_cmds.create (m_device, virtualFrames);
         m_uniforms.create (m_device, m_limits, m_memProps, virtualFrames);
         m_passes.create (m_device, m_swapchain.info.imageFormat);
-        m_pipelines.create (m_device, m_swapchain.info.imageExtent, m_passes);
+        m_pipelines.create (m_device, m_swapchain.info.imageExtent, m_uniforms, m_passes);
         m_fbs.create (m_device, m_swapchain, m_passes, m_memProps);
         m_barriers.reset (m_device);
         m_syncs.create (m_device, virtualFrames);
@@ -173,7 +173,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         m_fbs.create (m_device, m_swapchain, m_passes, m_memProps);
         
         m_pipelines.clear (m_device);
-        m_pipelines.create (m_device, m_swapchain.info.imageExtent, m_passes);
+        m_pipelines.create (m_device, m_swapchain.info.imageExtent, m_uniforms, m_passes);
     }
 
     /// Does absolutely nothing right now. Likely will be used to track and update time.

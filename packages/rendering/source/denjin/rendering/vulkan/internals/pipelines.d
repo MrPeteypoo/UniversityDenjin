@@ -17,7 +17,9 @@ import denjin.rendering.vulkan.nulls    : nullDevice, nullPass, nullPipeLayout, 
                                           nullShader;
 import denjin.rendering.vulkan.objects  : createShaderModule;
 
-import denjin.rendering.vulkan.internals.renderpasses;
+import denjin.rendering.vulkan.internals.geometry       : VertexAttributes;
+import denjin.rendering.vulkan.internals.renderpasses   : RenderPasses;
+import denjin.rendering.vulkan.internals.uniforms       : Uniforms;
 
 // Externals.
 import erupted.types;
@@ -33,8 +35,8 @@ struct Pipelines
     VkPipeline forward = nullPipeline; /// A dedicated forward render pipeline.
 
     /// For now this just creates a forward rendering pipeline for basic rendering support.
-    public void create (ref Device device, in VkExtent2D resolution, ref RenderPasses renderPasses,
-                        in VkAllocationCallbacks* callbacks = null)
+    public void create (ref Device device, in VkExtent2D resolution, in ref Uniforms uniforms, 
+                        ref RenderPasses renderPasses, in VkAllocationCallbacks* callbacks = null)
     in
     {
         assert (device != nullDevice);
@@ -107,10 +109,10 @@ struct ForwardRenderPipeline
             sType:                              VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
             pNext:                              null,
             flags:                              0,
-            vertexBindingDescriptionCount:      0,
-            pVertexBindingDescriptions:         null,
-            vertexAttributeDescriptionCount:    0,
-            pVertexAttributeDescriptions:       null
+            vertexBindingDescriptionCount:      VertexAttributes.bindings.length,
+            pVertexBindingDescriptions:         VertexAttributes.bindings.ptr,
+            vertexAttributeDescriptionCount:    VertexAttributes.attributes.length,
+            pVertexAttributeDescriptions:       VertexAttributes.attributes.ptr
         };
         immutable VkPipelineInputAssemblyStateCreateInfo assembly = 
         {
