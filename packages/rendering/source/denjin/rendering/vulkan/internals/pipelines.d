@@ -13,8 +13,8 @@ import std.exception : enforce;
 // Engine.
 import denjin.rendering.vulkan.device   : Device;
 import denjin.rendering.vulkan.misc     : enforceSuccess, safelyDestroyVK;
-import denjin.rendering.vulkan.nulls    : nullDevice, nullPass, nullPipeLayout, nullPipeline, nullPipelineCache, 
-                                          nullShader;
+import denjin.rendering.vulkan.nulls    : nullBuffer, nullDevice, nullPass, nullPipeLayout, nullPipeline, 
+                                          nullPipelineCache, nullShader;
 import denjin.rendering.vulkan.objects  : createShaderModule;
 
 import denjin.rendering.vulkan.internals.geometry       : VertexAttributes;
@@ -53,7 +53,7 @@ struct Pipelines
         shaders.create (device, callbacks);
         
         // Now we can construct the required pipelines.
-        forward = ForwardRenderPipeline.create (device, resolution, renderPasses, shaders, callbacks);
+        forward = ForwardRenderPipeline.create (device, resolution, uniforms, renderPasses, shaders, callbacks);
         enforce (forward != nullPipeline);
     }
 
@@ -64,7 +64,10 @@ struct Pipelines
     }
 }
 
-/// A basic pipeline which allows for a dedicated forward rendering pass.
+/**
+    A forward rendering pass is a very basic rendering technique where every object is drawn and lighting is 
+    performed eagerily, even if the object may end up not being visible.
+*/
 struct ForwardRenderPipeline
 {   
     /// Sets the default values used for the create info structs.
@@ -91,11 +94,14 @@ struct ForwardRenderPipeline
         basePipelineIndex:      0
     };
 
-    public static VkPipeline create (ref Device device, in VkExtent2D resolution, ref RenderPasses renderPasses, 
-                                     in ref Shaders shaders, in VkAllocationCallbacks* callbacks = null)
+    /// Creates a forward rendering pipeline with the given resources.
+    public static VkPipeline create (ref Device device, in VkExtent2D resolution, in ref Uniforms uniforms, 
+                                     ref RenderPasses renderPasses, in ref Shaders shaders, 
+                                     in VkAllocationCallbacks* callbacks = null)
     in
     {
         assert (device != nullDevice);
+        assert (uniforms.buffer != nullBuffer);
         assert (renderPasses.forward != nullPass);
         assert (shaders.vertexShader != nullShader);
         assert (shaders.fragmentShader != nullShader);
@@ -212,13 +218,13 @@ struct ForwardRenderPipeline
         };
 
         // We need to create a layout.
-        immutable VkPipelineLayoutCreateInfo layoutInfo =
+        const VkPipelineLayoutCreateInfo layoutInfo =
         {
             sType:                  VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             pNext:                  null,
             flags:                  0,
-            setLayoutCount:         0,
-            pSetLayouts:            null,
+            setLayoutCount:         1,
+            pSetLayouts:            &uniforms.layout,
             pushConstantRangeCount: 0,
             pPushConstantRanges:    null
         };
