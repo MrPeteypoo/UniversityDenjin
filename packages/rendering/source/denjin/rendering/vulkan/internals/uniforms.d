@@ -15,7 +15,7 @@ import std.traits   : isPointer;
 // Engine.
 import denjin.rendering.vulkan.device   : Device;
 import denjin.rendering.vulkan.misc     : enforceSuccess, memoryTypeIndex, safelyDestroyVK;
-import denjin.rendering.vulkan.nulls    : nullBuffer, nullDescLayout, nullDescPool, nullDevice, nullMemory;
+import denjin.rendering.vulkan.nulls    : nullBuffer, nullDescLayout, nullDescPool, nullDevice, nullMemory, nullSet;
 
 import denjin.rendering.vulkan.internals.types;
 
@@ -49,15 +49,23 @@ struct Uniforms
         ];
     }
 
-    VkDescriptorSet[] sceneSets;    /// Descriptor sets for the scene data for each virtual frame.
-    VkDescriptorSet[] dLightSets;   /// Descriptor sets for the directional light data for each virtual frame.
-    VkDescriptorSet[] pLightSets;   /// Descriptor sets for the point light data for each virtual frame.
-    VkDescriptorSet[] sLightSets;   /// Descriptor sets for the spotlight data for each virtual frame.
-
+    size_t                  frameIndex;                 /// The index of the current virtual frame to use.
+    VkDescriptorSet[]       sets;                       /// A collection of resources required for each virtual frame.
     VkBuffer                buffer  = nullBuffer;       /// The handle for the uniform buffer.
     VkDeviceMemory          memory  = nullMemory;       /// The allocated memory for the uniform buffer.
     VkDescriptorSetLayout   layout  = nullDescLayout;   /// The descriptor set layout, as used in pipeline creation.
     VkDescriptorPool        pool    = nullDescPool;     /// The descriptor pool from which descriptor sets are created.
+
+    /// Retrieves the descriptor set for the current frame.
+    public inout(VkDescriptorSet) set() inout pure nothrow @safe @nogc @property
+    in
+    {
+        assert (frameIndex < sets.length);
+    }
+    body
+    {
+        return sets[frameIndex];
+    }
 
     /// Creates the uniform buffer, and the descriptor sets required for each block.
     public void create (ref Device device, in ref VkPhysicalDeviceLimits limits, 
@@ -89,14 +97,13 @@ struct Uniforms
     }
     body
     {
+        sets.length = 0;
+        frameIndex  = 0;
+
         buffer.safelyDestroyVK (device.vkDestroyBuffer, device, buffer, callbacks);
         memory.safelyDestroyVK (device.vkFreeMemory, device, memory, callbacks);
         layout.safelyDestroyVK (device.vkDestroyDescriptorSetLayout, device, layout, callbacks);
         pool.safelyDestroyVK (device.vkDestroyDescriptorPool, device, pool, callbacks);
-        sceneSets.length    = 0;
-        dLightSets.length   = 0;
-        pLightSets.length   = 0;
-        sLightSets.length   = 0;
     }
 
     /// Creates and allocates memory for the buffer object itself.
@@ -145,7 +152,7 @@ struct Uniforms
             sType:          VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
             pNext:          null,
             flags:          0,
-            bindingCount:   bindings.length,
+            bindingCount:   cast (uint32_t) bindings.length,
             pBindings:      bindings.ptr
         };
         device.vkCreateDescriptorSetLayout (&info, callbacks, &layout).enforceSuccess;
@@ -176,7 +183,7 @@ struct Uniforms
     private void createSets (ref Device device, in uint32_t virtualFrames, in ref VkPhysicalDeviceLimits limits)
     {
         // We need to describe how the sets will be allocated.
-        auto layouts = layout.repeat.takeExactly(virtualFrames).array;
+        auto layouts = layout.repeat.takeExactly (virtualFrames).array;
         VkDescriptorSetAllocateInfo info =
         {
             sType:              VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -186,51 +193,59 @@ struct Uniforms
             pSetLayouts:        layouts.ptr
         };
 
+        // Allocate the sets.
+        sets.length = virtualFrames;
+        device.vkAllocateDescriptorSets (&info, sets.ptr).enforceSuccess;
+
         // Each uniform block will have each set configured here.
-        enum configureSets = (ref VkDescriptorSet[] setArray, in uint32_t binding, 
-                              in VkDeviceSize virtualFrameSize, in VkDeviceSize offset, in VkDeviceSize range)
+        enum updateSet = (ref VkDescriptorSet set, in uint32_t binding, 
+                          in VkDeviceSize offset, in VkDeviceSize range)
         {
-            // Firstly we must allocate the sets.
-            setArray.length = info.descriptorSetCount;
-            device.vkAllocateDescriptorSets (&info, setArray.ptr).enforceSuccess;
-            
-            // For each set, set each descriptor to the correct offset and binding point.
-            foreach (i, set; setArray)
+            // Now we can update the binding of the buffer to the desired offset.
+            const VkDescriptorBufferInfo bufferInfo = 
             {
-                const VkDescriptorBufferInfo bufferInfo = 
-                {
-                    buffer: buffer,
-                    offset: cast (VkDeviceSize) (offset + virtualFrameSize * i),
-                    range:  range
-                };
-                const VkWriteDescriptorSet write =
-                {
-                    sType:              VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                    pNext:              null,
-                    dstSet:             set,
-                    dstBinding:         binding,
-                    dstArrayElement:    0,
-                    descriptorCount:    1,
-                    descriptorType:     VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    pImageInfo:         null,
-                    pBufferInfo:        &bufferInfo,       
-                    pTexelBufferView:   null
-                };
-                device.vkUpdateDescriptorSets (1, &write, 0, null);
-            }
+                buffer: buffer,
+                offset: offset,
+                range:  range
+            };
+            const VkWriteDescriptorSet write =
+            {
+                sType:              VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                pNext:              null,
+                dstSet:             set,
+                dstBinding:         binding,
+                dstArrayElement:    0,
+                descriptorCount:    1,
+                descriptorType:     VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                pImageInfo:         null,
+                pBufferInfo:        &bufferInfo,       
+                pTexelBufferView:   null
+            };
+            device.vkUpdateDescriptorSets (1, &write, 0, null);
         };
 
         // Now we can configure each set.
-        immutable bufferSize    = bufferSize (limits);
-        immutable sceneOffset   = VkDeviceSize (0);
-        immutable dLightOffset  = limits.alignSize!SceneBlock;
-        immutable pLightOffset  = limits.alignSize!DLightBlock + dLightOffset;
-        immutable sLightOffset  = limits.alignSize!PLightBlock + pLightOffset;
+        immutable sceneSize     = limits.alignSize!SceneBlock;
+        immutable dLightSize    = limits.alignSize!DLightBlock;
+        immutable pLightSize    = limits.alignSize!PLightBlock;
+        immutable sLightSize    = limits.alignSize!SLightBlock;
+        immutable bufferSize    = sceneSize + dLightSize + pLightSize + sLightSize;
 
-        configureSets (sceneSets, sceneBinding.binding, bufferSize, sceneOffset, limits.alignSize!SceneBlock);
-        configureSets (dLightSets, dLightBinding.binding, bufferSize, dLightOffset, limits.alignSize!DLightBlock);
-        configureSets (pLightSets, pLightBinding.binding, bufferSize, pLightOffset, limits.alignSize!PLightBlock);
-        configureSets (sLightSets, sLightBinding.binding, bufferSize, sLightOffset, limits.alignSize!SLightBlock);
+        immutable sceneOffset   = VkDeviceSize (0);
+        immutable dLightOffset  = sceneSize;
+        immutable pLightOffset  = dLightOffset + dLightSize;
+        immutable sLightOffset  = pLightOffset + pLightSize;
+
+        sets.length = virtualFrames;
+        foreach (i, ref set; sets)
+        {
+            // Set each binding point for every set.
+            immutable bufferOffset = cast (VkDeviceSize) (i * bufferSize);
+            updateSet (set, sceneBinding.binding, bufferOffset + sceneOffset, sceneSize);
+            updateSet (set, dLightBinding.binding, bufferOffset + dLightOffset, dLightSize);
+            updateSet (set, pLightBinding.binding, bufferOffset + pLightOffset, pLightSize);
+            updateSet (set, sLightBinding.binding, bufferOffset + sLightOffset, sLightSize);
+        }
     }
 
     /// Calculates the total size needed for storing every uniform block whilst maintaining alignment requirements.

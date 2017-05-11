@@ -38,8 +38,15 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
 {
     private 
     {
+        // Aliases.
         alias Limits        = VkPhysicalDeviceLimits;
         alias MemoryProps   = VkPhysicalDeviceMemoryProperties;
+
+        // Global data.
+        enum VkClearColorValue clearColor               = { float32: [0f, 0f, 0f, 0f] };
+        enum VkClearDepthStencilValue clearDepth        = { depth: 1f, stencil: 255 };
+        static immutable VkClearValue[2] clearValues    = [{ color: clearColor }, { depthStencil: clearDepth }];
+        static immutable size_t virtualFrames           = 3;
 
         size_t          m_frameCount;   /// Counts how many frames in total have been rendered.
         Device          m_device;       /// The logical device containing device-level Functionality.
@@ -53,10 +60,6 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         Syncs           m_syncs;        /// The synchronization objects used to control the flow of generated commands.
         Limits          m_limits;       /// The hardware limits of the physical device that the renderer must adhere to.
         MemoryProps     m_memProps;     /// The properties of the physical devices memory, necessary to allocate resources.
-
-        enum VkClearColorValue clearColor               = { float32: [0f, 0f, 0f, 0f] };
-        enum VkClearDepthStencilValue clearDepth        = { depth: 1f, stencil: 255 };
-        static immutable VkClearValue[2] clearValues    = [{ color: clearColor }, { depthStencil: clearDepth }];
     }
 
     /// Initialises the renderer, creating Vulkan objects that are required for loading and rendering a scene.
@@ -84,12 +87,12 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         scope (failure) clear();
         m_swapchain.create (m_device);
         m_passes.create (m_device, m_swapchain.info.imageFormat);
-        m_uniforms.create (m_device, m_limits, m_memProps, 3);
+        m_uniforms.create (m_device, m_limits, m_memProps, virtualFrames);
         m_pipelines.create (m_device, m_swapchain.info.imageExtent, m_passes);
         m_cmds.create (m_device, m_swapchain.imageCount);
         m_fbs.create (m_device, m_swapchain, m_passes, m_memProps);
         m_barriers.reset (m_device);
-        m_syncs.create (m_device);
+        m_syncs.create (m_device, virtualFrames);
     }
 
     /// If necessary it will destroy and free any resources the renderer owns.
@@ -171,10 +174,13 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
     }
     body
     {
+        // Update the frame index for the internals.
+        immutable frameIndex    = m_frameCount++ % virtualFrames;
+        m_syncs.frameIndex      = frameIndex;
+
         // Firstly we must request an image from the presentation engine to start working on the next frame.
         validateNextSwapchainImage();
         m_barriers.update (m_swapchain.image);
-        m_syncs.advanceFenceIndex (++m_frameCount);
 
         // Record the actual rendering work.
         recordRender();
@@ -203,7 +209,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
     private void recordRender() nothrow
     {
         // Firstly we must ensure we aren't writing to a buffer which is pending.
-        const auto fence = m_syncs.renderFence;
+        const auto fence = m_syncs.renderComplete;
         m_device.vkWaitForFences (1, &fence, VK_FALSE, uint64_t.max);
         m_device.vkResetFences (1, &fence);
 
@@ -270,15 +276,15 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
             sType:                  VK_STRUCTURE_TYPE_SUBMIT_INFO,
             pNext:                  null,
             waitSemaphoreCount:     1,
-            pWaitSemaphores:        &m_syncs.imageAvailable,
+            pWaitSemaphores:        &m_syncs.imageAvailable(),
             pWaitDstStageMask:      &waitFlags,
             commandBufferCount:     1,
             pCommandBuffers:        &buffer,
             signalSemaphoreCount:   1,
-            pSignalSemaphores:      &m_syncs.frameComplete
+            pSignalSemaphores:      &m_syncs.frameComplete()
         };
 
-        m_device.vkQueueSubmit (m_device.renderQueue, 1, &submitInfo, m_syncs.renderFence);
+        m_device.vkQueueSubmit (m_device.renderQueue, 1, &submitInfo, m_syncs.renderComplete);
     }
 
     /// Informs the presentation engine that it can read from the current swapchain image and display it on screen.
@@ -288,14 +294,14 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         const auto index    = m_swapchain.imageIndex;
         const VkPresentInfoKHR info =
         {
-        sType:              VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-        pNext:              null,
-        waitSemaphoreCount: 1,
-        pWaitSemaphores:    &m_syncs.frameComplete,
-        swapchainCount:     1,
-        pSwapchains:        &handle,
-        pImageIndices:      &index,
-        pResults:           null
+            sType:              VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+            pNext:              null,
+            waitSemaphoreCount: 1,
+            pWaitSemaphores:    &m_syncs.frameComplete(),
+            swapchainCount:     1,
+            pSwapchains:        &handle,
+            pImageIndices:      &index,
+            pResults:           null
         };
 
         if (m_device.vkQueuePresentKHR (m_device.presentQueue, &info) != VK_SUCCESS)

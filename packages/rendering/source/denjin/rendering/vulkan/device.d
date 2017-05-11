@@ -98,7 +98,7 @@ struct Device
     public template opDispatch (string func)
         if (func.startsWith ("vk"))
     {
-        auto opDispatch (T...) (auto ref T params)
+        auto ref opDispatch (T...) (auto ref T params)
             if (isVkFunc!func)
         {
             import std.traits : Parameters;

@@ -11,8 +11,9 @@ module denjin.rendering.vulkan.internals.types;
 import denjin.maths : Vector;
 
 // Aliases.
-alias Mat4 = float[4][4];
-alias Vec3 = Vector!(float, 3);
+alias Mat4      = float[4][4];
+alias Mat4x3    = float[3][4];
+alias Vec3      = Vector!(float, 3);
 
 /**
     Wraps an array of T elements in a package which can be used in a shader. The generated array cannot be larger than

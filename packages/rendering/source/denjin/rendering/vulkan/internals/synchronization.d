@@ -8,7 +8,8 @@
 module denjin.rendering.vulkan.internals.synchronization;
 
 // Phobos.
-import std.algorithm.iteration : each;
+import std.algorithm.iteration  : each;
+import std.traits               : hasMember;
 
 // Engine.
 import denjin.rendering.vulkan.device   : Device;
@@ -27,43 +28,51 @@ import erupted.types : uint64_t, VkAllocationCallbacks, VkFence, VkSemaphore, VK
 */
 struct Syncs
 {
-    VkSemaphore imageAvailable  = nullSemaphore;    /// Indicates that an image has become available from the presentation engine and writing to it can begin.
-    VkSemaphore frameComplete   = nullSemaphore;    /// Indicates that rendering of a frame is complete, no more data will be written to anything.
+    /// Common resources required by every "virtual" frame.
+    struct VirtualFrame
+    {
+        VkSemaphore imageAvailable  = nullSemaphore;    /// Indicates that an image has become available from the presentation engine and writing to it can begin.
+        VkSemaphore frameComplete   = nullSemaphore;    /// Indicates that rendering of a frame is complete, no more data will be written to anything.
+        VkFence     renderComplete  = nullFence;        /// Tracks whether the render queue has finished being processed.
+    }
 
-    size_t      fenceIndex;     /// The index to use when using a fence for a frame.   
-    VkFence[]   renderFences;   /// Used to track the completion status of multiple previous frames.
+    VirtualFrame[]  frames;     /// Fences and semaphores for each virtual frame in the renderer.
+    size_t          frameIndex; /// The index of the frame to use for retrieving resources.
 
-    /// Returns the fence which should be used to indicate whether render work has completed for a past frame.
-    public @property inout(VkFence) renderFence() inout pure nothrow @safe @nogc
+    /// Returns a member from VirtualFrame for the current frame index.
+    public auto ref opDispatch (string member)() @property
+        if (hasMember!(VirtualFrame, member))
     in
     {
-        assert (fenceIndex < renderFences.length);
+        assert (frameIndex < frames.length);
     }
     body
     {
-        return renderFences[fenceIndex];
+        enum target = "frames[frameIndex]." ~ member;
+        return mixin (target);
     }
 
     /// Initialises all semaphore and fence objects ready for use.
-    public void create (ref Device device, in size_t fenceCount = 3, in VkAllocationCallbacks* callbacks = null)
+    public void create (ref Device device, in size_t virtualFrames, in VkAllocationCallbacks* callbacks = null)
     in
     {
         assert (device != nullDevice);
-    }
-    out
-    {
-        assert (imageAvailable != nullSemaphore);
-        assert (frameComplete != nullSemaphore);
+        assert (virtualFrames > 0);
+        assert (frames.length == 0);
     }
     body
     {
-        clear (device);
-        imageAvailable.createSemaphore (device, callbacks).enforceSuccess;
-        frameComplete.createSemaphore (device, callbacks).enforceSuccess;
+        scope (failure) clear (device);
+        frames.length = virtualFrames;
+        
+        foreach (ref frame; frames)
+        {
+            frame.imageAvailable.createSemaphore (device, callbacks).enforceSuccess;
+            frame.frameComplete.createSemaphore (device, callbacks).enforceSuccess;
 
-        enum fenceFlags = VK_FENCE_CREATE_SIGNALED_BIT;
-        renderFences.length = fenceCount;
-        renderFences.each!((ref f) => f.createFence (device, fenceFlags, callbacks).enforceSuccess);
+            enum fenceFlags = VK_FENCE_CREATE_SIGNALED_BIT;
+            frame.renderComplete.createFence (device, fenceFlags, callbacks).enforceSuccess;
+        }
     }
 
     /// Destroys all semaphore and fence objects, returning the object to an uninitialised state.
@@ -74,20 +83,22 @@ struct Syncs
     }
     body
     {
+        // Ensure each fence has been signalled before we destroy them.
+        waitForFences (device);
+
+        // Now destroy each object.
         immutable semaphoreFunc = device.vkDestroySemaphore;
         immutable fenceFunc     = device.vkDestroyFence;
 
-        // Ensure each fence has been signalled before we destroy them.
-        waitForFences (device);
-        imageAvailable.safelyDestroyVK (semaphoreFunc, device, imageAvailable, callbacks);
-        frameComplete.safelyDestroyVK (semaphoreFunc, device, frameComplete, callbacks);
-        renderFences.each!((ref f) => f.safelyDestroyVK (fenceFunc, device, f, callbacks));
-    }
-
-    /// Adjusts the fence index using the given frame count and the number of stored fences.
-    public size_t advanceFenceIndex (in size_t frameCount) pure nothrow @safe @nogc
-    {
-        return fenceIndex = frameCount % renderFences.length;
+        foreach (ref frame; frames)
+        {
+            with (frame)
+            {
+                imageAvailable.safelyDestroyVK (semaphoreFunc, device, imageAvailable, callbacks);
+                frameComplete.safelyDestroyVK (semaphoreFunc, device, frameComplete, callbacks);
+                renderComplete.safelyDestroyVK (fenceFunc, device, renderComplete, callbacks);
+            }
+        }
     }
 
     /// Attempts to wait for all stored fences to be signalled. The given timeout will be specified for each fence.
@@ -98,9 +109,13 @@ struct Syncs
     }
     body
     {
-        renderFences.each!((ref VkFence f)
+        foreach (ref frame; frames)
         {
-            if (f != nullFence) device.vkWaitForFences (1, &f, VK_TRUE, timeout);
-        });
+            auto fence = frame.renderComplete;
+            if (fence != nullFence)
+            {
+                device.vkWaitForFences (1, &fence, VK_TRUE, timeout);
+            }
+        }
     }
 }
