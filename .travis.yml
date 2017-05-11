@@ -34,7 +34,7 @@ matrix:
 
     # 32-bit LDC2
     - env: ARCH=x86
-      d: ldc2-1.2.0
+      d: ldc-1.2.0
       addons:
         apt:
           sources: *native_sources
@@ -44,7 +44,7 @@ matrix:
 
     # 32-bit GDC
     - env: ARCH=x86
-      d: gdc-2.072.2
+      d: gdc
       addons:
         apt:
           sources: *native_sources
@@ -64,7 +64,7 @@ matrix:
 
     # 64-bit LDC2
     - env: ARCH=x86_64
-      d: ldc2-1.2.0
+      d: ldc-1.2.0
       addons:
         apt:
           sources: *native_sources
@@ -94,12 +94,12 @@ install:
 
 script:
   - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.:./builds
-  - ./build.sh build debug $ARCH
-  - ./build.sh build optimized $ARCH
-  - ./build.sh build release $ARCH
-  - ./build.sh build release-nobounds $ARCH
-  - ./build.sh test unittest-cov $ARCH
-  - ./build.sh test unittest-optimized $ARCH
+  - ./build.sh build debug $ARCH ${DC}
+  - ./build.sh build optimized $ARCH ${DC}
+  - ./build.sh build release $ARCH ${DC}
+  - ./build.sh build release-nobounds $ARCH ${DC}
+  - ./build.sh test unittest-cov $ARCH ${DC}
+  - ./build.sh test unittest-optimized $ARCH ${DC}
 
 after_script:
   - dub run doveralls
