@@ -1,5 +1,7 @@
 language: d
 
+d: dmd
+
 # No Mac support until Metal is implemented.
 os:
   - linux
@@ -82,6 +84,9 @@ matrix:
 
   allow_failures:
     - d: gdc
+      
+  exclude:
+    - d: dmd
     
 install:
   - dub fetch doveralls
