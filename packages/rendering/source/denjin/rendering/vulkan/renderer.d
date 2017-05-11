@@ -114,6 +114,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         if (m_device != nullDevice)
         {
             m_device.vkDeviceWaitIdle();
+            m_geometry.clear (m_device);
             m_syncs.clear (m_device);
             m_fbs.clear (m_device);
             m_cmds.clear (m_device);

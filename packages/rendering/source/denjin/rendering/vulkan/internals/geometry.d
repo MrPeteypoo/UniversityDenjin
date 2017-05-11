@@ -22,16 +22,16 @@ import denjin.rendering.traits                  : isAssets, isMesh, isScene;
 import denjin.rendering.vulkan.internals.types  : Mat4x3, Vec2, Vec3;
 
 // External.
-import erupted.types :  int32_t, uint32_t, uint64_t, VkAllocationCallbacks, VkBuffer, VkBufferCopy, VkBufferMemoryBarrier, 
-                        VkCommandBuffer, VkCommandBufferBeginInfo, VkDeviceMemory, VkDeviceSize, VkFence, 
-                        VkMappedMemoryRange, VkPhysicalDeviceMemoryProperties, VkSubmitInfo,
-                        VK_ACCESS_MEMORY_WRITE_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 
-                        VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_BUFFER_USAGE_TRANSFER_DST_BIT, 
-                        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, VK_FALSE,
-                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 
-                        VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, 
-                        VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, 
-                        VK_STRUCTURE_TYPE_SUBMIT_INFO, VK_WHOLE_SIZE;
+import erupted.types :  int32_t, uint32_t, uint64_t, VkAllocationCallbacks, VkBuffer, VkBufferCopy, 
+                        VkBufferMemoryBarrier, VkCommandBuffer, VkCommandBufferBeginInfo, VkDeviceMemory, VkDeviceSize, 
+                        VkFence, VkMappedMemoryRange, VkPhysicalDeviceMemoryProperties, VkSubmitInfo,
+                        VK_ACCESS_MEMORY_WRITE_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, VK_BUFFER_USAGE_INDEX_BUFFER_BIT,  
+                        VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
+                        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, VK_FALSE, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
+                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+                        VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 
+                        VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER, VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, 
+                        VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, VK_STRUCTURE_TYPE_SUBMIT_INFO, VK_WHOLE_SIZE;
 
 /// Contains the data required to render a mesh.
 struct Mesh
@@ -42,6 +42,21 @@ struct Mesh
     uint32_t    vertexOffset;   /// an offset into the vertex buffer where the first vertex can be found.
 }
 
+/// Dynamic vertex attributes which are required to render an instance.
+align (1) struct InstanceAttributes
+{
+    MaterialIndices material;   /// Contains the index of texture maps for the material.
+    ModelTransform  transform;  /// Contains the model transform of the instance.
+}
+///
+pure nothrow @safe @nogc unittest
+{
+    static assert (InstanceAttributes.material.offsetof     == 0);
+    static assert (InstanceAttributes.transform.offsetof    == 12);
+    
+    static assert (InstanceAttributes.sizeof == 60);
+}
+
 /// Loads, stores and manages geometry data. This includes vertex, index, material and transform data.
 /// See_Also: isAssets, isScene.
 struct GeometryT (Assets, Scene)
@@ -50,11 +65,13 @@ struct GeometryT (Assets, Scene)
     Mesh[]          meshes;                         /// Every loaded mesh in the scene.
     VkBuffer        staticBuffer    = nullBuffer;   /// The vertex buffer containing static data such as vertices and indices.
     VkBuffer        dynamicBuffer   = nullBuffer;   /// The vertex buffer containing dynamic data such as instancing attributes.
-    VkDeviceMemory  staticMemory    = nullMemory;   /// The device memory bound to the static buffer.
-    VkDeviceMemory  dynamicMemory   = nullMemory;   /// The device memory bound to the dynamic buffer.
     VkDeviceSize    vertexOffset    = 0;            /// The offset into the static buffer for mesh vertices.
     VkDeviceSize    indexOffset     = 0;            /// The offset into the static buffer for mesh indices.
     VkDeviceSize    staticSize      = 0;            /// The size of the static data buffer.
+    VkDeviceSize    dynamicSize     = 0;            /// The size of the dynamic data buffer (excluding virtual frames).
+    void*           dynamicMapping  = null;         /// A persistent mapping of the dynamic buffer.
+    VkDeviceMemory  staticMemory    = nullMemory;   /// The device memory bound to the static buffer.
+    VkDeviceMemory  dynamicMemory   = nullMemory;   /// The device memory bound to the dynamic buffer.
 
     /**
         Loads all meshes contained in the given assets object. Upon doing so, the given scene object will be analysed
@@ -80,7 +97,7 @@ struct GeometryT (Assets, Scene)
         scope (failure) clear (device, callbacks);
         allocateStaticBuffers (device, memProps, assets, callbacks);
         fillStaticBuffer (device, memProps, transfer, assets, callbacks);
-        allocateDynamicBuffers (device, scene, virtualFrames, callbacks);
+        allocateDynamicBuffers (device, memProps, scene, virtualFrames, callbacks);
     }
 
     /// Deallocates resources, deleting all stored buffers and meshes.
@@ -91,14 +108,20 @@ struct GeometryT (Assets, Scene)
     }
     body
     {
-        staticMemory.safelyDestroyVK (device.vkFreeMemory, device, staticMemory, callbacks);
-        dynamicMemory.safelyDestroyVK (device.vkFreeMemory, device, dynamicMemory, callbacks);
-        staticBuffer.safelyDestroyVK (device.vkDestroyBuffer, device, staticBuffer, callbacks);
-        dynamicBuffer.safelyDestroyVK (device.vkDestroyBuffer, device, dynamicBuffer, callbacks);
+        if (dynamicMapping !is null && dynamicMemory != nullMemory)
+        {
+            device.vkUnmapMemory (dynamicMemory);
+            dynamicMapping = null;
+        }
         meshes.length   = 0;
         vertexOffset    = 0;
         indexOffset     = 0;
         staticSize      = 0;
+        dynamicSize     = 0;
+        staticMemory.safelyDestroyVK (device.vkFreeMemory, device, staticMemory, callbacks);
+        dynamicMemory.safelyDestroyVK (device.vkFreeMemory, device, dynamicMemory, callbacks);
+        staticBuffer.safelyDestroyVK (device.vkDestroyBuffer, device, staticBuffer, callbacks);
+        dynamicBuffer.safelyDestroyVK (device.vkDestroyBuffer, device, dynamicBuffer, callbacks);
     }
 
     /// Analyses the given assets, determining how much memory is required to store meshes and creates the buffer. 
@@ -113,12 +136,11 @@ struct GeometryT (Assets, Scene)
         indexOffset     = cast (VkDeviceSize) (vertexCount * Vertex.sizeof);
         staticSize      = cast (VkDeviceSize) (indexOffset + indexCount * uint32_t.sizeof);
 
-        // Now create the primary buffers.
+        // Now we can create the buffer and memory.
         enum bufferUse  = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | 
                           VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         enum memoryUse  = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-        staticBuffer.createBuffer (staticMemory, device, memProps, staticSize, bufferUse, memoryUse, callbacks)
-                    .enforceSuccess;
+        staticBuffer.createBuffer (staticMemory, device, memProps, staticSize, bufferUse, memoryUse, callbacks).enforceSuccess;
     }
 
     /// Generates GPU-storable meshes and transfers them to the GPU, ready for usage by a scene.
@@ -207,6 +229,25 @@ struct GeometryT (Assets, Scene)
         device.vkQueueSubmit (device.transferQueue, 1, &submitInfo, fence).enforceSuccess;
         device.vkWaitForFences (1, &fence, VK_FALSE, uint64_t.max).enforceSuccess;
     }
+
+    /// Determines how many instances are in the given scene and allocates enough memory for all instances.
+    private void allocateDynamicBuffers (ref Device device, in ref VkPhysicalDeviceMemoryProperties memProps, 
+                                         in ref Scene scene, in uint32_t virtualFrames, 
+                                         in VkAllocationCallbacks* callbacks)
+    {
+        // Calculate how much memory we need.
+        dynamicSize         = cast (VkDeviceSize) (scene.countInstances (meshes) * InstanceAttributes.sizeof);
+        immutable totalSize = dynamicSize * virtualFrames;
+
+        // The buffers should be mappable so we can modify the data each frame.
+        enum bufferUse  = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        enum memoryUse  = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        dynamicBuffer.createBuffer (dynamicMemory, device, memProps, totalSize, bufferUse, memoryUse, callbacks)
+                     .enforceSuccess;
+
+        // Now we can map the buffer.
+        device.vkMapMemory (dynamicMemory, 0, VK_WHOLE_SIZE, 0, &dynamicMapping).enforceSuccess;
+    }
 }
 
 /**
@@ -278,7 +319,7 @@ body
     foreach (ref sceneMesh; sceneMeshes)
     {
         // Increase capacity if necessary.
-        if (meshes.length == meshes.capacity) meshes.reserve (max (meshes.capacity, 2));
+        if (meshes.length == meshes.capacity) meshes.reserve (max (meshes.capacity * 2 / 4, 2));
         with (sceneMesh)
         {
             // We must ensure we don't access data in the mesh which doesn't exist so we need the range lengths.
@@ -324,7 +365,20 @@ body
             vertexOffset    += vertexCount;
         }
     }
-    meshes.length = meshes.capacity;
+}
+
+/// Counts the number of instances in the given scene which contains the given meshes.
+size_t countInstances (Scene)(auto ref Scene scene, Mesh[] meshes)
+    if (isScene!Scene)
+{
+    import std.algorithm : count;
+
+    size_t total;
+    foreach (ref mesh; meshes)
+    {
+        total += scene.instancesByMesh (mesh.id).count;
+    }
+    return total;
 }
 
 /// A vertex as it is stored inside a vertex buffer.
@@ -368,6 +422,8 @@ pure nothrow @safe @nogc unittest
 align (1) struct ModelTransform
 {
     Mat4x3 transform; /// The 4x3 matrix containing an objects tranform.
+
+    alias transform this;
 }
 ///
 pure nothrow @safe @nogc unittest

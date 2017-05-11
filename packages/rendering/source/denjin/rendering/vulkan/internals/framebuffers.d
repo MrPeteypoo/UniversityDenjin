@@ -100,9 +100,9 @@ struct Framebuffers
     public void clear (ref Device device, in VkAllocationCallbacks* callbacks = null) nothrow @nogc
     {
         framebuffers.each!((ref fb) => fb.safelyDestroyVK (device.vkDestroyFramebuffer, device, fb, callbacks));
+        depthMemory.safelyDestroyVK (device.vkFreeMemory, device, depthMemory, callbacks);
         depthView.safelyDestroyVK (device.vkDestroyImageView, device, depthView, callbacks);
         depthImage.safelyDestroyVK (device.vkDestroyImage, device, depthImage, callbacks);
-        depthMemory.safelyDestroyVK (device.vkFreeMemory, device, depthMemory, callbacks);
     }
 
     /// Creates a depth buffer for use with swapchain images when rendering into generated framebuffers.
