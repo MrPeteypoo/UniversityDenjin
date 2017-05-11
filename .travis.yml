@@ -1,7 +1,5 @@
 language: d
 
-d: dmd
-
 # No Mac support until Metal is implemented.
 os:
   - linux
@@ -23,7 +21,7 @@ matrix:
 
     # 32-bit DMD
     - env: ARCH=x86
-      d: dmd
+      d: dmd-2.072.2
       addons:
         apt:
           sources: *native_sources
@@ -34,7 +32,7 @@ matrix:
 
     # 32-bit LDC2
     - env: ARCH=x86
-      d: ldc2
+      d: ldc2-1.2.0
       addons:
         apt:
           sources: *native_sources
@@ -44,7 +42,7 @@ matrix:
 
     # 32-bit GDC
     - env: ARCH=x86
-      d: gdc
+      d: gdc-2.072.2
       addons:
         apt:
           sources: *native_sources
@@ -54,7 +52,7 @@ matrix:
 
     # 64-bit DMD
     - env: ARCH=x86_64
-      d: dmd
+      d: dmd-2.072.2
       addons:
         apt:
           sources: *native_sources
@@ -64,7 +62,7 @@ matrix:
 
     # 64-bit LDC2
     - env: ARCH=x86_64
-      d: ldc2
+      d: ldc2-1.2.0
       addons:
         apt:
           sources: *native_sources
@@ -84,9 +82,6 @@ matrix:
 
   allow_failures:
     - d: gdc
-      
-  exclude:
-    - d: dmd
     
 install:
   - dub fetch doveralls
