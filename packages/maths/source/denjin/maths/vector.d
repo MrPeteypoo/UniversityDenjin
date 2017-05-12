@@ -114,6 +114,12 @@ struct Vector (Num, size_t Dimensions)
         return array[index];
     }
 
+    /// Returns the first component, allows for retrieval of the element type.
+    ref inout (Num) front() inout pure nothrow @safe @nogc @property
+    {
+        return array[0];
+    }
+
     /// Unary operations on vectors will return a vector with the operator being applied to each component.
     Type opUnary (string op)() const
     {

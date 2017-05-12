@@ -7,5 +7,8 @@
 */
 module denjin.maths;
 
+public import denjin.maths.functions;
+public import denjin.maths.matrix;
+public import denjin.maths.traits;
 public import denjin.maths.types;
 public import denjin.maths.vector;

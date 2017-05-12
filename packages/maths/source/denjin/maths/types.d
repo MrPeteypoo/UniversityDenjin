@@ -8,7 +8,12 @@
 module denjin.maths.types;
 
 // Engine.
-import denjin.maths.vector;
+import denjin.maths.matrix : Matrix;
+import denjin.maths.vector : Vector;
+
+// Matrices.
+alias Matrix4(T)    = Matrix!(T, 4, 4);
+alias Matrix4f      = Matrix4!float;
 
 // 2D vectors.
 alias Vector2(T)    = Vector!(T, 2);
