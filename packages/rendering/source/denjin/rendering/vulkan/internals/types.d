@@ -8,11 +8,11 @@
 module denjin.rendering.vulkan.internals.types;
 
 // Engine.
-import denjin.maths : Vector;
+import denjin.maths : Matrix, Vector;
 
 // Aliases.
-alias Mat4      = float[4][4];
-alias Mat4x3    = float[3][4];
+alias Mat4      = Matrix!(float, 4, 4);
+alias Mat4x3    = Matrix!(float, 4, 3);
 alias Vec2      = Vector!(float, 2);
 alias Vec3      = Vector!(float, 3);
 

@@ -102,7 +102,7 @@ struct Syncs
     }
 
     /// Attempts to wait for all stored fences to be signalled. The given timeout will be specified for each fence.
-    public void waitForFences (ref Device device, in uint64_t timeout = uint64_t.max) nothrow @nogc
+    public void waitForFences (ref Device device, in uint64_t timeout = 1_000_000_000) nothrow @nogc
     in
     {
         assert (device != nullDevice);

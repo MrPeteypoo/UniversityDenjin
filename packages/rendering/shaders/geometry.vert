@@ -47,6 +47,8 @@ void main()
     texturePoint    = uv;
     material        = mat;
 
-    // Place the vertex in the correct position on-screen.
-    gl_Position = projectionViewModel * homogeneousPosition;
+    // We need to invert the up position because Vulkan draws from the top-left not bottom-left.
+    gl_Position     = projectionViewModel * homogeneousPosition;
+    gl_Position.y   = -gl_Position.y;
+    //gl_Position.z   = (gl_Position.z + gl_Position.w) / 2.0;
 }

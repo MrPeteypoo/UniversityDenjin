@@ -14,10 +14,11 @@ import std.algorithm.sorting    : sort;
 import std.algorithm.mutation   : move;
 
 // Engine.
+import denjin.maths.functions               : lookAt, perspective, radians;
 import denjin.rendering.interfaces          : IRenderer;
 import denjin.rendering.vulkan.device       : Device;
-import denjin.rendering.vulkan.internals    : Barriers, Commands, Framebuffers, GeometryT, Pipelines, RenderPasses, 
-                                              Syncs, Uniforms;
+import denjin.rendering.vulkan.internals    : Barriers, Commands, Framebuffers, InstanceAttributes, GeometryT, 
+                                              Pipelines, RenderPasses, Syncs, Uniforms, Vec3, VertexAttributes;
 import denjin.rendering.vulkan.misc         : safelyDestroyVK;
 import denjin.rendering.vulkan.objects      : createCommandPool;
 import denjin.rendering.vulkan.swapchain    : Swapchain, VSync;
@@ -53,7 +54,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         Device          m_device;       /// The logical device containing device-level Functionality.
         Swapchain       m_swapchain;    /// Manages the display mode and displayable images available to the renderer.
         Commands        m_cmds;         /// The command pools and buffers required by the primary rendering thread.
-        Geometry       m_geometry;     /// Manages renderable geometry, including vertex data and instancing buffers.
+        Geometry        m_geometry;     /// Manages renderable geometry, including vertex data and instancing buffers.
         Uniforms        m_uniforms;     /// Handles the construction of uniform buffer blocks.
         RenderPasses    m_passes;       /// The handles required to perform different rendering passes.
         Pipelines       m_pipelines;    /// Stores the bindable pipelines used in the render loop.
@@ -91,7 +92,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         m_cmds.create (m_device, virtualFrames);
         m_uniforms.create (m_device, m_limits, m_memProps, virtualFrames);
         m_passes.create (m_device, m_swapchain.info.imageFormat);
-        m_pipelines.create (m_device, m_swapchain.info.imageExtent, m_uniforms, m_passes);
+        m_pipelines.create (m_device, m_passes, m_uniforms, m_swapchain.info.imageExtent);
         m_fbs.create (m_device, m_swapchain, m_passes, m_memProps);
         m_barriers.reset (m_device);
         m_syncs.create (m_device, virtualFrames);
@@ -114,8 +115,8 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         if (m_device != nullDevice)
         {
             m_device.vkDeviceWaitIdle();
-            m_geometry.clear (m_device);
             m_syncs.clear (m_device);
+            m_geometry.clear (m_device);
             m_fbs.clear (m_device);
             m_cmds.clear (m_device);
             m_pipelines.clear (m_device);
@@ -173,7 +174,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         m_fbs.create (m_device, m_swapchain, m_passes, m_memProps);
         
         m_pipelines.clear (m_device);
-        m_pipelines.create (m_device, m_swapchain.info.imageExtent, m_uniforms, m_passes);
+        m_pipelines.create (m_device, m_passes, m_uniforms, m_swapchain.info.imageExtent);
     }
 
     /// Does absolutely nothing right now. Likely will be used to track and update time.
@@ -199,13 +200,18 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         // Update the frame index for the internals.
         immutable frameIndex    = m_frameCount++ % virtualFrames;
         m_syncs.frameIndex      = frameIndex;
+        m_geometry.updateMappings (frameIndex);
+        m_uniforms.updateMappings (frameIndex);
 
         // Firstly we must request an image from the presentation engine to start working on the next frame.
         validateNextSwapchainImage();
         m_barriers.update (m_swapchain.image);
 
         // Record the actual rendering work.
-        recordRender();
+        recordRender (scene);
+
+        // Ensure uniform data is updated.
+        updateUniforms (scene);
 
         // Submit the commands for execution.
         submitRender();
@@ -228,7 +234,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
     }
 
     /// Performs that actual rendering aspect of the frame.
-    private void recordRender() nothrow
+    private void recordRender (in ref Scene scene) nothrow
     {
         // Firstly we must ensure we aren't writing to a buffer which is pending.
         const auto fence = m_syncs.renderComplete;
@@ -268,24 +274,85 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         };
         m_device.vkCmdBeginRenderPass (cmdBuffer, &passInfo, VK_SUBPASS_CONTENTS_INLINE);
         scope (exit) m_device.vkCmdEndRenderPass (cmdBuffer);
+
+        // Collect vertex buffer data together.
+        enum bindings                   = cast (uint32_t) VertexAttributes.bindings.length;
+        VkBuffer[bindings] buffers      = [m_geometry.staticBuffer, m_geometry.dynamicBuffer];
+        VkDeviceSize[bindings] offsets  = [m_geometry.vertexOffset, m_geometry.dynamicOffset];
+
+        // Bind global resources.
+        m_device.vkCmdBindPipeline (cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelines.forward);
+        m_device.vkCmdBindDescriptorSets (cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelines.layout, 
+                                          Uniforms.bindings[0].binding, 1, &m_uniforms.set, 0, null);
+        m_device.vkCmdBindVertexBuffers (cmdBuffer, 0, bindings, buffers.ptr, offsets.ptr);
+        m_device.vkCmdBindIndexBuffer (cmdBuffer, m_geometry.staticBuffer, m_geometry.indexOffset, 
+                                       VK_INDEX_TYPE_UINT32);
         
         // Finally we can draw objects.
-        renderObjects (cmdBuffer);
+        renderObjects (cmdBuffer, m_geometry.instanceAttributes, scene);
     }
 
     /**
         Assuming a command buffer record operation has begun, this will record draw commands required to render the 
         scene.
     */
-    private void renderObjects (VkCommandBuffer primaryBuffer) nothrow
+    private void renderObjects (VkCommandBuffer primaryBuffer, InstanceAttributes* instanceAttributes, 
+                                in ref Scene scene)
     in
     {
         assert (primaryBuffer != nullCMDBuffer);
     }
     body
     {
-        m_device.vkCmdBindPipeline (primaryBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelines.forward);
-        m_device.vkCmdDraw (primaryBuffer, 3, 1, 0, 0);
+        // Cache the draw function pointer as it will be used a lot.
+        auto cmdDrawIndexed = m_device.vkCmdDrawIndexed;
+        
+        /// We need to keep track of the number of instances being rendered.
+        size_t totalInstances, previousCount;
+        foreach (ref mesh; m_geometry.meshes)
+        {
+            foreach (ref instance; scene.instancesByMesh (mesh.id))
+            {
+                // Update the instance data.
+                with (instanceAttributes[totalInstances++])
+                {
+                    material.physics    = -1;
+                    material.albedo     = -1;
+                    material.normal     = -1;
+                    transform           = instance.transformationMatrix;
+                }
+            }
+
+            // Add the render command.
+            immutable instanceCount = cast (uint32_t) (totalInstances - previousCount);
+            immutable firstInstance = cast (uint32_t) previousCount;
+            previousCount           = totalInstances;
+            cmdDrawIndexed (primaryBuffer, mesh.indexCount, instanceCount, mesh.firstIndex, mesh.vertexOffset, firstInstance);
+        }
+    }
+
+    /**
+        Updates the uniforms with the given scene data.
+    */
+    private void updateUniforms (in ref Scene scene) nothrow
+    {
+        // Update the uniforms.
+        const display   = m_swapchain.info.imageExtent;
+        const camera    = scene.camera;
+        const fov       = cast (float) camera.fieldOfView;
+        const aspect    = cast (float) display.width / display.height;
+        const nearClip  = cast (float) camera.nearPlaneDistance;
+        const farClip   = cast (float) camera.farPlaneDistance;
+        const camPos    = Vec3 (camera.position);
+        const camDir    = Vec3 (camera.direction);
+        const up        = Vec3 (scene.upDirection);
+        const ambience  = Vec3 (scene.ambientLightIntensity);
+        auto sceneBlock = m_uniforms.sceneBlock;
+
+        sceneBlock.projection       = perspective (fov.radians, aspect, nearClip, farClip);
+        sceneBlock.view             = lookAt (camPos, camPos + camDir, up);
+        sceneBlock.cameraPosition   = camPos;
+        sceneBlock.ambientLight     = ambience;
     }
 
     /// Submits the command buffer used for the current frame to the render queue.

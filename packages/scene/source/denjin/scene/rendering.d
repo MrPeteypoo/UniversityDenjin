@@ -15,9 +15,9 @@ import denjin.misc.ids  : InstanceID, LightID, MaterialID, MeshID;
 struct RenderCamera
 {
     Vector3f    position            = Vector3f.zero;    /// The position of the camera in world-space.
-    Vector3f    direction           = Vector3f.zero;    /// The direction that the camera is facing in world-space.
-    float       fieldOfView         = 75f;              /// The field of view of the camera in degrees.
-    float       nearPlaneDistance   = .1f;              /// How close objects can be to the camera before being clipped.
+    Vector3f    direction           = Vector3f.forward; /// The direction that the camera is facing in world-space.
+    float       fieldOfView         = 60f;              /// The field of view of the camera in degrees.
+    float       nearPlaneDistance   = 1f;               /// How close objects can be to the camera before being clipped.
     float       farPlaneDistance    = 1000f;            /// How far objects can be away from the camera before being clipped.
 }
 ///

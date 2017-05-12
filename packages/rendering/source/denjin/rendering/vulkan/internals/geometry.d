@@ -42,16 +42,18 @@ import erupted.types :  int32_t, uint32_t, uint64_t, VkAllocationCallbacks, VkBu
 struct GeometryT (Assets, Scene)
     if (isAssets!Assets && isScene!Scene)
 {
-    Mesh[]          meshes;                         /// Every loaded mesh in the scene.
-    VkBuffer        staticBuffer    = nullBuffer;   /// The vertex buffer containing static data such as vertices and indices.
-    VkBuffer        dynamicBuffer   = nullBuffer;   /// The vertex buffer containing dynamic data such as instancing attributes.
-    VkDeviceSize    vertexOffset    = 0;            /// The offset into the static buffer for mesh vertices.
-    VkDeviceSize    indexOffset     = 0;            /// The offset into the static buffer for mesh indices.
-    VkDeviceSize    staticSize      = 0;            /// The size of the static data buffer.
-    VkDeviceSize    dynamicSize     = 0;            /// The size of the dynamic data buffer (excluding virtual frames).
-    void*           dynamicMapping  = null;         /// A persistent mapping of the dynamic buffer.
-    VkDeviceMemory  staticMemory    = nullMemory;   /// The device memory bound to the static buffer.
-    VkDeviceMemory  dynamicMemory   = nullMemory;   /// The device memory bound to the dynamic buffer.
+    Mesh[]              meshes;                             /// Every loaded mesh in the scene.
+    VkBuffer            staticBuffer        = nullBuffer;   /// The vertex buffer containing static data such as vertices and indices.
+    VkBuffer            dynamicBuffer       = nullBuffer;   /// The vertex buffer containing dynamic data such as instancing attributes.
+    VkDeviceSize        vertexOffset        = 0;            /// The offset into the static buffer for mesh vertices.
+    VkDeviceSize        indexOffset         = 0;            /// The offset into the static buffer for mesh indices.
+    VkDeviceSize        dynamicOffset       = 0;            /// The offset into the dynamic buffer for instance data on the current frame.
+    VkDeviceSize        staticSize          = 0;            /// The size of the static data buffer.
+    VkDeviceSize        dynamicSize         = 0;            /// The size of the dynamic data buffer (excluding virtual frames).
+    void*               dynamicMapping      = null;         /// A persistent mapping of the dynamic buffer.
+    InstanceAttributes* instanceAttributes  = null;         /// A mapping of the instance attibutes for the current virtual frame.
+    VkDeviceMemory      staticMemory        = nullMemory;   /// The device memory bound to the static buffer.
+    VkDeviceMemory      dynamicMemory       = nullMemory;   /// The device memory bound to the dynamic buffer.
 
     /**
         Loads all meshes contained in the given assets object. Upon doing so, the given scene object will be analysed
@@ -93,28 +95,25 @@ struct GeometryT (Assets, Scene)
             device.vkUnmapMemory (dynamicMemory);
             dynamicMapping = null;
         }
-        meshes.length   = 0;
-        vertexOffset    = 0;
-        indexOffset     = 0;
-        staticSize      = 0;
-        dynamicSize     = 0;
+        meshes.length = 0;
         staticMemory.safelyDestroyVK (device.vkFreeMemory, device, staticMemory, callbacks);
         dynamicMemory.safelyDestroyVK (device.vkFreeMemory, device, dynamicMemory, callbacks);
         staticBuffer.safelyDestroyVK (device.vkDestroyBuffer, device, staticBuffer, callbacks);
         dynamicBuffer.safelyDestroyVK (device.vkDestroyBuffer, device, dynamicBuffer, callbacks);
+
+        vertexOffset = indexOffset = dynamicOffset = staticSize = dynamicSize = 0;
     }
 
-    /// Retrieves the instance attributes array for the given frame index.
-    public inout(InstanceAttributes[]) instanceAttributes (size_t frameIndex) inout pure nothrow @nogc
+    /// Updates the dynamic buffer mapping and offsets to those required for the given frame index.
+    public void updateMappings (size_t frameIndex) pure nothrow @nogc 
     in
     {
         assert (dynamicMapping !is null);
     }
     body
     {
-        immutable length    = dynamicSize % InstanceAttributes.sizeof;
-        auto attribMapping  = cast (inout(InstanceAttributes*)) (dynamicMapping + dynamicSize * frameIndex);
-        return attribMapping[0..length];
+        dynamicOffset       = cast (VkDeviceSize) (frameIndex * dynamicSize);
+        instanceAttributes  = cast (InstanceAttributes*) (dynamicMapping + dynamicSize * frameIndex);
     }
 
     /// Analyses the given assets, determining how much memory is required to store meshes and creates the buffer. 

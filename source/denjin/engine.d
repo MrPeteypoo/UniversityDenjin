@@ -9,6 +9,7 @@ module denjin.engine;
 
 // Phobos.
 import core.memory  : GC;
+import std.datetime : Clock, ClockType, SysTime;
 import std.typecons : Flag, No, Yes;
 
 // Engine.
@@ -34,6 +35,7 @@ struct Engine
     Window      window;     /// A reference to a window management system, hard coded to GLFW right now.
     Renderer    renderer;   /// A reference to a rendering system, this is created by the window system.
     Scene*      scene;      /// A pointer to Denjins scene management system.
+    SysTime     time;       /// Helps keep track of the time between frames.
 
     /// Construct each required system and prepare for running.
     void initialise()
@@ -91,15 +93,25 @@ struct Engine
     }
     body
     {
+        time = Clock.currTime!(ClockType.precise);
         while (!window.shouldClose())
         {
-            window.update (0f);
-            renderer.update (0f);
+            auto currentTime    = Clock.currTime!(ClockType.precise);
+            auto difference     = currentTime - time;
+            auto nanoSeconds    = difference.total!"nsecs";
+            auto seconds        = nanoSeconds / 1_000_000_000.0;
+            auto delta          = cast (float) seconds;
+
+            window.update (delta);
+            renderer.update (delta);
+            scene.update (delta);
 
             if (window.isVisible)
             {
                 renderer.render (*scene);
             }
+
+            time = currentTime;
         }
     }
 }

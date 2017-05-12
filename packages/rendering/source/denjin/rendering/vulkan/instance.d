@@ -507,8 +507,7 @@ private struct Info
             static enum requiredLayers = AliasSeq!("VK_LAYER_LUNARG_core_validation");
         }
         else version (assert)
-        {        static enum requiredDeviceExtensions = AliasSeq!("VK_KHR_swapchain");
-
+        {
             // Standard validation enables threading, parameter, object, core, swapchain and unique object validation.
             static enum requiredLayers = AliasSeq!("VK_LAYER_LUNARG_standard_validation");
         }

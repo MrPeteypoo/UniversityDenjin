@@ -17,6 +17,28 @@ import denjin.maths.traits  : isDynamicVector, isStaticVector, isVector;
 import denjin.maths.types   : Matrix4;
 
 /**
+    Converts the given degrees into radians. If the given type is a floating point type then the conversion will be
+    performed without any casting at the precision of the given type. Otherwise casting will occur from a real value to
+    whatever was input.
+*/
+auto radians (T)(auto ref T degrees)
+    if (isNumeric!T)
+{
+    import std.math : PI;
+    enum degToRad = PI / 180;
+
+    static if (isFloatingPoint!T)
+    {
+        enum degToRadT = cast (T) degToRad;
+        return degrees * degToRadT;
+    }
+    else
+    {
+        return cast (T) (degrees * degToRad);
+    }
+}
+
+/**
     Constructs a projection matrix with a perspective view using the given parameters. This is modelled very similarly
     after the glm::perspective function.
 
@@ -110,7 +132,7 @@ pure nothrow @safe @nogc unittest
         A 4x4 matrix containing a view matrix.
 */
 auto lookAt (Flag!"rightHanded" rightHanded = Yes.rightHanded, T = float, U = float, V = float)
-                 (auto ref T[3] eye, auto ref U[3] centre, auto ref V[3] up)
+            (auto ref T[3] eye, auto ref U[3] centre, auto ref V[3] up)
     if (isFloatingPoint!T)
 {
     import std.traits : Select;
@@ -138,7 +160,7 @@ auto lookAt (Flag!"rightHanded" rightHanded = Yes.rightHanded, T = float, U = fl
     result[1][3] = Num (0);
     result[2][0] = y[2];
     result[2][1] = z[2];
-    result[2][2] = mixin (Select!(rightHanded, (-x[2]).stringof, (-[2]).stringof));
+    result[2][2] = mixin (Select!(rightHanded, (-x[2]).stringof, (-x[2]).stringof));
     result[2][3] = Num (0);
     result[3][0] = -dot (y, eye);
     result[3][1] = -dot (z, eye);

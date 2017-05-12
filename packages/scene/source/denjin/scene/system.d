@@ -14,6 +14,7 @@ import std.conv         : to;
 import std.stdio        : writeln;
 
 // Engine.
+import denjin.maths.functions   : normalised;
 import denjin.maths.types       : Vector3f;
 import denjin.misc.ids          : InstanceID, MaterialID, MeshID, materialID, meshID;
 import denjin.scene.rendering   : RenderCamera, RenderInstance, RenderDLight, RenderPLight, RenderSLight;
@@ -31,12 +32,16 @@ struct Scene
         RenderDLight[]              m_dLights;      /// A collection of directional lights.
         RenderPLight[]              m_pLights;      /// A collection of point lights.
         RenderSLight[]              m_sLights;      /// A collection of spotlights.
+        float                       m_seconds;      /// How many seconds the scene has been running.
     }
 
     /// Load a scene from the given configuration file. Currently this is ignored and a hard-coded scene is loaded.
     this (in string config)
     {
         hardCodedInstances;
+        m_seconds = 0f;
+        m_camera.fieldOfView = 75f;
+        m_camera.farPlaneDistance = 10000f;
     }
 
     /// Gets a reference to the stored camera data.
@@ -69,6 +74,27 @@ struct Scene
             array ~= group[0..$];
         });
         return array;
+    }
+
+    /// Moves the camera around the scene.
+    public void update (float deltaTime)
+    {
+        import std.math : cos, sin, pow, abs;
+        m_seconds += deltaTime;
+        immutable t = -0.3f * m_seconds;
+        immutable ct = cos(t);
+        immutable rx = ct < 0 ? -280f : 280f;
+        immutable st = sin(t);
+        immutable rz = st < 0 ? -15f : 85f;
+        immutable m = 0.1f;
+        immutable ry = st < 0 ? -30f : 115f;
+        immutable look_at = Vector3f (0, 30, 0);
+        immutable cam_pos = Vector3f(
+                        rx * pow(abs(ct), m),
+                        50 + ry * pow(abs(st), m),
+                        rz * pow(abs(st), m));
+        m_camera.position = cam_pos;
+        m_camera.direction = normalised(look_at - cam_pos);
     }
 
     /// Atomically increments the static freeID and returns an instance ID.
@@ -229,13 +255,18 @@ struct Scene
     /// Gets an identity or custom model transform for a sponza model with the given index.
     private static float[3][4] hardCodedTransforms (size_t sponzaIndex) pure nothrow @safe @nogc
     {
+        // The sponza model is working with a strange unit system. 
+        enum s = 0.225f;
         switch (sponzaIndex)
         {
             default: // Identity.
-                return [[1, 0, 0],
-                        [0, 1, 0],
-                        [0, 0, 1],
-                        [0, 0, 0]];
+                return 
+                [
+                    [s, 0f, 0f],
+                    [0f, s, 0f],
+                    [0f, 0f, s],
+                    [0f, 0f, 0f]
+                ];
         }
     }
 }

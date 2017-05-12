@@ -8,4 +8,4 @@
 module denjin.maths.matrix;
 
 /// I don't have time to write a matrix template lol.
-alias Matrix (T, size_t columns, size_t rows) = T[columns][rows];
+alias Matrix (T, size_t rows, size_t columns) = T[columns][rows];

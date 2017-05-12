@@ -15,7 +15,8 @@ import std.traits   : isPointer;
 // Engine.
 import denjin.rendering.vulkan.device   : Device;
 import denjin.rendering.vulkan.misc     : enforceSuccess, safelyDestroyVK;
-import denjin.rendering.vulkan.nulls    : nullBuffer, nullCMDBuffer, nullDescLayout, nullDescPool, nullDevice, nullMemory, nullSet;
+import denjin.rendering.vulkan.nulls    : nullBuffer, nullCMDBuffer, nullDescLayout, nullDescPool, nullDevice, 
+                                          nullMemory, nullSet;
 import denjin.rendering.vulkan.objects  : createBuffer;
 
 import denjin.rendering.vulkan.internals.types;
@@ -54,17 +55,19 @@ struct Uniforms
         enum pLightBinding  = binding!(2);  /// The binding information for point light data.
         enum sLightBinding  = binding!(3);  /// The binding information for spotlight data.
 
-        /// The uniform block bindings available to shaders.
-        static immutable VkDescriptorSetLayoutBinding[4] bindings = 
-        [
-            sceneBinding, dLightBinding, pLightBinding, sLightBinding
-        ];
     }
+
+    /// The uniform block bindings available to shaders.
+    static immutable VkDescriptorSetLayoutBinding[4] bindings = 
+    [
+        sceneBinding, dLightBinding, pLightBinding, sLightBinding
+    ];
 
     SceneBlock*             sceneBlock      = null;             /// A mapping of the scene block for the current virtual frame.
     DLightBlock*            dLightBlock     = null;             /// A mapping of the directional light block for the current virtual frame.
     PLightBlock*            pLightBlock     = null;             /// A mapping of the point light block for the current virtual frame.
     SLightBlock*            sLightBlock     = null;             /// A mapping of the spotlight block for the current virtual frame.
+    VkDescriptorSet         set             = nullSet;          /// The descriptor set to use for the current frame.
 
     VkBuffer                buffer          = nullBuffer;       /// The handle for the uniform buffer.
     VkDeviceMemory          memory          = nullMemory;       /// The allocated memory for the uniform buffer.
@@ -126,11 +129,20 @@ struct Uniforms
         pool.safelyDestroyVK (device.vkDestroyDescriptorPool, device, pool, callbacks);
 
         sets.length = sceneOffset = dLightOffset = pLightOffset = sLightOffset = bufferSize = 0;
+        set = nullSet;
     }
 
-    /// Updates the uniform block mappings based on the current frame index.
+    /// Updates the uniform block mappings and the descriptor set based on the current frame index.
     public void updateMappings (in size_t frameIndex) pure nothrow @nogc
+    in
     {
+        assert (frameIndex < sets.length);
+    }
+    body
+    {
+        // Update the set first.
+        set = sets[frameIndex];
+
         // Calculate the initial offset for the frame.
         immutable frameOffset = frameIndex * bufferSize;
 

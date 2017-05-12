@@ -32,14 +32,16 @@ import erupted.types;
 */
 struct Pipelines
 {
-    VkPipeline forward = nullPipeline; /// A dedicated forward render pipeline.
+    VkPipelineLayout    layout  = nullPipeLayout;   /// The pipeline layout describing what resources are available.
+    VkPipeline          forward = nullPipeline;     /// A dedicated forward render pipeline.
 
     /// For now this just creates a forward rendering pipeline for basic rendering support.
-    public void create (ref Device device, in VkExtent2D resolution, in ref Uniforms uniforms, 
-                        ref RenderPasses renderPasses, in VkAllocationCallbacks* callbacks = null)
+    public void create (ref Device device, ref RenderPasses renderPasses, in ref Uniforms uniforms, 
+                        in VkExtent2D resolution, in VkAllocationCallbacks* callbacks = null)
     in
     {
         assert (device != nullDevice);
+        assert (layout == nullPipeLayout);
         assert (forward == nullPipeline);
     }
     body
@@ -51,15 +53,29 @@ struct Pipelines
         auto shaders = Shaders();
         scope (exit) shaders.clear (device, callbacks);
         shaders.create (device, callbacks);
+
+        // We need to create a layout.
+        const VkPipelineLayoutCreateInfo layoutInfo =
+        {
+            sType:                  VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            pNext:                  null,
+            flags:                  0,
+            setLayoutCount:         1,
+            pSetLayouts:            &uniforms.layout,
+            pushConstantRangeCount: 0,
+            pPushConstantRanges:    null
+        };
+        device.vkCreatePipelineLayout (&layoutInfo, callbacks, &layout).enforceSuccess;
         
         // Now we can construct the required pipelines.
-        forward = ForwardRenderPipeline.create (device, resolution, uniforms, renderPasses, shaders, callbacks);
+        forward = ForwardRenderPipeline.create (device, layout, renderPasses, resolution, shaders, callbacks);
         enforce (forward != nullPipeline);
     }
 
     /// Destroys any stored handles the object may have.
     public void clear (ref Device device, in VkAllocationCallbacks* callbacks = null) nothrow @nogc
     {
+        layout.safelyDestroyVK (device.vkDestroyPipelineLayout, device, layout, callbacks);
         forward.safelyDestroyVK (device.vkDestroyPipeline, device, forward, callbacks);
     }
 }
@@ -95,16 +111,14 @@ struct ForwardRenderPipeline
     };
 
     /// Creates a forward rendering pipeline with the given resources.
-    public static VkPipeline create (ref Device device, in VkExtent2D resolution, in ref Uniforms uniforms, 
-                                     ref RenderPasses renderPasses, in ref Shaders shaders, 
+    public static VkPipeline create (ref Device device, VkPipelineLayout layout, ref RenderPasses renderPasses, in VkExtent2D resolution, 
+                                     in ref Shaders shaders, 
                                      in VkAllocationCallbacks* callbacks = null)
     in
     {
         assert (device != nullDevice);
-        assert (uniforms.buffer != nullBuffer);
         assert (renderPasses.forward != nullPass);
-        assert (shaders.vertexShader != nullShader);
-        assert (shaders.fragmentShader != nullShader);
+        assert (layout != nullPipeLayout);
     }
     body
     {
@@ -217,21 +231,6 @@ struct ForwardRenderPipeline
             blendConstants:     [ 0f, 0f, 0f, 0f ]
         };
 
-        // We need to create a layout.
-        const VkPipelineLayoutCreateInfo layoutInfo =
-        {
-            sType:                  VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            pNext:                  null,
-            flags:                  0,
-            setLayoutCount:         1,
-            pSetLayouts:            &uniforms.layout,
-            pushConstantRangeCount: 0,
-            pPushConstantRanges:    null
-        };
-        VkPipelineLayout layout = void;
-        device.vkCreatePipelineLayout (&layoutInfo, callbacks, &layout).enforceSuccess;
-        scope (exit) layout.safelyDestroyVK (device.vkDestroyPipelineLayout, device, layout, callbacks);
-
         // Now we can finally construct the pipeline!
         auto info                   = infoTemplate;
         info.pStages                = stages.ptr;
@@ -296,10 +295,10 @@ struct Shaders
             sh.safelyDestroyVK (device.vkDestroyShaderModule, device, sh, callbacks);
 
         // Start by compiling the modules.
-        vertexShader.createShaderModule (device, "shaders/testVert.spv", callbacks).enforceSuccess;
+        vertexShader.createShaderModule (device, "shaders/geometry.spv", callbacks).enforceSuccess;
         scope (failure) vertexShader.destroy;
 
-        fragmentShader.createShaderModule (device, "shaders/testFrag.spv", callbacks).enforceSuccess;
+        fragmentShader.createShaderModule (device, "shaders/forward.spv", callbacks).enforceSuccess;
         scope (failure) fragmentShader.destroy;
 
         // Now compile the creation information required for using the shaders in pipelines.
