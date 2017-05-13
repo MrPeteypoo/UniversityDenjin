@@ -149,6 +149,55 @@ body
     return device.vkCreateCommandPool (&info, callbacks, &pool);
 }
 
+/// Creates a descriptor set layout with the given flags.
+nothrow @nogc
+VkResult createDescLayout (out VkDescriptorSetLayout layout, ref Device device, 
+                           in VkDescriptorSetLayoutBinding[] bindings, in VkAllocationCallbacks* callbacks = null)
+in
+{
+    assert (device != nullDevice);
+}
+body
+{
+    const VkDescriptorSetLayoutCreateInfo info = 
+    {
+        sType:          VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        pNext:          null,
+        flags:          0,
+        bindingCount:   cast (uint32_t) bindings.length,
+        pBindings:      bindings.ptr
+    };
+    return device.vkCreateDescriptorSetLayout (&info, callbacks, &layout);
+}
+
+/// Creates a descriptor pool, allowing for the necessary descriptor sets to be allocated.
+nothrow @nogc
+VkResult createDescPool (out VkDescriptorPool pool, ref Device device, in VkDescriptorType type, 
+                         in uint32_t descriptorCount, in VkAllocationCallbacks* callbacks = null)
+in
+{
+    assert (device != nullDevice);
+}
+body
+{
+    immutable VkDescriptorPoolSize size =
+    {
+        type:               type,
+        descriptorCount:    descriptorCount
+    };
+
+    immutable VkDescriptorPoolCreateInfo info = 
+    {
+        sType:          VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+        pNext:          null,
+        flags:          0,
+        maxSets:        descriptorCount,
+        poolSizeCount:  1,
+        pPoolSizes:     &size
+    };
+    return device.vkCreateDescriptorPool (&info, callbacks, &pool);
+}
+
 /// Creates a fence with the given parameters.
 VkResult createFence (out VkFence fence, ref Device device, in VkFenceCreateFlags flags = 0, 
                       in VkAllocationCallbacks* callbacks = null) nothrow @nogc

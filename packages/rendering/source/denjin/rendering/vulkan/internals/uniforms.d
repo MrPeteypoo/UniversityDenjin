@@ -17,7 +17,7 @@ import denjin.rendering.vulkan.device   : Device;
 import denjin.rendering.vulkan.misc     : enforceSuccess, safelyDestroyVK;
 import denjin.rendering.vulkan.nulls    : nullBuffer, nullCMDBuffer, nullDescLayout, nullDescPool, nullDevice, 
                                           nullMemory, nullSet;
-import denjin.rendering.vulkan.objects  : createBuffer;
+import denjin.rendering.vulkan.objects  : createBuffer, createDescLayout, createDescPool;
 
 import denjin.rendering.vulkan.internals.types;
 
@@ -100,8 +100,16 @@ struct Uniforms
         // Ensure we don't leak upon an error.
         scope (failure) clear (device, callbacks);
         createBuffer (device, limits, memProps, virtualFrames, callbacks);
-        createLayout (device, callbacks);
-        createPool (device, virtualFrames, callbacks);
+        
+        // Create the layout.
+        layout.createDescLayout (device, bindings, callbacks).enforceSuccess;
+
+        // Create the pool.
+        enum poolType       = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        immutable descCount = cast (uint32_t) (bindings.length * virtualFrames);
+        pool.createDescPool (device, poolType, descCount, callbacks).enforceSuccess;
+
+        // Finally create the sets.
         createSets (device, virtualFrames, limits);
     }
 
@@ -165,41 +173,6 @@ struct Uniforms
 
         buffer.createBuffer (memory, device, memProps, size, bufferUsage, memoryUsage, callbacks).enforceSuccess;
         device.vkMapMemory (memory, 0, VK_WHOLE_SIZE, 0, &mapping).enforceSuccess;
-    }
-
-    /// Creates the descriptor set layout so that the uniform buffer can be used by pipelines.
-    private void createLayout (ref Device device, in VkAllocationCallbacks* callbacks)
-    {
-        immutable VkDescriptorSetLayoutCreateInfo info = 
-        {
-            sType:          VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            pNext:          null,
-            flags:          0,
-            bindingCount:   cast (uint32_t) bindings.length,
-            pBindings:      bindings.ptr
-        };
-        device.vkCreateDescriptorSetLayout (&info, callbacks, &layout).enforceSuccess;
-    }
-
-    /// Creates the descriptor pool, allowing for the necessary descriptor sets to be allocated.
-    private void createPool (ref Device device, in uint32_t virtualFrames, in VkAllocationCallbacks* callbacks)
-    {
-        immutable VkDescriptorPoolSize poolSize =
-        {
-            type:               VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            descriptorCount:    cast (uint32_t) (bindings.length * virtualFrames)
-        };
-
-        immutable VkDescriptorPoolCreateInfo poolInfo = 
-        {
-            sType:          VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            pNext:          null,
-            flags:          0,
-            maxSets:        poolSize.descriptorCount,
-            poolSizeCount:  1,
-            pPoolSizes:     &poolSize
-        };
-        device.vkCreateDescriptorPool (&poolInfo, callbacks, &pool).enforceSuccess;
     }
 
     /// Allocates and configures the descriptor sets for each uniform block.
