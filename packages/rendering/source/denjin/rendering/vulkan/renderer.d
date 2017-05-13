@@ -18,7 +18,8 @@ import denjin.maths.functions               : lookAt, perspective, radians;
 import denjin.rendering.interfaces          : IRenderer;
 import denjin.rendering.vulkan.device       : Device;
 import denjin.rendering.vulkan.internals    : Barriers, Commands, Framebuffers, InstanceAttributes, GeometryT, 
-                                              Pipelines, RenderPasses, Syncs, Uniforms, Vec3, VertexAttributes;
+                                              MaterialsT, Pipelines, RenderPasses, Syncs, Uniforms, Vec3, 
+                                              VertexAttributes;
 import denjin.rendering.vulkan.misc         : safelyDestroyVK;
 import denjin.rendering.vulkan.objects      : createCommandPool;
 import denjin.rendering.vulkan.swapchain    : Swapchain, VSync;
@@ -42,6 +43,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         // Aliases.
         alias Geometry      = GeometryT!(Assets, Scene);
         alias Limits        = VkPhysicalDeviceLimits;
+        alias Materials     = MaterialsT!(Assets);
         alias MemoryProps   = VkPhysicalDeviceMemoryProperties;
 
         // Global data.
@@ -52,10 +54,11 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
 
         size_t          m_frameCount;   /// Counts how many frames in total have been rendered.
         Device          m_device;       /// The logical device containing device-level Functionality.
-        Swapchain       m_swapchain;    /// Manages the display mode and displayable images available to the renderer.
         Commands        m_cmds;         /// The command pools and buffers required by the primary rendering thread.
-        Geometry        m_geometry;     /// Manages renderable geometry, including vertex data and instancing buffers.
         Uniforms        m_uniforms;     /// Handles the construction of uniform buffer blocks.
+        Geometry        m_geometry;     /// Manages renderable geometry, including vertex data and instancing buffers.
+        Materials       m_materials;    /// Manages textures and material data.
+        Swapchain       m_swapchain;    /// Manages the display mode and displayable images available to the renderer.
         RenderPasses    m_passes;       /// The handles required to perform different rendering passes.
         Pipelines       m_pipelines;    /// Stores the bindable pipelines used in the render loop.
         Framebuffers    m_fbs;          /// Contains framebuffer handles and data which can be used as render targets.
@@ -116,6 +119,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         {
             m_device.vkDeviceWaitIdle();
             m_syncs.clear (m_device);
+            m_materials.clear (m_device);
             m_geometry.clear (m_device);
             m_fbs.clear (m_device);
             m_cmds.clear (m_device);
@@ -138,6 +142,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
     {
         scope (failure) unload;
         m_geometry.create (m_device, m_memProps, m_cmds.transfer[0], assets, scene, virtualFrames);
+        m_materials.create (m_device, assets);
     }
 
     /// Unloads the stored geometry and texture data, allowing the renderer to load new data.
@@ -151,6 +156,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
     {
         m_syncs.waitForFences (m_device);
         m_geometry.clear (m_device);
+        m_materials.clear (m_device);
     }
 
     /// The given resolution is ignored because if it differs from the swapchain we will cause an error.

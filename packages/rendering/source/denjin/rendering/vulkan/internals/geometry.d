@@ -19,7 +19,9 @@ import denjin.rendering.vulkan.misc             : enforceSuccess, safelyDestroyV
 import denjin.rendering.vulkan.nulls            : nullBuffer, nullCMDBuffer, nullDevice, nullFence, nullMemory;
 import denjin.rendering.vulkan.objects          : createBuffer, createFence, createStagingBuffer;
 import denjin.rendering.traits                  : isAssets, isMesh, isScene;
-import denjin.rendering.vulkan.internals.types  : Mat4x3, Vec2, Vec3;
+
+import denjin.rendering.vulkan.internals.materials  : MaterialIndices;
+import denjin.rendering.vulkan.internals.types      : Mat4x3, Vec2, Vec3;
 
 // External.
 import erupted.types :  int32_t, uint32_t, uint64_t, VkAllocationCallbacks, VkBuffer, VkBufferCopy, 
@@ -397,14 +399,6 @@ pure nothrow @safe @nogc unittest
 
     static assert (Vertex.sizeof == 44);
     static assert (Vertex.sizeof % uint32_t.sizeof == 0);
-}
-
-/// A group of texture indices as they are stored inside a vertex buffer.
-align (1) struct MaterialIndices
-{
-    int32_t physics = -1;   /// The index of a physics map to use.
-    int32_t albedo  = -1;   /// The index of an albedo map to use.
-    int32_t normal  = -1;   /// The index of a normal map to use.
 }
 ///
 pure nothrow @safe @nogc unittest

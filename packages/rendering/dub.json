@@ -9,7 +9,8 @@
 	"dependencies": {
 		"denjin:maths": "*",
 		"denjin:misc": "*",
-		"erupted": "~>1.5.2"
+		"erupted": "~>1.5",
+		"imageformats": "~>6.1"
 	},
 
 	"preGenerateCommands-linux": ["$PACKAGE_DIR/scripts/build-spir-v.sh"],
