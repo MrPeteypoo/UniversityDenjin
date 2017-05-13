@@ -95,7 +95,6 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         m_cmds.create (m_device, virtualFrames);
         m_uniforms.create (m_device, m_limits, m_memProps, virtualFrames);
         m_passes.create (m_device, m_swapchain.info.imageFormat);
-        m_pipelines.create (m_device, m_passes, m_uniforms, m_swapchain.info.imageExtent);
         m_fbs.create (m_device, m_swapchain, m_passes, m_memProps);
         m_barriers.reset (m_device);
         m_syncs.create (m_device, virtualFrames);
@@ -137,12 +136,15 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
     {
         assert (m_device != nullDevice);
         assert (m_swapchain != nullSwapchain);
+        assert (virtualFrames > 1);
     }
     body
     {
         scope (failure) unload;
         m_geometry.create (m_device, m_memProps, m_cmds.transfer[0], assets, scene, virtualFrames);
-        m_materials.create (m_device, assets);
+        m_materials.create (m_device, m_cmds.render[0], assets, m_memProps);
+        m_pipelines.create (m_device, m_uniforms.layout, m_materials.layout, 
+                            m_passes.forward, m_swapchain.info.imageExtent);
     }
 
     /// Unloads the stored geometry and texture data, allowing the renderer to load new data.
@@ -157,6 +159,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         m_syncs.waitForFences (m_device);
         m_geometry.clear (m_device);
         m_materials.clear (m_device);
+        m_pipelines.clear (m_device);
     }
 
     /// The given resolution is ignored because if it differs from the swapchain we will cause an error.
@@ -180,7 +183,8 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         m_fbs.create (m_device, m_swapchain, m_passes, m_memProps);
         
         m_pipelines.clear (m_device);
-        m_pipelines.create (m_device, m_passes, m_uniforms, m_swapchain.info.imageExtent);
+        m_pipelines.create (m_device, m_uniforms.layout, m_materials.layout, 
+                            m_passes.forward, m_swapchain.info.imageExtent);
     }
 
     /// Does absolutely nothing right now. Likely will be used to track and update time.
@@ -285,11 +289,12 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         enum bindings                   = cast (uint32_t) VertexAttributes.bindings.length;
         VkBuffer[bindings] buffers      = [m_geometry.staticBuffer, m_geometry.dynamicBuffer];
         VkDeviceSize[bindings] offsets  = [m_geometry.vertexOffset, m_geometry.dynamicOffset];
+        VkDescriptorSet[2] sets         = [m_uniforms.set, m_materials.set];
 
         // Bind global resources.
         m_device.vkCmdBindPipeline (cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelines.forward);
         m_device.vkCmdBindDescriptorSets (cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelines.layout, 
-                                          Uniforms.bindings[0].binding, 1, &m_uniforms.set, 0, null);
+                                          0, cast (uint32_t) sets.length, sets.ptr, 0, null);
         m_device.vkCmdBindVertexBuffers (cmdBuffer, 0, bindings, buffers.ptr, offsets.ptr);
         m_device.vkCmdBindIndexBuffer (cmdBuffer, m_geometry.staticBuffer, m_geometry.indexOffset, 
                                        VK_INDEX_TYPE_UINT32);

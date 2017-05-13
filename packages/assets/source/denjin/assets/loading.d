@@ -99,195 +99,126 @@ void loadRenderMaterial(string name)(ref RenderMaterial[MaterialID] materials)
             auto material = RenderMaterial (name.materialID);
             with (material)
             {
+                setAlbedo (0.25f, 0.5f, 0.25f, 1f);
                 smoothness      = 0.5f;
                 reflectance     = 0.5f;
                 conductivity    = 0f;
-                setAlbedo (0.25f, 0.5f, 0.25f, 1f);
+                albedoMap       = "textures/albedo/" ~ name ~ ".png";
+                physicsMap      = "textures/physics/" ~ name ~ ".png";
+                normalMap       = "textures/normal/" ~ name ~ ".png";
 
                 static if (name == "arch")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
 
                 else static if (name == "bricks")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
 
                 else static if (name == "ceiling")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
 
                 else static if (name == "chain")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
 
                 else static if (name == "column_a")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
 
                 else static if (name == "column_b")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
 
                 else static if (name == "column_c")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
 
                 else static if (name == "details")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
 
                 else static if (name == "fabric_a")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
+                    physicsMap  = "textures/physics/drapes.png";
                 }
 
                 else static if (name == "fabric_c")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
+                    physicsMap  = "textures/physics/curtains.png";
                 }
 
                 else static if (name == "fabric_d")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
+                    physicsMap  = "textures/physics/drapes.png";
                 }
 
                 else static if (name == "fabric_e")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
+                    physicsMap  = "textures/physics/drapes.png";
                 }
 
                 else static if (name == "fabric_f")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
+                    physicsMap  = "textures/physics/curtains.png";
                 }
 
                 else static if (name == "fabric_g")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
+                    physicsMap  = "textures/physics/curtains.png";
                 }
 
                 else static if (name == "flagpole")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
 
                 else static if (name == "floor")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
 
                 else static if (name == "leaf")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
 
                 else static if (name == "Material")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
 
                 // Lion head.
                 else static if (name == "Material__25")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
 
                 // Lion mantle.
                 else static if (name == "Material__298")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
 
                 // Blank picture frame.
                 else static if (name == "Material__47")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
 
                 // Flowers on pots.
                 else static if (name == "Material__57")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
 
                 else static if (name == "roof")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
 
                 else static if (name == "vase")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
 
                 else static if (name == "vase_hanging")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
 
                 else static if (name == "vase_round")
                 {
-                    physicsMap      = "";
-                    albedoMap       = "";
-                    normalMap       = "";
                 }
     
                 else

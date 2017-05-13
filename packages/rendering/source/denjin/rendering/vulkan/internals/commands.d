@@ -52,14 +52,17 @@ struct Commands
     body
     {
         // Create the pools.
-        enum flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+        enum transferFlags  = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        enum flags          = transferFlags | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
         if (renderPool.createCommandPool (device, device.renderQueueFamily, flags) != VK_SUCCESS)
         {
             assert (false, "Uh oh, the renderer isn't flexible enough for this yet!");
         }
 
-        computePool  = createCommandPoolIfPossible (device, device.hasDedicatedComputeFamily, device.computeQueueFamily, flags);
-        transferPool = createCommandPoolIfPossible (device, device.hasDedicatedTransferFamily, device.transferQueueFamily, flags);
+        computePool  = createCommandPoolIfPossible (device, device.hasDedicatedComputeFamily, 
+                                                    device.computeQueueFamily, transferFlags);
+        transferPool = createCommandPoolIfPossible (device, device.hasDedicatedTransferFamily, 
+                                                    device.transferQueueFamily, transferFlags);
 
         // Allocate the command buffers.
         render.length   = bufferCount;
@@ -101,7 +104,7 @@ struct Commands
         if (hasDedicatedQueueFamily)
         {
             VkCommandPool pool = nullPool;
-            if (pool.createCommandPool (device, queueFamily) == VK_SUCCESS)
+            if (pool.createCommandPool (device, queueFamily, flags) == VK_SUCCESS)
             {
                 return pool;
             }

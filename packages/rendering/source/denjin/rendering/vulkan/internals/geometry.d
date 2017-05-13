@@ -218,8 +218,8 @@ struct GeometryT (Assets, Scene)
             pSignalSemaphores:      null
         };
         VkFence fence = void;
-        fence.createFence (device, 0).enforceSuccess;
-        scope (exit) device.vkDestroyFence (fence, null);
+        fence.createFence (device, 0, callbacks).enforceSuccess;
+        scope (exit) device.vkDestroyFence (fence, callbacks);
         device.vkQueueSubmit (device.transferQueue, 1, &submitInfo, fence).enforceSuccess;
         device.vkWaitForFences (1, &fence, VK_FALSE, uint64_t.max).enforceSuccess;
     }

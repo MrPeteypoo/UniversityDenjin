@@ -50,6 +50,7 @@ enum nullDebug          = nullHandle!VkDebugReportCallbackEXT;
 enum nullDevice         = nullHandle!VkDevice;
 enum nullDescLayout     = nullHandle!VkDescriptorSetLayout;
 enum nullDescPool       = nullHandle!VkDescriptorPool;
+enum nullDescSet        = nullHandle!VkDescriptorSet;
 enum nullFence          = nullHandle!VkFence;
 enum nullFramebuffer    = nullHandle!VkFramebuffer;
 enum nullImage          = nullHandle!VkImage;

@@ -43,6 +43,47 @@ body
     return device.vkAllocateCommandBuffers (&info, &output[0]);
 }
 
+/// Allocates and binds memory to the given image. 
+/// Returns: VK_ERROR_INITIALIZATION_FAILED if no memory matches the given flags. Otherwise the result is returned.
+VkResult allocateImageMemory (Flag!"bindTogether" bindTogether = Yes.bindTogether) 
+                             (out VkDeviceMemory memory, ref Device device, ref VkImage image, 
+                              in VkMemoryPropertyFlags flags, in ref VkPhysicalDeviceMemoryProperties memProps, 
+                              in VkAllocationCallbacks* callbacks = null)
+in
+{
+    assert (device != nullDevice);
+    assert (image != nullImage);
+}
+body
+{
+    VkMemoryRequirements requirements = void;
+    device.vkGetImageMemoryRequirements (image, &requirements);
+
+    VkMemoryAllocateInfo allocInfo = 
+    {
+        sType:              VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        pNext:              null,
+        allocationSize:     requirements.size,
+        memoryTypeIndex:    memProps.memoryTypeIndex (requirements.memoryTypeBits, flags)
+    };
+    if (allocInfo.memoryTypeIndex == uint32_t.max) 
+    {
+        return VK_ERROR_INITIALIZATION_FAILED;
+    }
+
+    const alloc = device.vkAllocateMemory (&allocInfo, callbacks, &memory);
+    static if (!bindTogether) return alloc;
+    else
+    {
+        const bind = device.vkBindImageMemory (image, memory, 0);
+        if (bind != VK_SUCCESS)
+        {
+            memory.safelyDestroyVK (device.vkFreeMemory, device, memory, callbacks);
+        }
+        return bind;
+    }
+}
+
 /**
     Creates a buffer with the given characteristics.
 

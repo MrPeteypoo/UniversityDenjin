@@ -13,13 +13,11 @@ import std.exception : enforce;
 // Engine.
 import denjin.rendering.vulkan.device   : Device;
 import denjin.rendering.vulkan.misc     : enforceSuccess, safelyDestroyVK;
-import denjin.rendering.vulkan.nulls    : nullBuffer, nullDevice, nullPass, nullPipeLayout, nullPipeline, 
-                                          nullPipelineCache, nullShader;
+import denjin.rendering.vulkan.nulls    : nullBuffer, nullDescLayout, nullDevice, nullPass, nullPipeLayout, 
+                                          nullPipeline, nullPipelineCache, nullShader;
 import denjin.rendering.vulkan.objects  : createShaderModule;
 
-import denjin.rendering.vulkan.internals.geometry       : VertexAttributes;
-import denjin.rendering.vulkan.internals.renderpasses   : RenderPasses;
-import denjin.rendering.vulkan.internals.uniforms       : Uniforms;
+import denjin.rendering.vulkan.internals.geometry   : VertexAttributes;
 
 // Externals.
 import erupted.types;
@@ -36,11 +34,14 @@ struct Pipelines
     VkPipeline          forward = nullPipeline;     /// A dedicated forward render pipeline.
 
     /// For now this just creates a forward rendering pipeline for basic rendering support.
-    public void create (ref Device device, ref RenderPasses renderPasses, in ref Uniforms uniforms, 
-                        in VkExtent2D resolution, in VkAllocationCallbacks* callbacks = null)
+    public void create (ref Device device, ref VkDescriptorSetLayout uniforms, ref VkDescriptorSetLayout samplers, 
+                        ref VkRenderPass renderPass, in VkExtent2D resolution, 
+                        in VkAllocationCallbacks* callbacks = null)
     in
     {
         assert (device != nullDevice);
+        assert (uniforms != nullDescLayout);
+        assert (samplers != nullDescLayout);
         assert (layout == nullPipeLayout);
         assert (forward == nullPipeline);
     }
@@ -55,20 +56,21 @@ struct Pipelines
         shaders.create (device, callbacks);
 
         // We need to create a layout.
+        const VkDescriptorSetLayout[2] setLayouts   = [uniforms, samplers];
         const VkPipelineLayoutCreateInfo layoutInfo =
         {
             sType:                  VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             pNext:                  null,
             flags:                  0,
-            setLayoutCount:         1,
-            pSetLayouts:            &uniforms.layout,
+            setLayoutCount:         cast (uint32_t) setLayouts.length,
+            pSetLayouts:            setLayouts.ptr,
             pushConstantRangeCount: 0,
             pPushConstantRanges:    null
         };
         device.vkCreatePipelineLayout (&layoutInfo, callbacks, &layout).enforceSuccess;
         
         // Now we can construct the required pipelines.
-        forward = ForwardRenderPipeline.create (device, layout, renderPasses, resolution, shaders, callbacks);
+        forward = ForwardRenderPipeline.create (device, layout, renderPass, shaders, resolution, callbacks);
         enforce (forward != nullPipeline);
     }
 
@@ -111,14 +113,14 @@ struct ForwardRenderPipeline
     };
 
     /// Creates a forward rendering pipeline with the given resources.
-    public static VkPipeline create (ref Device device, VkPipelineLayout layout, ref RenderPasses renderPasses, in VkExtent2D resolution, 
-                                     in ref Shaders shaders, 
+    public static VkPipeline create (ref Device device, ref VkPipelineLayout layout, ref VkRenderPass renderPass, 
+                                     in ref Shaders shaders, in VkExtent2D resolution, 
                                      in VkAllocationCallbacks* callbacks = null)
     in
     {
         assert (device != nullDevice);
-        assert (renderPasses.forward != nullPass);
         assert (layout != nullPipeLayout);
+        assert (renderPass != nullPass);
     }
     body
     {
@@ -242,7 +244,7 @@ struct ForwardRenderPipeline
         info.pDepthStencilState     = &depthStencil;
         info.pColorBlendState       = &blend;
         info.layout                 = layout;
-        info.renderPass             = renderPasses.forward;
+        info.renderPass             = renderPass;
 
         VkPipeline output = nullPipeline;
         device.vkCreateGraphicsPipelines (nullPipelineCache, 1, &info, callbacks, &output);
