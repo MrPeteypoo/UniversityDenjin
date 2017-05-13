@@ -11,11 +11,8 @@
 		"denjin:misc":"*",
 		"denjin:rendering":"*"
 	},
-
-	"buildRequirements": [
-		"allowWarnings",
-		"disallowDeprecations"
-	],
+	
+	"buildRequirements": [ "allowWarnings" ],
 
 	"buildTypes": {
 		"optimized": {

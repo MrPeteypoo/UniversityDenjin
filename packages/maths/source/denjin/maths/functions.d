@@ -220,6 +220,8 @@ unittest
     assert (vec3f.magnitude.approxEqual (1f));
 }
 
+alias normalized = normalise;
+
 /// Returns the normalised unit vector of the given vector.
 auto normalised (Flag!"safe" safe = Yes.safe, T = float[3]) (auto ref T vector)
     if (isVector!T && isFloatingPoint!(ElementType!T))

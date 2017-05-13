@@ -80,7 +80,7 @@ struct PointLight
     align (4)
     {
         Vec3    position;   /// The position of the light in world-space.
-        float   range;      /// The range of the point light.
+        float   radius;     /// The range of the point light.
 
         Vec3    intensity;  /// The colour/intensity of the light.
         float   aConstant;  /// The constant co-efficient for the attenuation formula.
@@ -93,7 +93,7 @@ struct PointLight
 pure nothrow @safe @nogc unittest
 {
     static assert (PointLight.position.offsetof     == 0);
-    static assert (PointLight.range.offsetof        == 12);
+    static assert (PointLight.radius.offsetof       == 12);
 
     static assert (PointLight.intensity.offsetof    == 16);
     static assert (PointLight.aConstant.offsetof    == 28);
@@ -116,7 +116,7 @@ struct Spotlight
         float   range;          /// The maximum range of the spotlight.
 
         Vec3    intensity;      /// The colour/intensity of the light.
-        int     concentration;  /// How concentrated the beam of the spot light is, effects angular attenuation.
+        float   concentration;  /// How concentrated the beam of the spot light is, effects angular attenuation.
 
         float   aConstant;      /// The constant co-efficient for the attenuation formula.
         float   aLinear;        /// The linear co-efficient for the attenuation formula.

@@ -38,10 +38,7 @@
 		"--ex=derelict"
 	],
 
-	"buildRequirements": [
-		"allowWarnings",
-		"disallowDeprecations"
-	],
+	"buildRequirements": [ "allowWarnings" ],
 
 	"buildTypes": {
 		"optimized": {
@@ -55,5 +52,5 @@
 		}
 	},
 	
-	"copyFiles": ["content/all/models"]
+	"copyFiles": ["content/all/models", "content/all/textures"]
 }

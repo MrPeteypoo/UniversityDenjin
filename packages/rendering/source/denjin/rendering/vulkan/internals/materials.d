@@ -289,7 +289,7 @@ struct MaterialsT (Assets)
                 srcOffsets:     [ VkOffset3D (0, 0, 0), VkOffset3D (extent.width, extent.height, 1)],
                 dstOffsets:     [ VkOffset3D (0, 0, 0), VkOffset3D (extent.width, extent.height, 1)]
             };
-            foreach (i; 0..imageInfo.mipLevels)
+            foreach (i; 1..imageInfo.mipLevels)
             {
                 imageBlit.dstSubresource.mipLevel   = i;
                 imageBlit.dstOffsets[1].x           /= 2;
@@ -338,11 +338,12 @@ struct MaterialsT (Assets)
         }
 
         // Create the layout.
-        immutable samplersLength = cast (uint32_t) samplers.length;
+        immutable samplersLength    = cast (uint32_t) samplers.length;
+        enum descriptorType         = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         const VkDescriptorSetLayoutBinding[1] binding = 
         {
             binding:            0,
-            descriptorType:     VK_DESCRIPTOR_TYPE_SAMPLER,
+            descriptorType:     descriptorType,
             descriptorCount:    samplersLength,
             stageFlags:         VK_SHADER_STAGE_FRAGMENT_BIT,
             pImmutableSamplers: samplers.ptr
@@ -350,7 +351,7 @@ struct MaterialsT (Assets)
         layout.createDescLayout (device, binding, callbacks).enforceSuccess;
 
         // The pool.
-        pool.createDescPool (device, VK_DESCRIPTOR_TYPE_SAMPLER, samplersLength, callbacks).enforceSuccess;
+        pool.createDescPool (device, descriptorType, samplersLength, callbacks).enforceSuccess;
 
         // And finally the descriptor set.
         VkDescriptorSetAllocateInfo alloc = 
@@ -380,7 +381,7 @@ struct MaterialsT (Assets)
                 dstBinding:         0,
                 dstArrayElement:    cast (uint32_t) i,
                 descriptorCount:    1,
-                descriptorType:     VK_DESCRIPTOR_TYPE_SAMPLER,
+                descriptorType:     descriptorType,
                 pImageInfo:         &imageInfo,
                 pBufferInfo:        null,
                 pTexelBufferView:   null
@@ -442,16 +443,16 @@ struct MaterialsT (Assets)
         magFilter:                  VK_FILTER_LINEAR,
         minFilter:                  VK_FILTER_LINEAR,
         mipmapMode:                 VK_SAMPLER_MIPMAP_MODE_NEAREST,
-        addressModeU:               VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-        addressModeV:               VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-        addressModeW:               VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+        addressModeU:               VK_SAMPLER_ADDRESS_MODE_REPEAT,
+        addressModeV:               VK_SAMPLER_ADDRESS_MODE_REPEAT,
+        addressModeW:               VK_SAMPLER_ADDRESS_MODE_REPEAT,
         mipLodBias:                 0f,
-        anisotropyEnable:           VK_FALSE,
-        maxAnisotropy:              1f,
+        anisotropyEnable:           VK_TRUE,
+        maxAnisotropy:              16f,
         compareEnable:              VK_FALSE,
         compareOp:                  VK_COMPARE_OP_ALWAYS,
         minLod:                     0f,
-        maxLod:                     0f,
+        maxLod:                     0.25f,
         borderColor:                VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,
         unnormalizedCoordinates:    VK_FALSE
     };
@@ -523,7 +524,7 @@ private TextureMap loadTextures (Assets)(out MaterialIndices[MaterialID] indices
         immutable smoothness        = (cast (float) (material.smoothness)).clamp (0f, 1f);
         immutable reflectance       = (cast (float) (material.reflectance)).clamp (0f, 1f);
         immutable conductivity      = (cast (float) (material.conductivity)).clamp (0f, 1f);
-        immutable float[3] physics  = [smoothness, reflectance, conductivity];
+        immutable float[4] physics  = [smoothness, reflectance, conductivity, 0f];
         immutable float[4] albedo   = [material.albedo[0], material.albedo[1], material.albedo[2], material.albedo[3]];
 
         // Load the textures.

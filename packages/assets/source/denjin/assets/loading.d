@@ -62,7 +62,7 @@ body
                 renderMesh.addVertex ([pos.x, pos.y, pos.z],
                                       [norm.x, norm.y, norm.z],
                                       [tan.x, tan.y, tan.z],
-                                      [uv.x, uv.y]);
+                                      [uv.x, -uv.y]);
             }
 
             // Add the elements.
@@ -99,7 +99,8 @@ void loadRenderMaterial(string name)(ref RenderMaterial[MaterialID] materials)
             auto material = RenderMaterial (name.materialID);
             with (material)
             {
-                setAlbedo (0.25f, 0.5f, 0.25f, 1f);
+                //setAlbedo (0.25f, 0.5f, 0.25f, 1f);
+                setAlbedo (1f, 1f, 1f, 1f);
                 smoothness      = 0.5f;
                 reflectance     = 0.5f;
                 conductivity    = 0f;

@@ -14,7 +14,7 @@ import std.conv         : to;
 import std.stdio        : writeln;
 
 // Engine.
-import denjin.maths.functions   : normalised;
+import denjin.maths.functions   : cross, normalised;
 import denjin.maths.types       : Vector3f;
 import denjin.misc.ids          : InstanceID, MaterialID, MeshID, materialID, meshID;
 import denjin.scene.rendering   : RenderCamera, RenderInstance, RenderDLight, RenderPLight, RenderSLight;
@@ -23,7 +23,8 @@ import denjin.scene.rendering   : RenderCamera, RenderInstance, RenderDLight, Re
 struct Scene
 {
     enum Vector3f upDirection           = Vector3f (0f, 1f, 0f);    /// The up direction of the world.
-    enum Vector3f ambientLightIntensity = Vector3f (.1f, .1f, .1f); /// Ambient light to be applied to every surface.
+    enum Vector3f ambientLightIntensity = Vector3f (.1f);           /// Ambient light to be applied to every surface.
+    
     private
     {
         static shared(InstanceID)   freeID;         /// The current free instance ID.
@@ -32,16 +33,14 @@ struct Scene
         RenderDLight[]              m_dLights;      /// A collection of directional lights.
         RenderPLight[]              m_pLights;      /// A collection of point lights.
         RenderSLight[]              m_sLights;      /// A collection of spotlights.
-        float                       m_seconds;      /// How many seconds the scene has been running.
+        float                       m_seconds = 0f; /// How many seconds the scene has been running.
     }
 
     /// Load a scene from the given configuration file. Currently this is ignored and a hard-coded scene is loaded.
     this (in string config)
     {
         hardCodedInstances;
-        m_seconds = 0f;
-        m_camera.fieldOfView = 75f;
-        m_camera.farPlaneDistance = 10000f;
+        hardCodedLights;
     }
 
     /// Gets a reference to the stored camera data.
@@ -82,19 +81,32 @@ struct Scene
         import std.math : cos, sin, pow, abs;
         m_seconds += deltaTime;
         immutable t = -0.3f * m_seconds;
-        immutable ct = cos(t);
-        immutable rx = ct < 0 ? -280f : 280f;
+        immutable ct = cos(t * 0.3f);
+        immutable rx = ct < 0 ? -12.0f : 12f;
         immutable st = sin(t);
-        immutable rz = st < 0 ? -15f : 85f;
+        immutable rz = st < 0 ? -3.0f : 1.25f;
         immutable m = 0.1f;
-        immutable ry = st < 0 ? -30f : 115f;
-        immutable look_at = Vector3f (0, 30, 0);
+        immutable ry = st < 0 ? -3.0f : 2f;
+        immutable look_at = Vector3f (0, 2, st < 0 ? 2 : -10);
         immutable cam_pos = Vector3f(
                         rx * pow(abs(ct), m),
-                        50 + ry * pow(abs(st), m),
-                        rz * pow(abs(st), m));
+                        5.0f + ry * pow(abs(st), m),
+                        1.5f + rz * pow(abs(st), m));
         m_camera.position = cam_pos;
         m_camera.direction = normalised(look_at - cam_pos);
+
+        const cross = m_camera.direction.cross!Vector3f(Vector3f.up);
+        //m_sLights[0].position = m_camera.position + cross;
+        //m_sLights[0].direction = (look_at - m_sLights[0].position).normalised;
+
+        m_sLights[1].position = Vector3f(-7.5f, 11f, -0.5f + 1.5f * cos(1 + t));
+        m_sLights[1].direction = normalised(Vector3f(4f, 0f, -0.5f) - m_sLights[1].position);
+
+        m_sLights[2].position = Vector3f(-7.5f, 11f, -0.5f + 1.5f * cos(t));
+        m_sLights[2].direction = normalised(Vector3f(-4f, 0f, -0.5f) - m_sLights[2].position);
+
+        m_sLights[3].position = Vector3f(-9.775f, .834f, 1.525f + .3f * cos(3 + t));
+        m_sLights[3].direction = normalised(Vector3f(0.97f, 0.1f, -.6f));
     }
 
     /// Atomically increments the static freeID and returns an instance ID.
@@ -140,6 +152,81 @@ struct Scene
                 m_instances[meshID] = [move (instance)];
             }
         }
+    }
+
+    /// Adds a couple of different lights to the scene.
+    private void hardCodedLights()
+    {
+        auto dLight         = RenderDLight();
+        dLight.direction    = Vector3f (11f, -2f, -10f).normalised;
+        dLight.intensity    = Vector3f (0.075f);
+        m_dLights           ~= dLight;
+
+        auto pLight         = RenderPLight();
+        pLight.position     = Vector3f (4f, 3f, 0f);
+        pLight.intensity    = Vector3f (1f);
+        pLight.radius       = 100f;
+        pLight.attenuation  = Vector3f (1f, 4.5f / pLight.radius, 75f / pLight.radius);
+        m_pLights           ~= pLight;
+
+        pLight.position     = Vector3f (0f, 5f, -5f);
+        pLight.intensity    = Vector3f (1f);
+        pLight.radius       = 100f;
+        pLight.attenuation  = Vector3f (1f, 4.5f / pLight.radius, 75f / pLight.radius);
+        m_pLights           ~= pLight;
+
+        pLight.position     = Vector3f (-13f, 2f, 0f);
+        pLight.intensity    = Vector3f (0.5f, 0.15f, 0.15f);
+        pLight.radius       = 100f;
+        pLight.attenuation  = Vector3f (1f, 4.5f / pLight.radius, 75f / pLight.radius);
+        m_pLights           ~= pLight;
+
+        pLight.position     = Vector3f (12f, 2f, 0f);
+        pLight.intensity    = Vector3f (0.35f);
+        pLight.radius       = 100f;
+        pLight.attenuation  = Vector3f (1f, 4.5f / pLight.radius, 75f / pLight.radius);
+        m_pLights           ~= pLight;
+
+        pLight.position     = Vector3f (12f, 5f, 0f);
+        pLight.intensity    = Vector3f (0.15f, 0.15f, 0.5f);
+        pLight.radius       = 100f;
+        pLight.attenuation  = Vector3f (1f, 4.5f / pLight.radius, 75f / pLight.radius);
+        m_pLights           ~= pLight;
+
+        pLight.position     = Vector3f (-13f, 5f, 0f);
+        pLight.intensity    = Vector3f (0.15f, 0.5f, 0.15f);
+        pLight.radius       = 100f;
+        pLight.attenuation  = Vector3f (1f, 4.5f / pLight.radius, 75f / pLight.radius);
+        m_pLights           ~= pLight;
+
+        auto sLight             = RenderSLight();
+        sLight.intensity        = Vector3f (0.25f);
+        sLight.range            = 150f;
+        sLight.coneAngle        = 60f;
+        sLight.concentration    = 1f;
+        sLight.attenuation      = Vector3f (1f, 4.5f / sLight.range, 75f / sLight.range);
+        m_sLights               ~= sLight;
+        
+        sLight.intensity        = Vector3f (0.75f);
+        sLight.range            = 1000f;
+        sLight.coneAngle        = 60f;
+        sLight.concentration    = 6f;
+        sLight.attenuation      = Vector3f (1f, 4.5f / sLight.range, 75f / sLight.range);
+        m_sLights               ~= sLight;
+        
+        sLight.intensity        = Vector3f (0.75f);
+        sLight.range            = 1000f;
+        sLight.coneAngle        = 60f;
+        sLight.concentration    = 2f;
+        sLight.attenuation      = Vector3f (1f, 4.5f / sLight.range, 75f / sLight.range);
+        m_sLights               ~= sLight;
+        
+        sLight.intensity        = Vector3f (.75f);
+        sLight.range            = 300f;
+        sLight.coneAngle        = 90f;
+        sLight.concentration    = 9f;
+        sLight.attenuation      = Vector3f (1f, 4.5f / sLight.range, 75f / sLight.range);
+        m_sLights               ~= sLight;
     }
 
     /// Given a sponza instance index, this will return a material ID for that object.
@@ -224,10 +311,10 @@ struct Scene
             case 00: case 275: case 276: case 277: case 278: case 279: case 280: case 281:
                 return materialID ("leaf");
 
-            case 377: case 378:
-                return materialID ("Material__25");
+            
+                //return materialID ("Material__25");
 
-            case 03:
+            case 03: case 377: case 378:
                 return materialID ("Material__298");
 
             case 257:
@@ -256,7 +343,7 @@ struct Scene
     private static float[3][4] hardCodedTransforms (size_t sponzaIndex) pure nothrow @safe @nogc
     {
         // The sponza model is working with a strange unit system. 
-        enum s = 0.225f;
+        enum s = 0.01f;
         switch (sponzaIndex)
         {
             default: // Identity.

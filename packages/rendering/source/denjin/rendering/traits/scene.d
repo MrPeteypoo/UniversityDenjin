@@ -140,6 +140,7 @@ pure nothrow @safe @nogc unittest
         alias dLight this;
         float range;
         float coneAngle;
+        float concentration;
         float[3] position;
         int[3] attenuation;
     }
@@ -471,6 +472,7 @@ template isSpotlight (T)
     static assert (hasMember!(T, "isShadowCaster"));
     static assert (hasMember!(T, "range"));
     static assert (hasMember!(T, "coneAngle"));
+    static assert (hasMember!(T, "concentration"));
     static assert (hasMember!(T, "position"));
     static assert (hasMember!(T, "direction"));
     static assert (hasMember!(T, "intensity"));
@@ -498,6 +500,10 @@ template isSpotlight (T)
         auto angle      = light.coneAngle;
         alias AngType   = typeof (angle);
         static assert (isImplicitlyConvertible!(AngType, float));
+
+        auto concen     = light.concentration;
+        alias ConType   = typeof (concen);
+        static assert (isImplicitlyConvertible!(ConType, float));
 
         auto position   = light.position;
         alias PosType   = typeof (position);
@@ -537,6 +543,7 @@ pure nothrow @safe @nogc unittest
         alias dLight this;
         float range;
         float coneAngle;
+        float concentration;
         float[3] position;
         int[3] attenuation;
     }

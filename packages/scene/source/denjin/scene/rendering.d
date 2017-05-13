@@ -16,8 +16,8 @@ struct RenderCamera
 {
     Vector3f    position            = Vector3f.zero;    /// The position of the camera in world-space.
     Vector3f    direction           = Vector3f.forward; /// The direction that the camera is facing in world-space.
-    float       fieldOfView         = 60f;              /// The field of view of the camera in degrees.
-    float       nearPlaneDistance   = 1f;               /// How close objects can be to the camera before being clipped.
+    float       fieldOfView         = 75f;              /// The field of view of the camera in degrees.
+    float       nearPlaneDistance   = 0.1f;             /// How close objects can be to the camera before being clipped.
     float       farPlaneDistance    = 1000f;            /// How far objects can be away from the camera before being clipped.
 }
 ///
@@ -79,7 +79,7 @@ struct RenderPLight
 {
     RenderLight common;                         /// The base type containing common light data.
     Vector3f    position    = Vector3f.zero;    /// The position of the light in world space.
-    Vector3f    attenuation = Vector3f.zero;    /// Constant, linear, and quadratic attenuation co-efficients for the light.
+    Vector3f    attenuation = Vector3f.one;     /// Constant, linear, and quadratic attenuation co-efficients for the light.
     float       radius      = 40f;              /// The radius around the world position that will be effected by light.
 
     /// Subtype from the common light data.
@@ -95,12 +95,13 @@ pure nothrow @safe @nogc unittest
 /// Represents a spotlight in a scene.
 struct RenderSLight
 {
-    RenderLight common;                         /// The base type containing common light data.
-    Vector3f    position    = Vector3f.zero;    /// The position of the light in world space.
-    Vector3f    direction   = Vector3f.zero;    /// The direction of the light being cast.
-    Vector3f    attenuation = Vector3f.zero;    /// Constant, linear, and quadratic attenuation co-efficients for the light.
-    float       range       = 40f;              /// How far forward the light can reach.
-    float       coneAngle   = 90f;              /// The angle of the spotlight cone in degrees.
+    RenderLight common;                             /// The base type containing common light data.
+    Vector3f    position        = Vector3f.zero;    /// The position of the light in world space.
+    Vector3f    direction       = Vector3f.zero;    /// The direction of the light being cast.
+    Vector3f    attenuation     = Vector3f.one;     /// Constant, linear, and quadratic attenuation co-efficients for the light.
+    float       range           = 40f;              /// How far forward the light can reach.
+    float       coneAngle       = 90f;              /// The angle of the spotlight cone in degrees.
+    float       concentration   = 2f;               /// How concentrated the beam of the spot light is, effects angular attenuation.
 
     /// Subtype from the common light data.
     alias common this;

@@ -16,14 +16,10 @@ set batchFileName=%~n0
 set output=%currentDir%\content\all\shaders\
 set shaderDir=%batchDir%..\shaders\
 
-set shaders[0].Name=testVert.spv
-set shaders[0].Files=test.vert
-set shaders[1].Name=testFrag.spv
-set shaders[1].Files=test.frag
-set shaders[2].Name=geometry.spv
-set shaders[2].Files=geometry.vert
-set shaders[3].Name=forward.spv
-set shaders[3].Files=forward.frag
+set shaders[0].Name=geometry.spv
+set shaders[0].Files=geometry.vert
+set shaders[1].Name=forward.spv
+set shaders[1].Files=forward.frag
 set lastIndex=3
 
 if not exist %output% mkdir %output%

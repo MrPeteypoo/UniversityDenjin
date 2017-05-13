@@ -17,9 +17,9 @@ import std.algorithm.mutation   : move;
 import denjin.maths.functions               : lookAt, perspective, radians;
 import denjin.rendering.interfaces          : IRenderer;
 import denjin.rendering.vulkan.device       : Device;
-import denjin.rendering.vulkan.internals    : Barriers, Commands, Framebuffers, InstanceAttributes, GeometryT, 
-                                              MaterialsT, Pipelines, RenderPasses, Syncs, Uniforms, Vec3, 
-                                              VertexAttributes;
+import denjin.rendering.vulkan.internals    : Barriers, Commands, DirectionalLight, Framebuffers, InstanceAttributes, 
+                                              GeometryT, MaterialsT, Pipelines, PointLight, RenderPasses, Spotlight, 
+                                              Syncs, Uniforms, Vec3, VertexAttributes;
 import denjin.rendering.vulkan.misc         : safelyDestroyVK;
 import denjin.rendering.vulkan.objects      : createCommandPool;
 import denjin.rendering.vulkan.swapchain    : Swapchain, VSync;
@@ -47,7 +47,7 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         alias MemoryProps   = VkPhysicalDeviceMemoryProperties;
 
         // Global data.
-        enum VkClearColorValue clearColor               = { float32: [0f, 0f, 0f, 0f] };
+        enum VkClearColorValue clearColor               = { float32: [0.143f, 0.201f, 0.244f, 1f] };
         enum VkClearDepthStencilValue clearDepth        = { depth: 1f, stencil: 255 };
         static immutable VkClearValue[2] clearValues    = [{ color: clearColor }, { depthStencil: clearDepth }];
         static immutable uint32_t virtualFrames         = 3;
@@ -327,10 +327,8 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
                 // Update the instance data.
                 with (instanceAttributes[totalInstances++])
                 {
-                    material.physics    = -1;
-                    material.albedo     = -1;
-                    material.normal     = -1;
-                    transform           = instance.transformationMatrix;
+                    material    = m_materials.indices[instance.materialID];
+                    transform   = instance.transformationMatrix;
                 }
             }
 
@@ -364,6 +362,67 @@ final class RendererVulkan (Assets, Scene) : IRenderer!(Assets, Scene)
         sceneBlock.view             = lookAt (camPos, camPos + camDir, up);
         sceneBlock.cameraPosition   = camPos;
         sceneBlock.ambientLight     = ambience;
+
+        size_t i;
+        auto dLightBlock = m_uniforms.dLightBlock;
+        foreach (ref sceneLight; scene.directionalLights)
+        {
+            if (i != dLightBlock.array.length)
+            {
+                with (dLightBlock.array[i++])
+                {
+                    direction = Vec3 (sceneLight.direction);
+                    intensity = Vec3 (sceneLight.intensity);
+                }
+            }
+            else break;
+        }
+        dLightBlock.length = cast (uint32_t) i;
+
+        i = 0;
+        auto pLightBlock = m_uniforms.pLightBlock;
+        foreach (ref sceneLight; scene.pointLights)
+        {
+            if (i != pLightBlock.array.length)
+            {
+                with (pLightBlock.array[i++])
+                {
+                    const att   = Vec3 (sceneLight.attenuation);
+                    position    = Vec3 (sceneLight.position);
+                    radius      = cast (float) sceneLight.radius;
+                    intensity   = Vec3 (sceneLight.intensity);
+                    aConstant   = att.x;
+                    aLinear     = att.y;
+                    aQuadratic  = att.z;
+                }
+            }
+            else break;
+        }
+        pLightBlock.length = cast (uint32_t) i;
+
+        i = 0;
+        auto sLightBlock = m_uniforms.sLightBlock;
+        foreach (ref sceneLight; scene.spotlights)
+        {
+            if (i != sLightBlock.array.length)
+            {
+                with (sLightBlock.array[i++])
+                {
+                    const att       = Vec3 (sceneLight.attenuation);
+                    position        = Vec3 (sceneLight.position);
+                    coneAngle       = cast (float) sceneLight.coneAngle;
+                    direction       = Vec3 (sceneLight.direction);
+                    range           = cast (float) sceneLight.range;
+                    intensity       = Vec3 (sceneLight.intensity);
+                    concentration   = cast (float) sceneLight.concentration;
+                    aConstant       = att.x;
+                    aLinear         = att.y;
+                    aQuadratic      = att.z;
+                }
+            }
+            else break;
+        }
+        sLightBlock.length = cast (uint32_t) i;
     }
 
     /// Submits the command buffer used for the current frame to the render queue.

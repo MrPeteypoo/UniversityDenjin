@@ -16,10 +16,7 @@
 	"preGenerateCommands-linux": ["$PACKAGE_DIR/scripts/build-spir-v.sh"],
 	"preGenerateCommands-windows": ["$PACKAGE_DIR\\scripts\\build-spir-v.bat"],
 
-	"buildRequirements": [
-		"allowWarnings",
-		"disallowDeprecations"
-	],
+	"buildRequirements": [ "allowWarnings" ],
 
 	"buildTypes": {
 		"optimized": {
