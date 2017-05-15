@@ -309,10 +309,11 @@ pure nothrow @safe unittest
     An entire vertex is added to the given RenderMesh.
     
     Params:
-        mesh    = The mesh to add a vertex to.
-        normal  = The surface normal of the vertex, this is used in lighting calculations.
-        tangent = The tangent of the surface normal, this is used in bump mapping techniques.
-        uv      = The texture-coordinate for the new vertex.
+        mesh        = The mesh to add a vertex to.
+        position    = The position of the vertex. This is required.
+        normal      = The surface normal of the vertex, this is used in lighting calculations.
+        tangent     = The tangent of the surface normal, this is used in bump mapping techniques.
+        uv          = The texture-coordinate for the new vertex.
 */
 void addVertex (ref RenderMesh mesh, 
                 in float[3] position, 
@@ -341,6 +342,7 @@ pure nothrow @safe unittest
     An entire triangle is added to the given RenderMesh.
     
     Params:
+        mesh    = The mesh to add the triangle to.
         first   = The starting position index of the triangle.
         second  = The position index of the vertex to draw a line from the first position to.
         third   = The position index of the vertex to draw a line from the second position to. A line will then be draw 

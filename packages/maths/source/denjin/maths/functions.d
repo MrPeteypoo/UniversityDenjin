@@ -121,7 +121,6 @@ pure nothrow @safe @nogc unittest
     Constructs a view matrix with the given parameters. This is modelled very similarly after the glm::lookAt function.
 
     Params:
-        depthZeroToOne  = Determines whether the depth should be clamped from zero to one (Vulkan requires this).
         rightHanded     = Whether the matrix should use the right-handed or left-handed formula.
         T               = The numerical type of the matrix and input vectors.
         eye             = The position of the eye in world-space.

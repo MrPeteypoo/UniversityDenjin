@@ -9,7 +9,7 @@
 	"dependencies": {
 		"denjin:maths": "*",
 		"denjin:misc": "*",
-		"erupted": "~>1.5",
+		"erupted": "==1.5.1",
 		"imageformats": "~>6.1"
 	},
 

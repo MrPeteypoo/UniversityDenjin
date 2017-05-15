@@ -96,8 +96,8 @@ struct Scene
         m_camera.direction = normalised(look_at - cam_pos);
 
         const cross = m_camera.direction.cross!Vector3f(Vector3f.up);
-        //m_sLights[0].position = m_camera.position + cross;
-        //m_sLights[0].direction = (look_at - m_sLights[0].position).normalised;
+        m_sLights[0].position = m_camera.position + cross * 0.05f;
+        m_sLights[0].direction = m_camera.direction;
 
         m_sLights[1].position = Vector3f(-7.5f, 11f, -0.5f + 1.5f * cos(1 + t));
         m_sLights[1].direction = normalised(Vector3f(4f, 0f, -0.5f) - m_sLights[1].position);
@@ -169,6 +169,12 @@ struct Scene
         pLight.attenuation  = Vector3f (1f, 4.5f / pLight.radius, 75f / pLight.radius);
         m_pLights           ~= pLight;
 
+        pLight.position     = Vector3f (4f, 3f, 0f);
+        pLight.intensity    = Vector3f (1f);
+        pLight.radius       = 100f;
+        pLight.attenuation  = Vector3f (1f, 4.5f / pLight.radius, 75f / pLight.radius);
+        m_pLights           ~= pLight;
+
         pLight.position     = Vector3f (0f, 5f, -5f);
         pLight.intensity    = Vector3f (1f);
         pLight.radius       = 100f;
@@ -176,8 +182,8 @@ struct Scene
         m_pLights           ~= pLight;
 
         pLight.position     = Vector3f (-13f, 2f, 0f);
-        pLight.intensity    = Vector3f (0.5f, 0.15f, 0.15f);
-        pLight.radius       = 100f;
+        pLight.intensity    = Vector3f (0.75f, 0.15f, 0.15f);
+        pLight.radius       = 500f;
         pLight.attenuation  = Vector3f (1f, 4.5f / pLight.radius, 75f / pLight.radius);
         m_pLights           ~= pLight;
 
@@ -188,41 +194,41 @@ struct Scene
         m_pLights           ~= pLight;
 
         pLight.position     = Vector3f (12f, 5f, 0f);
-        pLight.intensity    = Vector3f (0.15f, 0.15f, 0.5f);
-        pLight.radius       = 100f;
+        pLight.intensity    = Vector3f (0.15f, 0.15f, 0.75f);
+        pLight.radius       = 500f;
         pLight.attenuation  = Vector3f (1f, 4.5f / pLight.radius, 75f / pLight.radius);
         m_pLights           ~= pLight;
 
         pLight.position     = Vector3f (-13f, 5f, 0f);
-        pLight.intensity    = Vector3f (0.15f, 0.5f, 0.15f);
-        pLight.radius       = 100f;
+        pLight.intensity    = Vector3f (0.15f, 0.75f, 0.15f);
+        pLight.radius       = 500f;
         pLight.attenuation  = Vector3f (1f, 4.5f / pLight.radius, 75f / pLight.radius);
         m_pLights           ~= pLight;
 
         auto sLight             = RenderSLight();
-        sLight.intensity        = Vector3f (0.25f);
-        sLight.range            = 150f;
+        sLight.intensity        = Vector3f (0.5f);
+        sLight.range            = 3000f;
         sLight.coneAngle        = 60f;
         sLight.concentration    = 1f;
         sLight.attenuation      = Vector3f (1f, 4.5f / sLight.range, 75f / sLight.range);
         m_sLights               ~= sLight;
         
         sLight.intensity        = Vector3f (0.75f);
-        sLight.range            = 1000f;
+        sLight.range            = 3000f;
         sLight.coneAngle        = 60f;
-        sLight.concentration    = 6f;
+        sLight.concentration    = 1f;
         sLight.attenuation      = Vector3f (1f, 4.5f / sLight.range, 75f / sLight.range);
         m_sLights               ~= sLight;
         
         sLight.intensity        = Vector3f (0.75f);
-        sLight.range            = 1000f;
+        sLight.range            = 3000f;
         sLight.coneAngle        = 60f;
         sLight.concentration    = 2f;
         sLight.attenuation      = Vector3f (1f, 4.5f / sLight.range, 75f / sLight.range);
         m_sLights               ~= sLight;
         
         sLight.intensity        = Vector3f (.75f);
-        sLight.range            = 300f;
+        sLight.range            = 1000f;
         sLight.coneAngle        = 90f;
         sLight.concentration    = 9f;
         sLight.attenuation      = Vector3f (1f, 4.5f / sLight.range, 75f / sLight.range);

@@ -35,7 +35,8 @@
 		"--min-protection=Private", 
 		"--in=denjin",
 		"--ex=erupted",
-		"--ex=derelict"
+		"--ex=derelict",
+		"--ex=imageformats"
 	],
 
 	"buildRequirements": [ "allowWarnings" ],

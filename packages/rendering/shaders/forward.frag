@@ -434,7 +434,7 @@ vec3 microfacetSpecular (const in vec3 l, const in vec3 n, const in vec3 h,
     const float denominator = 4.0 * lDotN * vDotN;
     
     // Return the specular effect.
-    return denominator > 0.2 ? (f * g * d) / denominator : vec3 (0.0);
+    return denominator > 0.001 ? (f * g * d) / denominator : vec3 (0.0);
 }
 
 /**

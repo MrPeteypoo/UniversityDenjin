@@ -79,7 +79,7 @@ struct Instance
             extensionCount  = How many extensions will be loaded.
             extensions      = A collection extension names to be loaded.
     */
-    public this (in InstanceProcAddress proc, in uint32_t extensionCount, in char** extensions)
+    this (in InstanceProcAddress proc, in uint32_t extensionCount, in char** extensions)
     {
         // Pre-conditions.
         enforce (proc != null);
@@ -91,8 +91,7 @@ struct Instance
     }
 
     /// Destroys any stored instances/surfaces.
-    nothrow
-    public ~this()
+    ~this() nothrow
     {
         clear();
     }
