@@ -84,6 +84,8 @@ matrix:
 
   allow_failures:
     - d: gdc
+    - env: ARCH=x86_64
+      d: dmd-2.072.2
       
   exclude:
     - d: dmd
