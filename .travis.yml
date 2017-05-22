@@ -100,8 +100,8 @@ script:
   - ./build.sh build optimized $ARCH ${DC}
   - ./build.sh build release $ARCH ${DC}
   - ./build.sh build release-nobounds $ARCH ${DC}
-  - ./build.sh test unittest-cov $ARCH ${DC}
-  - ./build.sh test unittest-optimized $ARCH ${DC}
+  - ./build.sh build unittest-cov $ARCH ${DC}
+  - ./build.sh build unittest-optimized $ARCH ${DC}
 
 after_script:
   - dub run doveralls
